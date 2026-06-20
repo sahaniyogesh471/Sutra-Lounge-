@@ -1,0 +1,44 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Playfair Display", ui-serif, Georgia, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  
+  /* Luxury Gold palette */
+  --color-gold: #c5a85c;
+  --color-gold-hover: #b39243;
+  --color-gold-light: #fbf7ef;
+  
+  /* Beige & Cream backgrounds */
+  --color-cream-soft: #faf8f5;
+  --color-cream-deep: #f5eedf;
+  
+  /* Deep warm charcoal for typography contrast */
+  --color-charcoal: #1c1a17;
+  --color-charcoal-muted: #4e4a43;
+}
+
+body {
+  background-color: var(--color-cream-soft);
+  color: var(--color-charcoal);
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+}
+
+/* Custom transitions and scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-cream-soft);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-cream-deep);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-gold);
+}

@@ -1,0 +1,82 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isHardcodedAdmin() {
+      return isSignedIn() && 'email' in request.auth.token && (
+        request.auth.token.email.lower() == "admin@sutralounge.com.np" || 
+        request.auth.token.email.lower() == "j7259022@gmail.com"
+      );
+    }
+
+    function isAdmin() {
+      return isHardcodedAdmin() || (
+        isSignedIn() && exists(/databases/$(database)/documents/admin_users/$(request.auth.uid))
+      );
+    }
+
+    function isValidReservation(data) {
+      return data.keys().hasAll(['full_name', 'phone', 'party_size', 'reservation_date', 'start_time', 'end_time', 'status'])
+        && data.full_name is string && data.full_name.size() > 0 && data.full_name.size() <= 200
+        && data.phone is string && data.phone.size() > 0 && data.phone.size() <= 50
+        && data.party_size is int && data.party_size >= 1 && data.party_size <= 200
+        && data.reservation_date is string && data.reservation_date.size() > 0 && data.reservation_date.size() <= 20
+        && data.start_time is string && data.start_time.size() >= 4 && data.start_time.size() <= 10
+        && data.end_time is string && data.end_time.size() >= 4 && data.end_time.size() <= 10
+        && data.status is string && (data.status == 'pending' || data.status == 'confirmed' || data.status == 'cancelled' || data.status == 'completed');
+    }
+
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Restaurant settings rules
+    match /restaurant_settings/{settingsId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Business hours rules
+    match /business_hours/{weekdayId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Restaurant tables rules
+    match /restaurant_tables/{tableId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Menu items rules
+    match /menu_items/{itemId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Blocked dates rules
+    match /blocked_dates/{blockedId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Reservations rules
+    match /reservations/{reservationId} {
+      allow read: if true;
+      allow create: if isValidReservation(request.resource.data);
+      allow update, delete: if isAdmin();
+    }
+
+    // Admin users security mapping rules
+    match /admin_users/{userId} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow write: if isAdmin() || (isSignedIn() && request.auth.uid == userId && isHardcodedAdmin());
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "Sutra Lounge - Best Restaurant in Hetauda",
+  "description": "Premium landing page for Sutra Lounge, the premier dine-in, takeout, and catering restaurant in Nagar Bikash Samiti Marg, Hetauda, Nepal.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

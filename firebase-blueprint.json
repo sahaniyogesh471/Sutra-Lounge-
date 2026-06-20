@@ -1,0 +1,130 @@
+{
+  "entities": {
+    "Reservation": {
+      "title": "Reservation",
+      "description": "Restaurant table booking reservation request",
+      "type": "object",
+      "properties": {
+        "full_name": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "party_size": { "type": "integer" },
+        "table_id": { "type": "string" },
+        "reservation_date": { "type": "string" },
+        "start_time": { "type": "string" },
+        "end_time": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "confirmed", "cancelled"] },
+        "special_requests": { "type": "string" },
+        "created_at": { "type": "string" }
+      },
+      "required": ["full_name", "phone", "party_size", "reservation_date", "start_time", "end_time", "status"]
+    },
+    "Table": {
+      "title": "Table",
+      "description": "Dining table configuration and information",
+      "type": "object",
+      "properties": {
+        "table_name": { "type": "string" },
+        "capacity": { "type": "integer" },
+        "area": { "type": "string" },
+        "is_active": { "type": "boolean" },
+        "created_at": { "type": "string" }
+      },
+      "required": ["table_name", "capacity", "area", "is_active"]
+    },
+    "MenuItem": {
+      "title": "MenuItem",
+      "description": "Dishes and beverages offered on the restaurant menu",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "price": { "type": "integer" },
+        "category": { "type": "string" },
+        "is_featured": { "type": "boolean" },
+        "is_active": { "type": "boolean" },
+        "created_at": { "type": "string" }
+      },
+      "required": ["name", "description", "price", "category", "is_featured", "is_active"]
+    },
+    "BusinessHour": {
+      "title": "BusinessHour",
+      "description": "Weekly scheduling rules for business hours",
+      "type": "object",
+      "properties": {
+        "weekday": { "type": "string" },
+        "is_open": { "type": "boolean" },
+        "start_time": { "type": "string" },
+        "end_time": { "type": "string" }
+      },
+      "required": ["weekday", "is_open", "start_time", "end_time"]
+    },
+    "BlockedDate": {
+      "title": "BlockedDate",
+      "description": "Holiday or holiday block out dates",
+      "type": "object",
+      "properties": {
+        "blocked_date": { "type": "string" },
+        "reason": { "type": "string" }
+      },
+      "required": ["blocked_date", "reason"]
+    },
+    "AdminUser": {
+      "title": "AdminUser",
+      "description": "Authorized administrator user mapping",
+      "type": "object",
+      "properties": {
+        "user_id": { "type": "string" },
+        "email": { "type": "string" },
+        "created_at": { "type": "string" }
+      },
+      "required": ["user_id"]
+    },
+    "RestaurantSettings": {
+      "title": "RestaurantSettings",
+      "description": "Restaurant meta settings",
+      "type": "object",
+      "properties": {
+        "restaurant_name": { "type": "string" },
+        "restaurant_email": { "type": "string" },
+        "restaurant_phone": { "type": "string" },
+        "restaurant_address": { "type": "string" },
+        "slot_interval_minutes": { "type": "integer" },
+        "booking_notice_hours": { "type": "integer" },
+        "default_reservation_duration_minutes": { "type": "integer" },
+        "max_party_size": { "type": "integer" }
+      },
+      "required": ["restaurant_name", "restaurant_email", "restaurant_phone", "restaurant_address", "slot_interval_minutes", "booking_notice_hours", "default_reservation_duration_minutes", "max_party_size"]
+    }
+  },
+  "firestore": {
+    "reservations/{reservationId}": {
+      "schema": "Reservation",
+      "description": "Collection of dine-in/takeaway booking inquiries"
+    },
+    "restaurant_tables/{tableId}": {
+      "schema": "Table",
+      "description": "Available tables in the dine-in location"
+    },
+    "menu_items/{itemId}": {
+      "schema": "MenuItem",
+      "description": "Dishes listed in the menu"
+    },
+    "business_hours/{weekdayId}": {
+      "schema": "BusinessHour",
+      "description": "Day-by-day open/close schedule"
+    },
+    "blocked_dates/{blockedId}": {
+      "schema": "BlockedDate",
+      "description": "Specific calendar days closed for holiday"
+    },
+    "restaurant_settings/{settingsId}": {
+      "schema": "RestaurantSettings",
+      "description": "Global config of the establishment"
+    },
+    "admin_users/{userId}": {
+      "schema": "AdminUser",
+      "description": "Registered and authorized admin users"
+    }
+  }
+}
