@@ -92,7 +92,9 @@
         "slot_interval_minutes": { "type": "integer" },
         "booking_notice_hours": { "type": "integer" },
         "default_reservation_duration_minutes": { "type": "integer" },
-        "max_party_size": { "type": "integer" }
+        "max_party_size": { "type": "integer" },
+        "hero_image_url": { "type": "string" },
+        "dish_image_url": { "type": "string" }
       },
       "required": ["restaurant_name", "restaurant_email", "restaurant_phone", "restaurant_address", "slot_interval_minutes", "booking_notice_hours", "default_reservation_duration_minutes", "max_party_size"]
     }

@@ -20,6 +20,10 @@ service cloud.firestore {
       );
     }
 
+    function hasAdminEntry() {
+      return isSignedIn() && exists(/databases/$(database)/documents/admin_users/$(request.auth.uid));
+    }
+
     function isValidReservation(data) {
       return data.keys().hasAll(['full_name', 'phone', 'party_size', 'reservation_date', 'start_time', 'end_time', 'status'])
         && data.full_name is string && data.full_name.size() > 0 && data.full_name.size() <= 200
@@ -39,7 +43,8 @@ service cloud.firestore {
     // Restaurant settings rules
     match /restaurant_settings/{settingsId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow create: if isAdmin();
+      allow update, delete: if hasAdminEntry();
     }
 
     // Business hours rules
@@ -57,7 +62,8 @@ service cloud.firestore {
     // Menu items rules
     match /menu_items/{itemId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow create: if isAdmin();
+      allow update, delete: if hasAdminEntry();
     }
 
     // Blocked dates rules

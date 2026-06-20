@@ -176,7 +176,9 @@ export default function App() {
     slot_interval_minutes: 30,
     booking_notice_hours: 2,
     default_reservation_duration_minutes: 90,
-    max_party_size: 20
+    max_party_size: 20,
+    hero_image_url: "",
+    dish_image_url: ""
   });
   const [dbMenuItems, setDbMenuItems] = useState<any[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<any | null>(null);
@@ -215,7 +217,19 @@ export default function App() {
     const unsubSettings = onSnapshot(collection(db, 'restaurant_settings'), (snapshot) => {
       const defaultDoc = snapshot.docs.find(doc => doc.id === 'default');
       if (defaultDoc) {
-        setDbSettings(defaultDoc.data());
+        const data = defaultDoc.data() || {};
+        setDbSettings({
+          restaurant_name: data.restaurant_name || "Sutra Lounge",
+          restaurant_email: data.restaurant_email || "info@sutralounge.com.np",
+          restaurant_phone: data.restaurant_phone || "+977 1500000",
+          restaurant_address: data.restaurant_address || "Nagar Bikash Samiti Marg, Hetauda 44107, Nepal",
+          slot_interval_minutes: Number(data.slot_interval_minutes || 30),
+          booking_notice_hours: Number(data.booking_notice_hours || 2),
+          default_reservation_duration_minutes: Number(data.default_reservation_duration_minutes || 90),
+          max_party_size: Number(data.max_party_size || 20),
+          hero_image_url: data.hero_image_url || "",
+          dish_image_url: data.dish_image_url || ""
+        });
       }
     }, (error) => {
       handleFirestoreError(error, OperationType.GET, 'restaurant_settings');
@@ -516,6 +530,10 @@ export default function App() {
   const getLocalizedCategoryName = (category: string) => {
     if (lang === 'en') return category;
     if (category === 'All') return 'सबै';
+    if (category === 'Interior') return 'भित्री दृश्य';
+    if (category === 'Food') return 'स्वादिष्ट भोजन';
+    if (category === 'Drinks') return 'पेय पदार्थ';
+    if (category === 'Exterior') return 'बाहिरी दृश्य';
     const item = MENU_HIGHLIGHTS.find(i => i.category === category);
     if (item && MENU_TRANSLATIONS[item.title]) {
       return MENU_TRANSLATIONS[item.title].category;
@@ -839,7 +857,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
               transition={{ duration: 0.25 }}
               className="tracking-wide text-cream-soft"
             >
-              {PROMO_ANNOUNCEMENTS[currentPromoIdx]}
+              {getTranslatedAnnouncement(PROMO_ANNOUNCEMENTS[currentPromoIdx])}
             </motion.span>
           </AnimatePresence>
         </div>
@@ -867,7 +885,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
                 SUTRA LOUNGE
               </span>
               <span className="font-mono text-[9px] tracking-widest text-gold uppercase block -mt-1 font-semibold">
-                Best Restaurant in Hetauda
+                {lang === 'en' ? 'Best Restaurant in Hetauda' : 'हेटौंडाको उत्कृष्ट रेस्टुरेन्ट'}
               </span>
             </div>
           </button>
@@ -1178,8 +1196,8 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
             <motion.div variants={fadeInUp} className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md pt-2">
               <div className="border border-cream-deep bg-cream-soft rounded-2xl p-4 flex items-center justify-between hover:border-gold/30 transition-colors duration-300">
                 <div className="text-left">
-                  <p className="text-[10px] font-mono tracking-wider text-gold uppercase font-bold">Address</p>
-                  <p className="text-xs font-semibold text-charcoal truncate max-w-[160px]">Nagar Bikash Samiti Marg</p>
+                  <p className="text-[10px] font-mono tracking-wider text-gold uppercase font-bold">{lang === 'en' ? 'Address' : 'ठेगाना'}</p>
+                  <p className="text-xs font-semibold text-charcoal truncate max-w-[160px]">{lang === 'en' ? 'Nagar Bikash Samiti Marg' : 'नगर विकास समिति मार्ग'}</p>
                 </div>
                 <a 
                   href={BUSINESS_DETAILS.mapsLink} 
@@ -1237,7 +1255,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
               
               <div className="relative overflow-hidden rounded-2xl shadow-xl aspect-square sm:aspect-[4/3] lg:aspect-square bg-cream-deep">
                 <img 
-                  src={heroImageUrl || heroImage} 
+                  src={dbSettings?.hero_image_url || heroImageUrl || heroImage} 
                   alt="Sutra Lounge cozy elegant wood interior and gold lighting" 
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                   referrerPolicy="no-referrer"
@@ -1246,14 +1264,20 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
                 {/* Embedded Information Overlay */}
                 <div className="absolute bottom-4 left-4 right-4 bg-charcoal/95 backdrop-blur-sm p-4 rounded-xl border border-gold/20 flex flex-col sm:flex-row gap-3 justify-between items-start sm:items-center text-cream-soft">
                   <div>
-                    <h4 className="font-serif text-sm font-bold tracking-wide">Sutra Lounge Vibe</h4>
-                    <span className="text-[10px] text-gold font-mono tracking-widest uppercase font-semibold block">Hetauda • Cozy &amp; Well-Decorated</span>
+                    <h4 className="font-serif text-sm font-bold tracking-wide">
+                      {lang === 'en' ? 'Sutra Lounge Vibe' : 'सुत्र लाउन्ज वातावरण'}
+                    </h4>
+                    <span className="text-[10px] text-gold font-mono tracking-widest uppercase font-semibold block">
+                      {lang === 'en' ? 'Hetauda • Cozy & Well-Decorated' : 'हेटौंडा • आरामदायी र सुसज्जित'}
+                    </span>
                   </div>
                   <div className="text-right whitespace-nowrap shrink-0">
                     <p className="text-xs font-semibold text-gold font-mono flex items-center gap-1">
                       ★★★★☆ {BUSINESS_DETAILS.rating}
                     </p>
-                    <p className="text-[9px] text-cream-soft/60">{BUSINESS_DETAILS.reviewCount} Local Feedback</p>
+                    <p className="text-[9px] text-cream-soft/60">
+                      {BUSINESS_DETAILS.reviewCount} {lang === 'en' ? 'Local Feedback' : 'स्थानीय प्रतिक्रियाहरू'}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -1280,24 +1304,39 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
             <div className="space-y-4">
               <span className="inline-flex items-center gap-1.5 text-[10px] font-mono tracking-widest text-gold uppercase font-bold">
                 <Sparkles className="w-3.5 h-3.5 text-gold animate-spin-slow" />
-                Featured update from the Owner
+                {lang === 'en' ? 'Featured update from the Owner' : 'संचालकद्वारा विशेष जानकारी / सूचना'}
               </span>
               <p className="font-serif italic text-base sm:text-lg text-charcoal leading-relaxed font-light">
-                &ldquo;{OWNER_UPDATE.content}&rdquo;
+                &ldquo;{lang === 'en' 
+                  ? OWNER_UPDATE.content 
+                  : 'बाहिर कुरकुरा, भित्र रसिलो 🍗🔥 सुत्र लाउन्ज, हेटौंडाको हाम्रो विशेष चिकेन स्यान्डविच उत्कृष्ट स्वाद, ताजा सामग्री र एकदमै मीठो क्रन्चले भरिएको छ। एकचोटि चाखेपछि तपाईं बारम्बार खाइरहनुहुनेछ 😋🥪 सहरकै उत्कृष्ट खानाको अनुभव लिन हामीकहाँ पाल्नुहोस्!'
+                }&rdquo;
               </p>
               <div className="flex flex-wrap gap-2">
-                {OWNER_UPDATE.tags.map((tag, i) => (
-                  <span key={i} className="text-[10px] font-mono text-gold-hover hover:underline cursor-pointer">
-                    #{tag}
-                  </span>
-                ))}
+                {lang === 'en' ? (
+                  OWNER_UPDATE.tags.map((tag, i) => (
+                    <span key={i} className="text-[10px] font-mono text-gold-hover hover:underline cursor-pointer">
+                      #{tag}
+                    </span>
+                  ))
+                ) : (
+                  ['सुत्रलाउन्ज', 'चिकेनस्यान्डविच', 'हेटौंडाकैउत्कृष्टखाना'].map((tag, i) => (
+                    <span key={i} className="text-[10px] font-mono text-gold-hover hover:underline cursor-pointer">
+                      #{tag}
+                    </span>
+                  ))
+                )}
               </div>
             </div>
 
             {/* Quick date stamp */}
             <div className="shrink-0 text-left md:text-right border-t md:border-t-0 md:border-l border-cream-deep pt-4 md:pt-0 pl-0 md:pl-6">
-              <p className="text-[10px] font-mono tracking-wide text-charcoal-muted uppercase">Published</p>
-              <p className="text-xs font-bold text-charcoal">{OWNER_UPDATE.date}</p>
+              <p className="text-[10px] font-mono tracking-wide text-charcoal-muted uppercase">
+                {lang === 'en' ? 'Published' : 'प्रकाशित मिति'}
+              </p>
+              <p className="text-xs font-bold text-charcoal">
+                {lang === 'en' ? OWNER_UPDATE.date : '१२ फेब्रुअरी, २०२६'}
+              </p>
             </div>
           </div>
 
@@ -1410,7 +1449,9 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
                     onClick={() => {
                       setForm(prev => ({
                         ...prev,
-                        message: `Hetauda Greetings! I am highly interested in tasting or booking a table for "${dish.title}" at Sutra Lounge!`
+                        message: lang === 'en'
+                          ? `Hetauda Greetings! I am highly interested in tasting or booking a table for "${dish.title}" at Sutra Lounge!`
+                          : `हेटौंडाबाट नमस्कार! म विशेष गरी सुत्र लाउन्जको "${dish.title}" परिकार चाख्न वा टेबल बुकिङ गर्न इच्छुक छु!`
                       }));
                       scrollToSection(contactSectionRef);
                     }}
@@ -1436,10 +1477,12 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
             <div className="space-y-1 max-w-2xl">
               <h4 className="font-serif text-sm sm:text-base font-bold text-charcoal flex items-center gap-2">
                 <Utensils className="w-4 h-4 text-gold shrink-0" />
-                <span>Craving more delicacies?</span>
+                <span>{lang === 'en' ? 'Craving more delicacies?' : 'थप स्वादिष्ट परिकारहरूको इच्छा छ?'}</span>
               </h4>
               <p className="text-xs text-charcoal-muted font-light leading-relaxed">
-                Explore our full, dynamically filterable menu below featuring Appetizers, Mocktails, Indian Curries and cafe bites, or complete a secure reservation inquiry to experience modern restaurant hospitality at Nagar Bikash Samiti Marg, Huprachaur.
+                {lang === 'en' 
+                  ? 'Explore our full, dynamically filterable menu below featuring Appetizers, Mocktails, Indian Curries and cafe bites, or complete a secure reservation inquiry to experience modern restaurant hospitality at Nagar Bikash Samiti Marg, Huprachaur.'
+                  : 'हाम्रो पूर्ण मेनुमा एपीटाइजर, मकटेल, भारतीय परिकार र क्याफे खाजाहरू उपलब्ध छन्। नगर विकास समिति मार्ग, हुप्रचौरमा सुत्र आतिथ्यता अनुभव गर्न बुकिङ सोधपुछ फारम भर्नुहोस्।'}
               </p>
             </div>
             
@@ -1457,7 +1500,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
                 }}
                 className="bg-charcoal hover:bg-gold text-white hover:text-charcoal transition-all text-xs font-bold uppercase tracking-wider px-6 py-3 rounded-full cursor-pointer flex items-center justify-center gap-1.5 shadow-sm active:scale-95"
               >
-                <span>Browse Full Menu</span>
+                <span>{lang === 'en' ? 'Browse Full Menu' : 'पूर्ण मेनु हेर्नुहोस्'}</span>
                 <ChevronRight className="w-3.5 h-3.5 shrink-0" />
               </button>
               
@@ -1466,7 +1509,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
                 onClick={() => scrollToSection(contactSectionRef)}
                 className="bg-transparent border-2 border-charcoal hover:bg-charcoal hover:text-white transition-all text-xs font-bold uppercase tracking-wider px-6 py-3 rounded-full cursor-pointer text-center active:scale-95"
               >
-                <span>Reserve a Table</span>
+                <span>{lang === 'en' ? 'Reserve a Table' : 'क्याबिन/टेबल बुकिङ'}</span>
               </button>
             </div>
           </motion.div>
@@ -1531,7 +1574,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
                       />
                       {item.isPopular && (
                         <span className="absolute top-2.5 right-2.5 bg-gold border border-gold/15 text-cream-soft px-2.5 py-0.5 rounded-full text-[9px] font-mono uppercase tracking-wider font-bold shadow-md">
-                          Chef's Pick
+                          {lang === 'en' ? "Chef's Pick" : "विशेष रोजाइ"}
                         </span>
                       )}
                       {item.socialLink && (
@@ -1544,12 +1587,12 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
                           {item.socialLink.includes('instagram') ? (
                             <>
                               <Instagram className="w-3 h-3 text-gold" />
-                              <span>Instagram Feed</span>
+                              <span>{lang === 'en' ? 'Instagram Feed' : 'इन्स्टाग्राम'}</span>
                             </>
                           ) : (
                             <>
                               <Facebook className="w-3 h-3 text-gold" />
-                              <span>Facebook Page</span>
+                              <span>{lang === 'en' ? 'Facebook Page' : 'फेसबुक पेज'}</span>
                             </>
                           )}
                         </a>
@@ -1559,7 +1602,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
 
                   {!item.image && item.isPopular && (
                     <span className="absolute top-4 right-4 bg-gold-light border border-gold/25 text-gold px-2.5 py-0.5 rounded-full text-[9px] font-mono uppercase tracking-wider font-bold">
-                      Chef's Pick
+                      {lang === 'en' ? "Chef's Pick" : "विशेष रोजाइ"}
                     </span>
                   )}
 
@@ -1584,13 +1627,15 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
                     onClick={() => {
                       setForm(prev => ({
                         ...prev,
-                        message: `Interested in ordering the ${item.title}. `
+                        message: lang === 'en'
+                          ? `Interested in ordering the ${item.title}.`
+                          : `म सुत्र लाउन्जको ${item.title} परिकार अर्डर गर्न इच्छुक छु।`
                       }));
                       scrollToSection(contactSectionRef);
                     }}
                     className="text-[10px] font-bold uppercase tracking-wider text-gold hover:text-gold-hover flex items-center gap-1 cursor-pointer"
                   >
-                    Order Info
+                    {lang === 'en' ? 'Order Info' : 'अर्डर सोधपुछ'}
                     <ChevronRight className="w-3 h-3 animate-pulse" />
                   </button>
                 </div>
@@ -1609,7 +1654,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
             className="lg:col-span-5 aspect-[4/3] lg:aspect-auto lg:h-full min-h-[300px]"
           >
             <img 
-              src={dishImageUrl || dishImage} 
+              src={dbSettings?.dish_image_url || dishImageUrl || dishImage} 
               alt="Gourmet Plated Dish at Sutra Lounge Hetauda" 
               className="w-full h-full object-cover select-none"
               referrerPolicy="no-referrer"
@@ -1623,27 +1668,41 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
             className="lg:col-span-7 p-8 sm:p-12 text-left space-y-6"
           >
             <span className="font-mono text-xs tracking-widest text-gold uppercase font-bold block">
-              Gourmet Precision
+              {lang === 'en' ? 'Gourmet Precision' : 'उत्कृष्ट स्वाद कला र सुदृढता'}
             </span>
             <h3 className="font-serif text-2xl sm:text-3.5xl text-charcoal leading-tight font-extrabold">
-              Exceptional Food Experience
+              {lang === 'en' ? 'Exceptional Food Experience' : 'विशेष र उत्कृष्ट भोजन अनुभव'}
             </h3>
             <p className="text-sm sm:text-base text-charcoal-muted leading-relaxed font-light">
-              We focus on absolute culinary integrity. From selecting locally harvested veggies to utilizing pure premium standards of seasoning, we guarantee that whether you choose simple dine-in comfort, safe pickup containers, or customized event menus, you will be deeply pleased of your own accord.
+              {lang === 'en'
+                ? 'We focus on absolute culinary integrity. From selecting locally harvested veggies to utilizing pure premium standards of seasoning, we guarantee that whether you choose simple dine-in comfort, safe pickup containers, or customized event menus, you will be deeply pleased of your own accord.'
+                : 'हामी खाद्य सामग्रीहरूको पूर्ण शुद्धता र गुणस्तरमा ध्यान दिन्छौं। हेटौंडाका स्थानीय ताजा तरकारी छनोट देखि लिएर स्तरिय मसलाहरूको प्रयोग सम्म, हामी ग्यारेन्टी दिन्छौं कि तपाईंको प्रत्येक भोजन विशेष र सन्तोषजनक हुनेछ।'}
             </p>
 
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 border-t border-cream-deep pt-6">
               <div>
-                <p className="text-[11px] font-mono tracking-wide uppercase text-gold">Clean Prep</p>
-                <p className="text-xs font-bold text-charcoal">Hygienic Kitchen</p>
+                <p className="text-[11px] font-mono tracking-wide uppercase text-gold">
+                  {lang === 'en' ? 'Clean Prep' : 'पूर्ण सरसफाई'}
+                </p>
+                <p className="text-xs font-bold text-charcoal">
+                  {lang === 'en' ? 'Hygienic Kitchen' : 'स्वास्थ्यकर भान्सा'}
+                </p>
               </div>
               <div>
-                <p className="text-[11px] font-mono tracking-wide uppercase text-gold">Quick Turnaround</p>
-                <p className="text-xs font-bold text-charcoal">Fast Service Desk</p>
+                <p className="text-[11px] font-mono tracking-wide uppercase text-gold">
+                  {lang === 'en' ? 'Quick Turnaround' : 'छरितो र सजिलो'}
+                </p>
+                <p className="text-xs font-bold text-charcoal">
+                  {lang === 'en' ? 'Fast Service Desk' : 'छिटो सेवा डेस्क'}
+                </p>
               </div>
               <div>
-                <p className="text-[11px] font-mono tracking-wide uppercase text-gold">Locally Loved</p>
-                <p className="text-xs font-bold text-charcoal">{BUSINESS_DETAILS.rating} Google Rating</p>
+                <p className="text-[11px] font-mono tracking-wide uppercase text-gold">
+                  {lang === 'en' ? 'Locally Loved' : 'स्थानीय रोजाइ'}
+                </p>
+                <p className="text-xs font-bold text-charcoal">
+                  {BUSINESS_DETAILS.rating} {lang === 'en' ? 'Google Rating' : 'गुगल रेटिङ'}
+                </p>
               </div>
             </div>
 
@@ -1652,7 +1711,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
                 onClick={() => scrollToSection(contactSectionRef)}
                 className="bg-gold hover:bg-gold-hover text-cream-soft text-xs font-bold uppercase tracking-wider px-6 py-3.5 rounded-full transition-all duration-300 scale-100 active:scale-95 cursor-pointer shadow-sm hover:shadow"
               >
-                Inquire or Order Now
+                {lang === 'en' ? 'Inquire or Order Now' : 'अर्डर वा सोधपुछ गर्नुहोस्'}
               </button>
             </div>
           </motion.div>
@@ -1747,7 +1806,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
                       }}
                       className="text-xs font-bold tracking-wider uppercase text-gold hover:text-gold-hover flex items-center gap-1 cursor-pointer"
                     >
-                      Request Details
+                      {lang === 'en' ? 'Request Details' : 'थप विवरण बुझ्नुहोस्'}
                       <ChevronRight className="w-3.5 h-3.5" />
                     </button>
                   </div>
@@ -2771,7 +2830,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
                 />
                 <div className="absolute top-3 left-3 bg-charcoal/90 backdrop-blur-xs px-2.5 py-1 rounded-lg border border-gold/20 text-[9px] font-mono font-bold text-cream-soft tracking-wider uppercase flex items-center gap-1.5 pointer-events-none shadow-sm">
                   <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block animate-ping" />
-                  <span>Real Google Maps Visual</span>
+                  <span>{lang === 'en' ? 'Real Google Maps Visual' : 'गुगल म्याप्स वास्तविक नक्सा दृश्य'}</span>
                 </div>
               </div>
 

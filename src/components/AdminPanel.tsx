@@ -96,7 +96,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
     slot_interval_minutes: 30,
     booking_notice_hours: 2,
     default_reservation_duration_minutes: 90,
-    max_party_size: 20
+    max_party_size: 20,
+    hero_image_url: "",
+    dish_image_url: ""
   });
   const [adminUsers, setAdminUsers] = useState<any[]>([]);
   const [newAdmin, setNewAdmin] = useState({ user_id: '', email: '' });
@@ -224,7 +226,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
     const unsubSettings = onSnapshot(collection(db, 'restaurant_settings'), (snapshot) => {
       const defaultDoc = snapshot.docs.find(doc => doc.id === 'default');
       if (defaultDoc) {
-        setSettings(defaultDoc.data());
+        const data = defaultDoc.data() || {};
+        setSettings({
+          restaurant_name: data.restaurant_name || "Sutra Lounge",
+          restaurant_email: data.restaurant_email || "info@sutralounge.com.np",
+          restaurant_phone: data.restaurant_phone || "+977 1500000",
+          restaurant_address: data.restaurant_address || "Nagar Bikash Samiti Marg, Hetauda 44107, Nepal",
+          slot_interval_minutes: Number(data.slot_interval_minutes || 30),
+          booking_notice_hours: Number(data.booking_notice_hours || 2),
+          default_reservation_duration_minutes: Number(data.default_reservation_duration_minutes || 90),
+          max_party_size: Number(data.max_party_size || 20),
+          hero_image_url: data.hero_image_url || "",
+          dish_image_url: data.dish_image_url || ""
+        });
       }
     }, (error) => {
       handleFirestoreError(error, OperationType.GET, 'restaurant_settings');
@@ -594,6 +608,27 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
       triggerToast("Permission Denied: Only primary administrators can update global settings.");
       return;
     }
+
+    const isValidSecureUrl = (url: string): boolean => {
+      if (!url) return true;
+      try {
+        const parsed = new URL(url);
+        return parsed.protocol === 'https:';
+      } catch (_) {
+        return false;
+      }
+    };
+
+    if (settings.hero_image_url && !isValidSecureUrl(settings.hero_image_url)) {
+      triggerToast("Error: Hero Image must be a valid secure URL starting with https://");
+      return;
+    }
+
+    if (settings.dish_image_url && !isValidSecureUrl(settings.dish_image_url)) {
+      triggerToast("Error: Special Dish Image must be a valid secure URL starting with https://");
+      return;
+    }
+
     try {
       await setDoc(doc(db, 'restaurant_settings', 'default'), {
         restaurant_name: settings.restaurant_name,
@@ -603,7 +638,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
         slot_interval_minutes: Number(settings.slot_interval_minutes),
         booking_notice_hours: Number(settings.booking_notice_hours),
         default_reservation_duration_minutes: Number(settings.default_reservation_duration_minutes),
-        max_party_size: Number(settings.max_party_size)
+        max_party_size: Number(settings.max_party_size),
+        hero_image_url: settings.hero_image_url || "",
+        dish_image_url: settings.dish_image_url || ""
       });
       triggerToast("Global restaurant settings updated successfully");
     } catch (e: any) {
@@ -1625,6 +1662,46 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                         className="w-full bg-cream-soft/40 px-3 py-2 border border-cream-deep rounded-xl text-xs font-mono text-charcoal disabled:opacity-60 disabled:cursor-not-allowed"
                       />
                       <p className="text-[9px] text-charcoal-muted font-mono leading-relaxed mt-1">Guests cannot book tables starting sooner than this amount of hours after the current clock time.</p>
+                    </div>
+
+                    <div className="space-y-1.5 md:col-span-2 border-t border-cream-deep pt-4 mt-2">
+                      <h4 className="font-serif text-sm font-bold text-charcoal flex items-center gap-1.5">
+                        <Sparkles className="w-4 h-4 text-gold" />
+                        <span>Media Customization Assets</span>
+                      </h4>
+                      <p className="text-[10px] text-charcoal-muted font-light">Custom secure HTTPS image links deployed to the public interface. Standard static files or cloud storage URLs are supported.</p>
+                    </div>
+
+                    <div className="space-y-1.5 md:col-span-2">
+                      <label className="text-[10px] font-mono tracking-wider text-charcoal-muted uppercase block font-semibold flex items-center gap-1">
+                        <Shield className="w-3 h-3 text-gold" />
+                        <span>Hero Background Image URL (Secure HTTPS)</span>
+                      </label>
+                      <input 
+                        type="url" 
+                        disabled={!isSuperAdmin}
+                        placeholder="https://example.com/hero-bg.jpg (Secure protocol required)"
+                        value={settings.hero_image_url || ''}
+                        onChange={(e) => setSettings(prev => ({ ...prev, hero_image_url: e.target.value }))}
+                        className="w-full bg-cream-soft/40 px-3 py-2 border border-cream-deep rounded-xl text-xs font-mono text-charcoal disabled:opacity-60 disabled:cursor-not-allowed"
+                      />
+                      <p className="text-[9px] text-charcoal-muted font-mono leading-relaxed mt-1">Provide a secure URL (starting with https) to override the default hero background image.</p>
+                    </div>
+
+                    <div className="space-y-1.5 md:col-span-2">
+                      <label className="text-[10px] font-mono tracking-wider text-charcoal-muted uppercase block font-semibold flex items-center gap-1">
+                        <Shield className="w-3 h-3 text-gold" />
+                        <span>Special Featured Dish Image URL (Secure HTTPS)</span>
+                      </label>
+                      <input 
+                        type="url" 
+                        disabled={!isSuperAdmin}
+                        placeholder="https://example.com/dish.jpg (Secure protocol required)"
+                        value={settings.dish_image_url || ''}
+                        onChange={(e) => setSettings(prev => ({ ...prev, dish_image_url: e.target.value }))}
+                        className="w-full bg-cream-soft/40 px-3 py-2 border border-cream-deep rounded-xl text-xs font-mono text-charcoal disabled:opacity-60 disabled:cursor-not-allowed"
+                      />
+                      <p className="text-[9px] text-charcoal-muted font-mono leading-relaxed mt-1">Provide a secure URL (starting with https) to override the main featured chicken sandwich dish image.</p>
                     </div>
                   </div>
 
