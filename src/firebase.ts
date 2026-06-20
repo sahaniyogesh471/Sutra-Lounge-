@@ -3,16 +3,16 @@ import { getFirestore, doc, setDoc, getDoc, collection, getDocs } from 'firebase
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBwvv5yZgLKVQpH-TyI2VRCNOUe25NxjE4",
-  authDomain: "concise-anvil-kn56p.firebaseapp.com",
-  projectId: "concise-anvil-kn56p",
-  storageBucket: "concise-anvil-kn56p.firebasestorage.app",
-  messagingSenderId: "650203517892",
-  appId: "1:650203517892:web:9e2d73f6ce7279d7c30a91"
+  apiKey: "AIzaSyDNXbmDLilNsvtQ0p-nPlMC_MyKNeBBr40",
+  authDomain: "sutraloungehtdclient.firebaseapp.com",
+  projectId: "sutraloungehtdclient",
+  storageBucket: "sutraloungehtdclient.firebasestorage.app",
+  messagingSenderId: "106358115005",
+  appId: "1:106358115005:web:6cab925fe5cb20aa61c5d4"
 };
 
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app, "ai-studio-b3bc9767-48fa-42a7-9e4d-471f3ed85725");
+const db = getFirestore(app);
 const auth = getAuth(app);
 
 // Seed function to prepopulate Firestore if empty
@@ -24,8 +24,8 @@ export async function seedDatabaseIfEmpty() {
     if (!settingsSnap.exists()) {
       await setDoc(settingsDocRef, {
         restaurant_name: "Sutra Lounge",
-        restaurant_email: "info@sutralounge.com.np",
-        restaurant_phone: "+977 1500000",
+        restaurant_email: "sutraloungehtd@gmail.com",
+        restaurant_phone: "057-522111",
         restaurant_address: "Nagar Bikash Samiti Marg, Hetauda 44107, Nepal",
         slot_interval_minutes: 30,
         booking_notice_hours: 2,

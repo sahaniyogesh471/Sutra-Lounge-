@@ -36,12 +36,12 @@ import { LazyImage } from './components/LazyImage';
 import { AdminPanel } from './components/AdminPanel';
 import { db, seedDatabaseIfEmpty, handleFirestoreError, OperationType } from './firebase';
 import { collection, onSnapshot, addDoc } from 'firebase/firestore';
-import { 
-  LanguageType, 
-  STATIC_TRANSLATIONS, 
-  MENU_TRANSLATIONS, 
-  SERVICES_TRANSLATIONS, 
-  FAQS_TRANSLATIONS, 
+import {
+  LanguageType,
+  STATIC_TRANSLATIONS,
+  MENU_TRANSLATIONS,
+  SERVICES_TRANSLATIONS,
+  FAQS_TRANSLATIONS,
   PHOTO_TRANSLATIONS,
   SERVICE_TYPE_NAMES
 } from './translations';
@@ -60,6 +60,10 @@ export const TikTokIcon = ({ className = "w-4 h-4" }: { className?: string }) =>
 // Importing the generated fine-dining images for premium ambient design
 import heroImage from './assets/images/sutra_lounge_hero_1781183015871.png';
 import dishImage from './assets/images/sutra_lounge_dish_1781183032907.png';
+import signatureTandoori from './assets/images/sizzling_tandoori_1781234571439.jpg';
+import signatureSandwich from './assets/images/chicken_sandwich_1781234586059.jpg';
+import signaturePancakes from './assets/images/sutra_pancakes_1781234540304.jpg';
+import signatureMojito from './assets/images/mint_mojito_1781234642673.jpg';
 
 // Premium Cinematic Animation Presets
 const fadeInUp = {
@@ -123,28 +127,28 @@ const SIGNATURE_DISHES = [
     price: 'NPR 1,150',
     description: 'Traditional bone-in chicken thighs marinated overnight in hand-ground ginger-garlic paste and spicy local mountain herbs, clay-oven roasted to succulent smoky perfection. Served sizzling with glazed onions.',
     badge: 'Chef Specialty',
-    image: '/src/assets/images/sizzling_tandoori_1781234571439.jpg'
+    image: signatureTandoori
   },
   {
     title: 'Signature Toast Chicken Sandwich',
     price: 'NPR 550',
     description: 'The definitive town favorite. Hand-sliced bread grilled butter-crisp, stacked double with seasoned pan-grilled chicken, Swiss cheese, fresh lettuce, tomatoes, and secret signature lounge dressing.',
     badge: 'Town Favorite',
-    image: '/src/assets/images/chicken_sandwich_1781234586059.jpg'
+    image: signatureSandwich
   },
   {
     title: 'Fresh Pancakes Breakfast Combo',
     price: 'NPR 490',
     description: 'Fluffy golden-brown handcrafted pancakes served sweet with organic honey syrup, complete with your choice of premium brewed Himalayan coffee or high-altitude green tea.',
     badge: 'Breakfast Sensation',
-    image: '/src/assets/images/sutra_pancakes_1781234540304.jpg'
+    image: signaturePancakes
   },
   {
     title: 'Classic Mint Virgin Mojito',
     price: 'NPR 280',
     description: 'An invigorating specialty cooler blending muddled fresh garden-plucked mint sprigs, organic key limes, pure cane sugar syrup, and premium carbonated mountain soda over crushed ice.',
     badge: 'Mixology Craft',
-    image: '/src/assets/images/mint_mojito_1781234642673.jpg'
+    image: signatureMojito
   }
 ];
 
@@ -170,8 +174,8 @@ export default function App() {
   const [dbBlockedDates, setDbBlockedDates] = useState<any[]>([]);
   const [dbSettings, setDbSettings] = useState<any>({
     restaurant_name: "Sutra Lounge",
-    restaurant_email: "info@sutralounge.com.np",
-    restaurant_phone: "+977 1500000",
+    restaurant_email: "sutraloungehtd@gmail.com",
+    restaurant_phone: "057-522111",
     restaurant_address: "Nagar Bikash Samiti Marg, Hetauda 44107, Nepal",
     slot_interval_minutes: 30,
     booking_notice_hours: 2,
@@ -220,8 +224,8 @@ export default function App() {
         const data = defaultDoc.data() || {};
         setDbSettings({
           restaurant_name: data.restaurant_name || "Sutra Lounge",
-          restaurant_email: data.restaurant_email || "info@sutralounge.com.np",
-          restaurant_phone: data.restaurant_phone || "+977 1500000",
+          restaurant_email: data.restaurant_email || "sutraloungehtd@gmail.com",
+          restaurant_phone: data.restaurant_phone || "057-522111",
           restaurant_address: data.restaurant_address || "Nagar Bikash Samiti Marg, Hetauda 44107, Nepal",
           slot_interval_minutes: Number(data.slot_interval_minutes || 30),
           booking_notice_hours: Number(data.booking_notice_hours || 2),
@@ -691,17 +695,55 @@ export default function App() {
   const contactSectionRef = useRef<HTMLDivElement>(null);
   const locationSectionRef = useRef<HTMLDivElement>(null);
 
-  const scrollToSection = (ref: React.RefObject<HTMLDivElement | null>) => {
-    if (ref.current) {
-      ref.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const syncHash = (hash: string | null) => {
+    if (typeof window === 'undefined') return;
+    const nextHash = hash && hash.length > 0 ? `#${hash}` : '';
+    const url = new URL(window.location.href);
+    url.hash = nextHash.replace(/^#/, '');
+    window.history.replaceState({}, '', `${url.pathname}${url.search}${nextHash}`);
+  };
+
+  const scrollToSection = (ref: React.RefObject<HTMLDivElement | null>, sectionId?: string) => {
+    const target = ref.current ?? (sectionId ? document.getElementById(sectionId) : null);
+
+    if (target) {
+      const offset = 96;
+      const top = Math.max(0, target.getBoundingClientRect().top + window.scrollY - offset);
+      window.scrollTo({ top, behavior: 'auto' });
+      syncHash(sectionId || target.id);
+    } else if (sectionId) {
+      syncHash(sectionId);
     }
+
     setMobileMenuOpen(false);
   };
 
   const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: 'auto' });
+    syncHash('');
     setMobileMenuOpen(false);
   };
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace('#', '').trim();
+      if (!hash) {
+        window.scrollTo({ top: 0, behavior: 'auto' });
+        return;
+      }
+
+      const target = document.getElementById(hash);
+      if (target) {
+        const offset = 96;
+        const top = Math.max(0, target.getBoundingClientRect().top + window.scrollY - offset);
+        window.scrollTo({ top, behavior: 'auto' });
+      }
+    };
+
+    handleHashChange();
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
 
   const handleCopyAddress = () => {
     navigator.clipboard.writeText(BUSINESS_DETAILS.address);
@@ -781,10 +823,10 @@ export default function App() {
       }
       setSubmitSuccess(true);
     } catch (err: any) {
-      console.error("Firestore Save Error:", err);
-      setFormError(lang === 'en' 
-        ? "Failed to save reservation. Please verify database connection." 
-        : "डाटाबेस त्रुटि: बुकिङ सुरक्षित गर्न सकिएन। पुनः प्रयास गर्नुहोस्।");
+      console.error('Firestore Save Error:', err);
+      setFormError(lang === 'en'
+        ? 'Failed to save reservation. Please verify database connection.'
+        : 'डाटाबेस त्रुटि: बुकिङ सुरक्षित गर्न सकिएन। पुनः प्रयास गर्नुहोस्।');
     }
   };
 
@@ -885,7 +927,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
                 SUTRA LOUNGE
               </span>
               <span className="font-mono text-[9px] tracking-widest text-gold uppercase block -mt-1 font-semibold">
-                {lang === 'en' ? 'Best Restaurant in Hetauda' : 'हेटौंडाको उत्कृष्ट रेस्टुरेन्ट'}
+                {t('nav_brand_subtitle')}
               </span>
             </div>
           </button>
@@ -899,25 +941,25 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
               {t('nav_home')}
             </button>
             <button 
-              onClick={() => scrollToSection(menuSectionRef)} 
+              onClick={() => scrollToSection(menuSectionRef, 'menu')} 
               className="text-xs tracking-wider uppercase font-bold text-charcoal-muted hover:text-gold transition-colors cursor-pointer focus:outline-none bg-transparent border-none p-0"
             >
               {t('nav_menu')}
             </button>
             <button 
-              onClick={() => scrollToSection(servicesSectionRef)} 
+              onClick={() => scrollToSection(servicesSectionRef, 'services')} 
               className="text-xs tracking-wider uppercase font-bold text-charcoal-muted hover:text-gold transition-colors cursor-pointer focus:outline-none bg-transparent border-none p-0"
             >
               {t('nav_services')}
             </button>
             <button 
-              onClick={() => scrollToSection(storySectionRef)} 
+              onClick={() => scrollToSection(storySectionRef, 'story-section')} 
               className="text-xs tracking-wider uppercase font-bold text-charcoal-muted hover:text-gold transition-colors cursor-pointer focus:outline-none bg-transparent border-none p-0"
             >
               {t('nav_story')}
             </button>
             <button 
-              onClick={() => scrollToSection(reviewsSectionRef)} 
+              onClick={() => scrollToSection(reviewsSectionRef, 'reviews')} 
               className="text-xs tracking-wider uppercase font-bold text-charcoal-muted hover:text-gold transition-colors cursor-pointer focus:outline-none bg-transparent border-none p-0"
             >
               {t('nav_reviews')}
@@ -989,7 +1031,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
             </a>
             
             <button 
-              onClick={() => scrollToSection(contactSectionRef)}
+              onClick={() => scrollToSection(contactSectionRef, 'contact')} 
               className="bg-gold hover:bg-gold-hover text-cream-soft px-6 py-3 rounded-full text-xs font-bold tracking-wider uppercase transition-all duration-300 hover:shadow-md cursor-pointer"
               id="top-cta-action"
             >
@@ -1052,31 +1094,31 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
                   {t('nav_home')}
                 </button>
                 <button 
-                  onClick={() => scrollToSection(menuSectionRef)}
+                  onClick={() => scrollToSection(menuSectionRef, 'menu')}
                   className="block w-full text-left text-sm font-bold uppercase tracking-wider text-charcoal py-2 border-b border-cream-deep cursor-pointer focus:outline-none bg-transparent border-none p-0"
                 >
                   {t('nav_menu')}
                 </button>
                 <button 
-                  onClick={() => scrollToSection(servicesSectionRef)}
+                  onClick={() => scrollToSection(servicesSectionRef, 'services')}
                   className="block w-full text-left text-sm font-bold uppercase tracking-wider text-charcoal py-2 border-b border-cream-deep cursor-pointer focus:outline-none bg-transparent border-none p-0"
                 >
                   {t('nav_services')}
                 </button>
                 <button 
-                  onClick={() => scrollToSection(storySectionRef)}
+                  onClick={() => scrollToSection(storySectionRef, 'story-section')}
                   className="block w-full text-left text-sm font-bold uppercase tracking-wider text-charcoal py-2 border-b border-cream-deep cursor-pointer focus:outline-none bg-transparent border-none p-0"
                 >
                   {t('nav_story')}
                 </button>
                 <button 
-                  onClick={() => scrollToSection(reviewsSectionRef)}
+                  onClick={() => scrollToSection(reviewsSectionRef, 'reviews')}
                   className="block w-full text-left text-sm font-bold uppercase tracking-wider text-charcoal py-2 border-b border-cream-deep cursor-pointer focus:outline-none bg-transparent border-none p-0"
                 >
                   {t('nav_reviews')}
                 </button>
                 <button 
-                  onClick={() => scrollToSection(contactSectionRef)}
+                  onClick={() => scrollToSection(contactSectionRef, 'contact')}
                   className="block w-full text-left text-sm font-bold uppercase tracking-wider text-gold py-2 cursor-pointer focus:outline-none bg-transparent border-none p-0"
                 >
                   {t('nav_visit_reserve')}
@@ -1168,7 +1210,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
               </span>
               <span className="inline-flex items-center gap-1 px-3 py-1 bg-cream-deep rounded-full text-[10px] sm:text-xs font-bold tracking-wider text-charcoal-muted uppercase">
                 <Sparkles className="w-3 h-3 text-gold" />
-                {lang === 'en' ? 'Budget: Rs 500 – 3,000 per person' : 'बजेट: प्रति व्यक्ति रु ५०० – ३,०००'}
+                {t('hero_budget')}
               </span>
             </motion.div>
 
@@ -1196,8 +1238,8 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
             <motion.div variants={fadeInUp} className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md pt-2">
               <div className="border border-cream-deep bg-cream-soft rounded-2xl p-4 flex items-center justify-between hover:border-gold/30 transition-colors duration-300">
                 <div className="text-left">
-                  <p className="text-[10px] font-mono tracking-wider text-gold uppercase font-bold">{lang === 'en' ? 'Address' : 'ठेगाना'}</p>
-                  <p className="text-xs font-semibold text-charcoal truncate max-w-[160px]">{lang === 'en' ? 'Nagar Bikash Samiti Marg' : 'नगर विकास समिति मार्ग'}</p>
+                  <p className="text-[10px] font-mono tracking-wider text-gold uppercase font-bold">{t('hero_address_label')}</p>
+                  <p className="text-xs font-semibold text-charcoal truncate max-w-[160px]">{t('hero_address_value')}</p>
                 </div>
                 <a 
                   href={BUSINESS_DETAILS.mapsLink} 
@@ -1212,8 +1254,8 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
 
               <div className="border border-cream-deep bg-cream-soft rounded-2xl p-4 flex items-center justify-between hover:border-gold/30 transition-colors duration-300">
                 <div className="text-left">
-                  <p className="text-[10px] font-mono tracking-wider text-gold uppercase font-bold font-semibold">{lang === 'en' ? 'Opening Hours' : t('location_hours_label')}</p>
-                  <p className="text-xs font-semibold text-charcoal">{lang === 'en' ? 'Daily: 8:00 AM – 9:00 PM' : 'दैनिक: बिहान ८:०० – बेलुका ९:००'}</p>
+                  <p className="text-[10px] font-mono tracking-wider text-gold uppercase font-bold font-semibold">{t('hero_hours_label')}</p>
+                  <p className="text-xs font-semibold text-charcoal">{t('hero_hours_value')}</p>
                 </div>
                 <div className="p-2 bg-cream-deep text-charcoal-muted rounded-xl">
                   <Clock className="w-4 h-4 text-gold" />
@@ -1224,20 +1266,20 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
             {/* Main Action CTAs */}
             <motion.div variants={fadeInUp} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-4">
               <button
-                onClick={() => scrollToSection(contactSectionRef)}
+                onClick={() => scrollToSection(contactSectionRef, 'contact')}
                 className="bg-gold hover:bg-gold-hover text-cream-soft py-4 px-8 rounded-full text-xs font-bold tracking-wider uppercase transition-all duration-300 shadow-md hover:shadow-lg flex items-center justify-center gap-2 cursor-pointer scale-100 hover:scale-102 active:scale-98"
                 id="hero-book-now"
               >
-                <span>{lang === 'en' ? 'Visit Us (Secure Table)' : 'हामीलाई भेट्नुहोस् / टेबल बुकिङ'}</span>
+                <span>{t('hero_cta_visit')}</span>
                 <ChevronRight className="w-4 h-4" />
               </button>
               
               <button
-                onClick={() => scrollToSection(menuSectionRef)}
+                onClick={() => scrollToSection(menuSectionRef, 'menu')}
                 className="bg-transparent border border-gold hover:bg-gold-light text-gold py-4 px-8 rounded-full text-xs font-bold tracking-wider uppercase transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer scale-100 hover:scale-102 active:scale-98"
                 id="hero-explore-menu"
               >
-                <span>{lang === 'en' ? 'Explore Highlights' : t('hero_cta_menu')}</span>
+                <span>{t('hero_cta_explore')}</span>
               </button>
             </motion.div>
 
@@ -1265,10 +1307,10 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
                 <div className="absolute bottom-4 left-4 right-4 bg-charcoal/95 backdrop-blur-sm p-4 rounded-xl border border-gold/20 flex flex-col sm:flex-row gap-3 justify-between items-start sm:items-center text-cream-soft">
                   <div>
                     <h4 className="font-serif text-sm font-bold tracking-wide">
-                      {lang === 'en' ? 'Sutra Lounge Vibe' : 'सुत्र लाउन्ज वातावरण'}
+                      {t('hero_overlay_vibe')}
                     </h4>
                     <span className="text-[10px] text-gold font-mono tracking-widest uppercase font-semibold block">
-                      {lang === 'en' ? 'Hetauda • Cozy & Well-Decorated' : 'हेटौंडा • आरामदायी र सुसज्जित'}
+                      {t('hero_overlay_desc')}
                     </span>
                   </div>
                   <div className="text-right whitespace-nowrap shrink-0">
@@ -1276,7 +1318,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
                       ★★★★☆ {BUSINESS_DETAILS.rating}
                     </p>
                     <p className="text-[9px] text-cream-soft/60">
-                      {BUSINESS_DETAILS.reviewCount} {lang === 'en' ? 'Local Feedback' : 'स्थानीय प्रतिक्रियाहरू'}
+                      {BUSINESS_DETAILS.reviewCount} {t('hero_feedback_suffix')}
                     </p>
                   </div>
                 </div>
@@ -1453,7 +1495,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
                           ? `Hetauda Greetings! I am highly interested in tasting or booking a table for "${dish.title}" at Sutra Lounge!`
                           : `हेटौंडाबाट नमस्कार! म विशेष गरी सुत्र लाउन्जको "${dish.title}" परिकार चाख्न वा टेबल बुकिङ गर्न इच्छुक छु!`
                       }));
-                      scrollToSection(contactSectionRef);
+                      scrollToSection(contactSectionRef, 'contact');
                     }}
                     className="text-[10px] font-extrabold uppercase tracking-widest text-charcoal hover:text-gold flex items-center gap-1 cursor-pointer transition-colors"
                   >
@@ -1495,7 +1537,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
                   if (categoryElement) {
                     categoryElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
                   } else {
-                    scrollToSection(menuSectionRef);
+                    scrollToSection(menuSectionRef, 'menu');
                   }
                 }}
                 className="bg-charcoal hover:bg-gold text-white hover:text-charcoal transition-all text-xs font-bold uppercase tracking-wider px-6 py-3 rounded-full cursor-pointer flex items-center justify-center gap-1.5 shadow-sm active:scale-95"
@@ -1506,7 +1548,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
               
               <button 
                 type="button"
-                onClick={() => scrollToSection(contactSectionRef)}
+                onClick={() => scrollToSection(contactSectionRef, 'contact')}
                 className="bg-transparent border-2 border-charcoal hover:bg-charcoal hover:text-white transition-all text-xs font-bold uppercase tracking-wider px-6 py-3 rounded-full cursor-pointer text-center active:scale-95"
               >
                 <span>{lang === 'en' ? 'Reserve a Table' : 'क्याबिन/टेबल बुकिङ'}</span>
@@ -1631,7 +1673,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
                           ? `Interested in ordering the ${item.title}.`
                           : `म सुत्र लाउन्जको ${item.title} परिकार अर्डर गर्न इच्छुक छु।`
                       }));
-                      scrollToSection(contactSectionRef);
+                      scrollToSection(contactSectionRef, 'contact');
                     }}
                     className="text-[10px] font-bold uppercase tracking-wider text-gold hover:text-gold-hover flex items-center gap-1 cursor-pointer"
                   >
@@ -1708,7 +1750,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
 
             <div className="pt-2">
               <button
-                onClick={() => scrollToSection(contactSectionRef)}
+                onClick={() => scrollToSection(contactSectionRef, 'contact')}
                 className="bg-gold hover:bg-gold-hover text-cream-soft text-xs font-bold uppercase tracking-wider px-6 py-3.5 rounded-full transition-all duration-300 scale-100 active:scale-95 cursor-pointer shadow-sm hover:shadow"
               >
                 {lang === 'en' ? 'Inquire or Order Now' : 'अर्डर वा सोधपुछ गर्नुहोस्'}
@@ -1802,7 +1844,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
                             service.id === 'takeout' ? 'Takeout' :
                             service.id === 'events' || service.id === 'sports' ? 'Catering' : 'General'
                         }));
-                        scrollToSection(contactSectionRef);
+                        scrollToSection(contactSectionRef, 'contact');
                       }}
                       className="text-xs font-bold tracking-wider uppercase text-gold hover:text-gold-hover flex items-center gap-1 cursor-pointer"
                     >
@@ -2275,7 +2317,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
       {/* DYNAMIC RESERVATION HUB */}
       <section 
         ref={contactSectionRef} 
-        id="reservation" 
+        id="contact" 
         className="py-16 md:py-24 bg-cream-soft px-4 sm:px-6 lg:px-8 scroll-mt-24"
       >
         <div className="max-w-4xl mx-auto">
@@ -3007,22 +3049,22 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
             </h4>
             <ul className="space-y-2 text-xs font-light text-cream-soft/75">
               <li>
-                <button onClick={() => scrollToSection(menuSectionRef)} className="hover:text-gold transition-colors cursor-pointer">
+                <button onClick={() => scrollToSection(menuSectionRef, 'menu')} className="hover:text-gold transition-colors cursor-pointer">
                   {lang === 'en' ? 'The Lounge Menu' : 'लाउन्ज मेनु'}
                 </button>
               </li>
               <li>
-                <button onClick={() => scrollToSection(servicesSectionRef)} className="hover:text-gold transition-colors cursor-pointer">
+                <button onClick={() => scrollToSection(servicesSectionRef, 'services')} className="hover:text-gold transition-colors cursor-pointer">
                   {lang === 'en' ? 'Our Services' : 'हाम्रा सेवाहरू'}
                 </button>
               </li>
               <li>
-                <button onClick={() => scrollToSection(storySectionRef)} className="hover:text-gold transition-colors cursor-pointer">
+                <button onClick={() => scrollToSection(storySectionRef, 'story-section')} className="hover:text-gold transition-colors cursor-pointer">
                   {lang === 'en' ? 'Our Story' : 'हाम्रो कथा'}
                 </button>
               </li>
               <li>
-                <button onClick={() => scrollToSection(contactSectionRef)} className="hover:text-gold transition-colors cursor-pointer">
+                <button onClick={() => scrollToSection(contactSectionRef, 'contact')} className="hover:text-gold transition-colors cursor-pointer">
                   {lang === 'en' ? 'Reserve a Table' : 'क्याबिन/टेबल बुकिङ'}
                 </button>
               </li>

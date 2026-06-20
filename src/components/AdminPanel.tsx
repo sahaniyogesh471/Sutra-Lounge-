@@ -90,8 +90,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
   const [blockedDates, setBlockedDates] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>({
     restaurant_name: "Sutra Lounge",
-    restaurant_email: "info@sutralounge.com.np",
-    restaurant_phone: "+977 1500000",
+    restaurant_email: "sutraloungehtd@gmail.com",
+    restaurant_phone: "057-522111",
     restaurant_address: "Nagar Bikash Samiti Marg, Hetauda 44107, Nepal",
     slot_interval_minutes: 30,
     booking_notice_hours: 2,
@@ -229,8 +229,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
         const data = defaultDoc.data() || {};
         setSettings({
           restaurant_name: data.restaurant_name || "Sutra Lounge",
-          restaurant_email: data.restaurant_email || "info@sutralounge.com.np",
-          restaurant_phone: data.restaurant_phone || "+977 1500000",
+          restaurant_email: data.restaurant_email || "sutraloungehtd@gmail.com",
+          restaurant_phone: data.restaurant_phone || "057-522111",
           restaurant_address: data.restaurant_address || "Nagar Bikash Samiti Marg, Hetauda 44107, Nepal",
           slot_interval_minutes: Number(data.slot_interval_minutes || 30),
           booking_notice_hours: Number(data.booking_notice_hours || 2),

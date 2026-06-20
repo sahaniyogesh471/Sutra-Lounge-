@@ -16,6 +16,7 @@ export const LazyImage: React.FC<LazyImageProps> = ({
 }) => {
   const [isIntersected, setIsIntersected] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [hasError, setHasError] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -77,13 +78,26 @@ export const LazyImage: React.FC<LazyImageProps> = ({
         <img
           src={src}
           alt={alt}
-          onLoad={() => setIsLoaded(true)}
+          onLoad={() => {
+            setIsLoaded(true);
+            setHasError(false);
+          }}
+          onError={() => {
+            setHasError(true);
+            setIsLoaded(false);
+          }}
           loading="lazy"
           className={`transition-all duration-700 ease-out select-none
             ${isLoaded ? 'opacity-100 blur-0 scale-100' : 'opacity-0 blur-md scale-[1.02]'}
             ${className}`}
           {...props}
         />
+      )}
+
+      {hasError && (
+        <div className="absolute inset-0 flex items-center justify-center bg-cream-deep text-charcoal-muted text-xs font-medium text-center px-4">
+          Image unavailable
+        </div>
       )}
     </div>
   );
