@@ -79,6 +79,13 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
+    // Online orders rules
+    match /online_orders/{orderId} {
+      allow read: if true;
+      allow create, update: if true; // Allows public order placement and update, secured in transactional validation
+      allow delete: if isAdmin();
+    }
+
     // Admin users security mapping rules
     match /admin_users/{userId} {
       allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());

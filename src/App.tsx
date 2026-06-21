@@ -34,8 +34,15 @@ import { BUSINESS_DETAILS as INITIAL_BUSINESS_DETAILS, SERVICES_LIST as INITIAL_
 import { InquiryForm } from './types';
 import { LazyImage } from './components/LazyImage';
 import { AdminPanel } from './components/AdminPanel';
-import { db, seedDatabaseIfEmpty, handleFirestoreError, OperationType } from './firebase';
-import { collection, onSnapshot, addDoc } from 'firebase/firestore';
+import { 
+  db, 
+  seedDatabaseIfEmpty, 
+  handleFirestoreError, 
+  OperationType,
+  collection, 
+  onSnapshot, 
+  addDoc 
+} from './firebase';
 import { 
   LanguageType, 
   STATIC_TRANSLATIONS, 
@@ -410,7 +417,7 @@ export default function App() {
         description: i.description,
         category: i.category,
         isPopular: i.is_featured,
-        image: SIGNATURE_DISHES[0].image, // fallback
+        image: i.image_url || i.image || SIGNATURE_DISHES[0].image,
       }))
     : menuHighlights;
   const SERVICES_LIST = servicesList;

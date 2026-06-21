@@ -97,6 +97,23 @@
         "dish_image_url": { "type": "string" }
       },
       "required": ["restaurant_name", "restaurant_email", "restaurant_phone", "restaurant_address", "slot_interval_minutes", "booking_notice_hours", "default_reservation_duration_minutes", "max_party_size"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Online customer food order mapping",
+      "type": "object",
+      "properties": {
+        "customer_name": { "type": "string" },
+        "customer_email": { "type": "string" },
+        "customer_phone": { "type": "string" },
+        "items": { "type": "array" },
+        "total_amount": { "type": "number" },
+        "status": { "type": "string", "enum": ["new", "preparing", "ready", "delivered", "cancelled"] },
+        "payment_status": { "type": "string", "enum": ["pending", "paid", "refunded"] },
+        "delivery_address": { "type": "string" },
+        "created_at": { "type": "string" }
+      },
+      "required": ["customer_name", "customer_phone", "items", "total_amount", "status", "payment_status"]
     }
   },
   "firestore": {
@@ -118,7 +135,7 @@
     },
     "blocked_dates/{blockedId}": {
       "schema": "BlockedDate",
-      "description": "Specific calendar days closed for holiday"
+      "description": "Specific calendar days closed for holiday block out"
     },
     "restaurant_settings/{settingsId}": {
       "schema": "RestaurantSettings",
@@ -127,6 +144,10 @@
     "admin_users/{userId}": {
       "schema": "AdminUser",
       "description": "Registered and authorized admin users"
+    },
+    "online_orders/{orderId}": {
+      "schema": "Order",
+      "description": "Online food order requests"
     }
   }
 }
