@@ -14,7 +14,6 @@ export const STATIC_TRANSLATIONS: Record<string, Record<LanguageType, string>> =
   'nav_call_lounge': { en: 'Call Lounge', ne: 'लाउन्ज कल गर्नुहोस्' },
   'nav_whatsapp_support': { en: 'WhatsApp Support', ne: 'व्हाट्सएप सपोर्ट' },
   'nav_admin_panel': { en: 'Business Control Panel', ne: 'व्यवसाय नियन्त्रण कक्ष' },
-  'nav_brand_subtitle': { en: 'Best Restaurant in Hetauda', ne: 'हेटौंडाको उत्कृष्ट रेस्टुरेन्ट' },
 
   // Hero Section
   'hero_badge': { en: "HETAUDA'S NEW CULINARY BENCHMARK", ne: 'हेटौंडाको नयाँ उत्कृष्ट स्वाद गन्तव्य' },
@@ -24,16 +23,6 @@ export const STATIC_TRANSLATIONS: Record<string, Record<LanguageType, string>> =
   'hero_cta_menu': { en: 'Explore Menu Highlights', ne: 'विशेष परिकार सूची' },
   'hero_rating_badge': { en: '4.2 Star Rated (312+ Google Reviews)', ne: '४.२ स्टार रेटिङ (३१२+ गुगल रिभ्यूहरू)' },
   'hero_reviews_link': { en: 'Verified Feedback', ne: 'प्रमाणित प्रतिक्रिया' },
-  'hero_budget': { en: 'Budget: Rs 500 – 3,000 per person', ne: 'बजेट: प्रति व्यक्ति रु ५०० – ३,०००' },
-  'hero_address_label': { en: 'Address', ne: 'ठेगाना' },
-  'hero_address_value': { en: 'Nagar Bikash Samiti Marg', ne: 'नगर विकास समिति मार्ग' },
-  'hero_hours_label': { en: 'Opening Hours', ne: 'खुल्ने समय' },
-  'hero_hours_value': { en: 'Daily: 8:00 AM – 9:00 PM', ne: 'दैनिक: बिहान ८:०० – बेलुका ९:००' },
-  'hero_cta_visit': { en: 'Visit Us (Secure Table)', ne: 'हामीलाई भेट्नुहोस् / टेबल बुकिङ' },
-  'hero_cta_explore': { en: 'Explore Highlights', ne: 'विशेषताहरू हेर्नुहोस्' },
-  'hero_overlay_vibe': { en: 'Sutra Lounge Vibe', ne: 'सुत्र लाउन्ज वातावरण' },
-  'hero_overlay_desc': { en: 'Hetauda • Cozy & Well-Decorated', ne: 'हेटौंडा • आरामदायी र सुसज्जित' },
-  'hero_feedback_suffix': { en: 'Local Feedback', ne: 'स्थानीय प्रतिक्रियाहरू' },
 
   // Announcements Banner
   'announcement_prefix': { en: 'LATEST UPDATE', ne: 'नयाँ अपडेट' },

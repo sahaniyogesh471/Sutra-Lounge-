@@ -17,13 +17,6 @@ export interface InquiryForm {
   subscribe: boolean;
 }
 
-export interface RestaurantSettingsRecord {
-  slot_interval_minutes?: number | null;
-  booking_notice_hours?: number | null;
-  default_reservation_duration_minutes?: number | null;
-  max_party_size?: number | null;
-}
-
 export interface FAQItem {
   question: string;
   answer: string;

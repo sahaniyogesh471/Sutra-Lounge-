@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   Phone, 
   MessageSquare, 
@@ -31,25 +31,17 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { BUSINESS_DETAILS as INITIAL_BUSINESS_DETAILS, SERVICES_LIST as INITIAL_SERVICES_LIST, FAQS as INITIAL_FAQS, REASSURANCE_POINTS as INITIAL_REASSURANCE_POINTS, MENU_HIGHLIGHTS as INITIAL_MENU_HIGHLIGHTS, AUTHENTIC_REVIEWS as INITIAL_AUTHENTIC_REVIEWS, OWNER_UPDATE as INITIAL_OWNER_UPDATE, MAPS_GALLERY_PHOTOS as INITIAL_MAPS_GALLERY_PHOTOS, PROMO_ANNOUNCEMENTS as INITIAL_PROMO_ANNOUNCEMENTS } from './data';
-import { InquiryForm, RestaurantSettingsRecord } from './types';
+import { InquiryForm } from './types';
 import { LazyImage } from './components/LazyImage';
 import { AdminPanel } from './components/AdminPanel';
-import {
-  AvailableReservationSlot,
-  BusinessHourRecord,
-  BlockedDateRecord,
-  ReservationRecord,
-  RestaurantTableRecord,
-  calculateAvailableReservationSlots,
-  createReservationInsertPayload
-} from './reservationLogic';
-import { supabase, supabaseConfigured } from './supabase';
-import {
-  LanguageType,
-  STATIC_TRANSLATIONS,
-  MENU_TRANSLATIONS,
-  SERVICES_TRANSLATIONS,
-  FAQS_TRANSLATIONS,
+import { db, seedDatabaseIfEmpty, handleFirestoreError, OperationType } from './firebase';
+import { collection, onSnapshot, addDoc } from 'firebase/firestore';
+import { 
+  LanguageType, 
+  STATIC_TRANSLATIONS, 
+  MENU_TRANSLATIONS, 
+  SERVICES_TRANSLATIONS, 
+  FAQS_TRANSLATIONS, 
   PHOTO_TRANSLATIONS,
   SERVICE_TYPE_NAMES
 } from './translations';
@@ -68,10 +60,6 @@ export const TikTokIcon = ({ className = "w-4 h-4" }: { className?: string }) =>
 // Importing the generated fine-dining images for premium ambient design
 import heroImage from './assets/images/sutra_lounge_hero_1781183015871.png';
 import dishImage from './assets/images/sutra_lounge_dish_1781183032907.png';
-import signatureTandoori from './assets/images/sizzling_tandoori_1781234571439.jpg';
-import signatureSandwich from './assets/images/chicken_sandwich_1781234586059.jpg';
-import signaturePancakes from './assets/images/sutra_pancakes_1781234540304.jpg';
-import signatureMojito from './assets/images/mint_mojito_1781234642673.jpg';
 
 // Premium Cinematic Animation Presets
 const fadeInUp = {
@@ -135,28 +123,28 @@ const SIGNATURE_DISHES = [
     price: 'NPR 1,150',
     description: 'Traditional bone-in chicken thighs marinated overnight in hand-ground ginger-garlic paste and spicy local mountain herbs, clay-oven roasted to succulent smoky perfection. Served sizzling with glazed onions.',
     badge: 'Chef Specialty',
-    image: signatureTandoori
+    image: '/src/assets/images/sizzling_tandoori_1781234571439.jpg'
   },
   {
     title: 'Signature Toast Chicken Sandwich',
     price: 'NPR 550',
     description: 'The definitive town favorite. Hand-sliced bread grilled butter-crisp, stacked double with seasoned pan-grilled chicken, Swiss cheese, fresh lettuce, tomatoes, and secret signature lounge dressing.',
     badge: 'Town Favorite',
-    image: signatureSandwich
+    image: '/src/assets/images/chicken_sandwich_1781234586059.jpg'
   },
   {
     title: 'Fresh Pancakes Breakfast Combo',
     price: 'NPR 490',
     description: 'Fluffy golden-brown handcrafted pancakes served sweet with organic honey syrup, complete with your choice of premium brewed Himalayan coffee or high-altitude green tea.',
     badge: 'Breakfast Sensation',
-    image: signaturePancakes
+    image: '/src/assets/images/sutra_pancakes_1781234540304.jpg'
   },
   {
     title: 'Classic Mint Virgin Mojito',
     price: 'NPR 280',
     description: 'An invigorating specialty cooler blending muddled fresh garden-plucked mint sprigs, organic key limes, pure cane sugar syrup, and premium carbonated mountain soda over crushed ice.',
     badge: 'Mixology Craft',
-    image: signatureMojito
+    image: '/src/assets/images/mint_mojito_1781234642673.jpg'
   }
 ];
 
@@ -175,140 +163,185 @@ const formatTimeTo12Hour = (timeStr: string) => {
 };
 
 export default function App() {
-  const [supabaseReservations, setSupabaseReservations] = useState<ReservationRecord[]>([]);
-  const [supabaseTables, setSupabaseTables] = useState<RestaurantTableRecord[]>([]);
-  const [supabaseBusinessHours, setSupabaseBusinessHours] = useState<BusinessHourRecord[]>([]);
-  const [supabaseBlockedDates, setSupabaseBlockedDates] = useState<BlockedDateRecord[]>([]);
-  const [supabaseSettings, setSupabaseSettings] = useState<RestaurantSettingsRecord | null>(null);
-  const [selectedSlot, setSelectedSlot] = useState<AvailableReservationSlot | null>(null);
-  const [supabaseReservationLoadError, setSupabaseReservationLoadError] = useState<string | null>(null);
-  const [isSubmittingReservation, setIsSubmittingReservation] = useState(false);
+  // Seeding and Firestore Sync States
+  const [dbReservations, setDbReservations] = useState<any[]>([]);
+  const [dbTables, setDbTables] = useState<any[]>([]);
+  const [dbBusinessHours, setDbBusinessHours] = useState<any[]>([]);
+  const [dbBlockedDates, setDbBlockedDates] = useState<any[]>([]);
+  const [dbSettings, setDbSettings] = useState<any>({
+    restaurant_name: "Sutra Lounge",
+    restaurant_email: "info@sutralounge.com.np",
+    restaurant_phone: "+977 1500000",
+    restaurant_address: "Nagar Bikash Samiti Marg, Hetauda 44107, Nepal",
+    slot_interval_minutes: 30,
+    booking_notice_hours: 2,
+    default_reservation_duration_minutes: 90,
+    max_party_size: 20,
+    hero_image_url: "",
+    dish_image_url: ""
+  });
+  const [dbMenuItems, setDbMenuItems] = useState<any[]>([]);
+  const [selectedSlot, setSelectedSlot] = useState<any | null>(null);
 
-  const getReservationIdentity = (reservation: ReservationRecord) => `${reservation.reservation_date || ''}|${reservation.table_id || ''}|${reservation.start_time || ''}|${reservation.end_time || ''}|${reservation.status || ''}|${reservation.full_name || ''}|${reservation.phone || ''}`;
-
-const loadSupabaseReservationData = async () => {
-    if (!supabaseConfigured || !supabase) {
-      setSupabaseReservationLoadError(null); // Clear error - will use demo fallback
-      // Set demo default data for standalone mode
-      setSupabaseSettings({
-        slot_interval_minutes: 30,
-        booking_notice_hours: 2,
-        default_reservation_duration_minutes: 90,
-        max_party_size: 20
-      });
-      setSupabaseBusinessHours(
-        ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
-          .map(day => ({ day, is_open: true, start_time: '08:00', end_time: '21:00' }))
-      );
-      setSupabaseBlockedDates([]);
-      setSupabaseTables([
-        { id: 't1', capacity: 2, is_active: true },
-        { id: 't2', capacity: 2, is_active: true },
-        { id: 't3', capacity: 4, is_active: true },
-        { id: 't4', capacity: 6, is_active: true },
-        { id: 't5', capacity: 8, is_active: true }
-      ]);
-      setSupabaseReservations([]);
-      return;
-    }
-
-    try {
-      const [settingsResult, hoursResult, blockedResult, tablesResult, reservationsResult] = await Promise.all([
-        supabase
-          .from('restaurant_settings')
-          .select('slot_interval_minutes,booking_notice_hours,default_reservation_duration_minutes,max_party_size')
-          .eq('id', 'default')
-          .maybeSingle(),
-        supabase
-          .from('business_hours')
-          .select('day,is_open,start_time,end_time'),
-        supabase
-          .from('blocked_dates')
-          .select('date,reason'),
-        supabase
-          .from('restaurant_tables')
-          .select('id,capacity,is_active'),
-        supabase
-          .from('reservations')
-          .select('full_name,email,phone,party_size,table_id,reservation_date,start_time,end_time,status,special_requests')
-      ]);
-
-      const errors: string[] = [];
-      const recordErrors = [
-        ['restaurant_settings', settingsResult.error],
-        ['business_hours', hoursResult.error],
-        ['blocked_dates', blockedResult.error],
-        ['restaurant_tables', tablesResult.error],
-        ['reservations', reservationsResult.error]
-      ] as const;
-
-      recordErrors.forEach(([collectionName, error]) => {
-        if (error) {
-          console.error(`[Supabase Reservation Data Load Error] ${collectionName}:`, error);
-          errors.push(`${collectionName}: ${error.message}`);
-        }
-      });
-
-      if (!settingsResult.data) {
-        const message = 'restaurant_settings.default is missing required reservation settings';
-        console.error(`[Supabase Reservation Data Load Error] ${message}`);
-        errors.push(message);
-      }
-
-      if (errors.length > 0) {
-        setSupabaseReservationLoadError('Reservation data could not be loaded from Supabase. Using demo availability.');
-      } else {
-        setSupabaseReservationLoadError(null);
-      }
-
-      setSupabaseSettings(settingsResult.data || {
-        slot_interval_minutes: 30,
-        booking_notice_hours: 2,
-        default_reservation_duration_minutes: 90,
-        max_party_size: 20
-      });
-      setSupabaseBusinessHours(hoursResult.data || []);
-      setSupabaseBlockedDates(blockedResult.data || []);
-      setSupabaseTables(tablesResult.data || []);
-      setSupabaseReservations(reservationsResult.data || []);
-    } catch (error) {
-      console.error('[Supabase Reservation Data Load Error]', error);
-      setSupabaseReservationLoadError('Reservation data could not be loaded. Using demo availability.');
-    }
-  };
-
+  // Trigger seeding once on app load
   useEffect(() => {
-    loadSupabaseReservationData();
+    seedDatabaseIfEmpty();
+  }, []);
 
-    let realtimeChannel: any = null;
-
-    if (supabaseConfigured && supabase) {
-      realtimeChannel = supabase
-        .channel('public-reservations-channel')
-        .on('postgres_changes', { schema: 'public', event: '*', table: 'reservations' }, (payload: any) => {
-          if (payload.eventType === 'DELETE') {
-            const deletedReservation = payload.old as ReservationRecord;
-            const deletedIdentity = getReservationIdentity(deletedReservation);
-            setSupabaseReservations(prev => prev.filter(reservation => getReservationIdentity(reservation) !== deletedIdentity));
-            return;
-          }
-
-          const incomingReservation = payload.new as ReservationRecord;
-          const incomingIdentity = getReservationIdentity(incomingReservation);
-          setSupabaseReservations(prev => [
-            ...prev.filter(reservation => getReservationIdentity(reservation) !== incomingIdentity),
-            incomingReservation
-          ]);
-        })
-        .subscribe();
-    }
+  // Listen to Firestore updates
+  useEffect(() => {
+    const unsubReservations = onSnapshot(collection(db, 'reservations'), (snapshot) => {
+      const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setDbReservations(list);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'reservations');
+    });
+    const unsubTables = onSnapshot(collection(db, 'restaurant_tables'), (snapshot) => {
+      const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setDbTables(list);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'restaurant_tables');
+    });
+    const unsubHours = onSnapshot(collection(db, 'business_hours'), (snapshot) => {
+      const list = snapshot.docs.map(doc => ({ weekday: doc.id, ...doc.data() }));
+      setDbBusinessHours(list);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'business_hours');
+    });
+    const unsubBlocked = onSnapshot(collection(db, 'blocked_dates'), (snapshot) => {
+      const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setDbBlockedDates(list);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'blocked_dates');
+    });
+    const unsubSettings = onSnapshot(collection(db, 'restaurant_settings'), (snapshot) => {
+      const defaultDoc = snapshot.docs.find(doc => doc.id === 'default');
+      if (defaultDoc) {
+        const data = defaultDoc.data() || {};
+        setDbSettings({
+          restaurant_name: data.restaurant_name || "Sutra Lounge",
+          restaurant_email: data.restaurant_email || "info@sutralounge.com.np",
+          restaurant_phone: data.restaurant_phone || "+977 1500000",
+          restaurant_address: data.restaurant_address || "Nagar Bikash Samiti Marg, Hetauda 44107, Nepal",
+          slot_interval_minutes: Number(data.slot_interval_minutes || 30),
+          booking_notice_hours: Number(data.booking_notice_hours || 2),
+          default_reservation_duration_minutes: Number(data.default_reservation_duration_minutes || 90),
+          max_party_size: Number(data.max_party_size || 20),
+          hero_image_url: data.hero_image_url || "",
+          dish_image_url: data.dish_image_url || ""
+        });
+      }
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'restaurant_settings');
+    });
+    const unsubMenu = onSnapshot(collection(db, 'menu_items'), (snapshot) => {
+      const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setDbMenuItems(list);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'menu_items');
+    });
 
     return () => {
-      if (realtimeChannel) {
-        supabase?.removeChannel(realtimeChannel);
-      }
+      unsubReservations();
+      unsubTables();
+      unsubHours();
+      unsubBlocked();
+      unsubSettings();
+      unsubMenu();
     };
   }, []);
+
+  // Dynamic slot calculations
+  const calculateAvailableSlots = (selectedDateStr: string, guests: number): any[] => {
+    if (!selectedDateStr) return [];
+    
+    // Check blocked holidays
+    const isBlocked = dbBlockedDates.some(b => b.blocked_date === selectedDateStr);
+    if (isBlocked) return [];
+
+    if (guests > (dbSettings.max_party_size || 20)) return [];
+
+    // Determine weekday from date YYYY-MM-DD
+    const parts = selectedDateStr.split('-');
+    if (parts.length !== 3) return [];
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10);
+    const day = parseInt(parts[2], 10);
+    if (isNaN(year) || isNaN(month) || isNaN(day)) return [];
+
+    const targetDate = new Date(year, month - 1, day);
+    const weekdayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const weekdayName = weekdayNames[targetDate.getDay()];
+
+    const dayConfig = dbBusinessHours.find(h => h.weekday.toLowerCase() === weekdayName.toLowerCase());
+    if (!dayConfig || !dayConfig.is_open) return [];
+
+    // Parse business hours (e.g. "08:00")
+    const [startHour, startMin] = dayConfig.start_time.split(':').map(Number);
+    const [endHour, endMin] = dayConfig.end_time.split(':').map(Number);
+
+    const startMinutes = startHour * 60 + startMin;
+    const endMinutes = endHour * 60 + endMin;
+
+    const slotInterval = dbSettings.slot_interval_minutes || 30;
+    const duration = dbSettings.default_reservation_duration_minutes || 90;
+
+    const activeTables = dbTables.filter(t => t.is_active && t.capacity >= guests);
+    if (activeTables.length === 0) return [];
+
+    const slots = [];
+    const now = new Date();
+
+    for (let minutes = startMinutes; minutes + duration <= endMinutes; minutes += slotInterval) {
+      const slotHour = Math.floor(minutes / 60);
+      const slotMin = minutes % 60;
+
+      const slotStart = new Date(year, month - 1, day, slotHour, slotMin, 0, 0);
+      const slotEnd = new Date(slotStart.getTime() + duration * 60 * 1000);
+
+      // booking notice window check
+      const noticeMs = (dbSettings.booking_notice_hours || 2) * 60 * 60 * 1000;
+      if (slotStart.getTime() < now.getTime() + noticeMs) continue;
+
+      let assignedTableId = null;
+
+      for (const table of activeTables) {
+        const isBooked = dbReservations.some(res => {
+          if (res.status === 'cancelled' || res.table_id !== table.id) return false;
+          if (res.reservation_date !== selectedDateStr) return false;
+
+          const [resStartH, resStartM] = res.start_time.split(':').map(Number);
+          const [resEndH, resEndM] = res.end_time.split(':').map(Number);
+
+          const resStart = new Date(year, month - 1, day, resStartH, resStartM, 0, 0);
+          const resEnd = new Date(year, month - 1, day, resEndH, resEndM, 0, 0);
+
+          return slotStart.getTime() < resEnd.getTime() && slotEnd.getTime() > resStart.getTime();
+        });
+
+        if (!isBooked) {
+          assignedTableId = table.id;
+          break;
+        }
+      }
+
+      if (assignedTableId) {
+        const displayHours = slotHour % 12 || 12;
+        const displayMins = slotMin.toString().padStart(2, '0');
+        const ampm = slotHour >= 12 ? 'PM' : 'AM';
+        const label = `${displayHours}:${displayMins} ${ampm}`;
+
+        slots.push({
+          start: slotStart,
+          end: slotEnd,
+          label,
+          tableId: assignedTableId
+        });
+      }
+    }
+
+    return slots;
+  };
 
   // Adaptive reactive states with shadow overrides for secure administration
   const [businessDetails, setBusinessDetails] = useState(() => {
@@ -359,8 +392,27 @@ const loadSupabaseReservationData = async () => {
   });
 
   // Shadow variables corresponding to lower level exports
-  const BUSINESS_DETAILS = businessDetails;
-  const MENU_HIGHLIGHTS = menuHighlights;
+  const BUSINESS_DETAILS = {
+    ...businessDetails,
+    name: dbSettings?.restaurant_name || businessDetails.name,
+    email: dbSettings?.restaurant_email || businessDetails.email,
+    phone: dbSettings?.restaurant_phone || businessDetails.phone,
+    address: dbSettings?.restaurant_address || businessDetails.address,
+    hours: dbBusinessHours?.length > 0 
+      ? dbBusinessHours.map(h => ({ day: h.weekday, time: h.is_open ? `${h.start_time} - ${h.end_time}` : 'Closed' }))
+      : businessDetails.hours
+  };
+  const MENU_HIGHLIGHTS = dbMenuItems?.length > 0 
+    ? dbMenuItems.filter(i => i.is_active).map(i => ({
+        id: i.id,
+        title: i.name,
+        price: `NPR ${i.price}`,
+        description: i.description,
+        category: i.category,
+        isPopular: i.is_featured,
+        image: SIGNATURE_DISHES[0].image, // fallback
+      }))
+    : menuHighlights;
   const SERVICES_LIST = servicesList;
   const OWNER_UPDATE = ownerUpdate;
   const MAPS_GALLERY_PHOTOS = galleryPhotos;
@@ -631,46 +683,6 @@ const loadSupabaseReservationData = async () => {
 
   const [submittedReservations, setSubmittedReservations] = useState<InquiryForm[]>([]);
 
-  const availableSlots = useMemo(() => {
-    if (form.serviceType !== 'Dine-In' || !form.date) {
-      return [];
-    }
-
-    return calculateAvailableReservationSlots({
-      selectedDateStr: form.date,
-      guests: Number(form.guests),
-      businessHours: supabaseBusinessHours,
-      blockedDates: supabaseBlockedDates,
-      reservations: supabaseReservations,
-      tables: supabaseTables,
-      settings: supabaseSettings,
-      now: new Date()
-    });
-  }, [
-    form.serviceType,
-    form.date,
-    form.guests,
-    supabaseBusinessHours,
-    supabaseBlockedDates,
-    supabaseReservations,
-    supabaseTables,
-    supabaseSettings
-  ]);
-
-  useEffect(() => {
-    if (!selectedSlot) {
-      return;
-    }
-
-    const selectedStillAvailable = availableSlots.some(slot =>
-      slot.start.getTime() === selectedSlot.start.getTime() && slot.tableId === selectedSlot.tableId
-    );
-
-    if (!selectedStillAvailable) {
-      setSelectedSlot(null);
-    }
-  }, [availableSlots, selectedSlot]);
-
   // Refs for navigation anchoring
   const menuSectionRef = useRef<HTMLDivElement>(null);
   const servicesSectionRef = useRef<HTMLDivElement>(null);
@@ -679,55 +691,17 @@ const loadSupabaseReservationData = async () => {
   const contactSectionRef = useRef<HTMLDivElement>(null);
   const locationSectionRef = useRef<HTMLDivElement>(null);
 
-  const syncHash = (hash: string | null) => {
-    if (typeof window === 'undefined') return;
-    const nextHash = hash && hash.length > 0 ? `#${hash}` : '';
-    const url = new URL(window.location.href);
-    url.hash = nextHash.replace(/^#/, '');
-    window.history.replaceState({}, '', `${url.pathname}${url.search}${nextHash}`);
-  };
-
-  const scrollToSection = (ref: React.RefObject<HTMLDivElement | null>, sectionId?: string) => {
-    const target = ref.current ?? (sectionId ? document.getElementById(sectionId) : null);
-
-    if (target) {
-      const offset = 96;
-      const top = Math.max(0, target.getBoundingClientRect().top + window.scrollY - offset);
-      window.scrollTo({ top, behavior: 'auto' });
-      syncHash(sectionId || target.id);
-    } else if (sectionId) {
-      syncHash(sectionId);
+  const scrollToSection = (ref: React.RefObject<HTMLDivElement | null>) => {
+    if (ref.current) {
+      ref.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
-
     setMobileMenuOpen(false);
   };
 
   const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'auto' });
-    syncHash('');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     setMobileMenuOpen(false);
   };
-
-  useEffect(() => {
-    const handleHashChange = () => {
-      const hash = window.location.hash.replace('#', '').trim();
-      if (!hash) {
-        window.scrollTo({ top: 0, behavior: 'auto' });
-        return;
-      }
-
-      const target = document.getElementById(hash);
-      if (target) {
-        const offset = 96;
-        const top = Math.max(0, target.getBoundingClientRect().top + window.scrollY - offset);
-        window.scrollTo({ top, behavior: 'auto' });
-      }
-    };
-
-    handleHashChange();
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
-  }, []);
 
   const handleCopyAddress = () => {
     navigator.clipboard.writeText(BUSINESS_DETAILS.address);
@@ -737,135 +711,80 @@ const loadSupabaseReservationData = async () => {
 
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
-    setFormError(null);
+    setFormError(null); // Clear errors dynamically
     if (type === 'checkbox') {
       const checked = (e.target as HTMLInputElement).checked;
       setForm(prev => ({ ...prev, [name]: checked }));
     } else {
       setForm(prev => ({ ...prev, [name]: value }));
-      if (name === 'date' || name === 'guests' || name === 'serviceType') {
-        setSelectedSlot(null);
-      }
     }
   };
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (form.serviceType !== 'Dine-In') {
-      setFormError(lang === 'en'
-        ? 'Please select Dine-In Table Booking to submit a Supabase table reservation.'
-        : 'कृपया Supabase टेबल बुकिङ पेश गर्न Dine-In Table Booking चयन गर्नुहोस्।');
-      return;
-    }
-
     if (!form.name.trim() || !form.phone.trim()) {
       setFormError("Please fill in your name and a valid phone number to request booking!");
       return;
     }
 
-    if (!selectedSlot) {
-      setFormError(lang === 'en'
-        ? "Please select an available dining slot from the grid below!"
-        : "कृपया उपलब्ध बुकिङ समयहरू मध्ये एक चयन गर्नुहोस्!");
-      return;
-    }
-
-    const maxPartySize = Number(supabaseSettings?.max_party_size);
-    if (!Number.isFinite(maxPartySize) || Number(form.guests) > maxPartySize) {
-      setFormError(`Party size cannot exceed maximum limit of ${Number.isFinite(maxPartySize) ? maxPartySize : 0} guests.`);
-      return;
-    }
-
-    const selectedDateFromSlot = `${selectedSlot.start.getFullYear()}-${String(selectedSlot.start.getMonth() + 1).padStart(2, '0')}-${String(selectedSlot.start.getDate()).padStart(2, '0')}`;
-    if (selectedDateFromSlot !== form.date) {
-      setFormError(lang === 'en'
-        ? 'Selected slot date does not match the requested reservation date.'
-        : 'चयन गरिएको समयको मिति अनुरोध गरिएको बुकिङ मितिसँग मेल खाँदैन।');
-      return;
-    }
-
-    const payload = createReservationInsertPayload({
-      fullName: form.name,
-      email: form.email,
-      phone: form.phone,
-      partySize: Number(form.guests),
-      tableId: selectedSlot.tableId,
-      reservationDate: form.date,
-      start: selectedSlot.start,
-      end: selectedSlot.end,
-      specialRequests: form.message
-    });
-
-    if (!payload) {
-      setFormError(lang === 'en'
-        ? 'Reservation details are invalid. Please select the slot again and try again.'
-        : 'बुकिङ विवरण अमान्य छ। कृपया समय पुनः चयन गरेर प्रयास गर्नुहोस्।');
-      return;
-    }
-
-    setIsSubmittingReservation(true);
-    setFormError(null);
-
-    try {
-      if (!supabaseConfigured || !supabase) {
-        // Demo mode - still show success for testing
-        setSubmittedReservations(prev => [
-          ...prev,
-          {
-            ...form,
-            time: selectedSlot.label
-          }
-        ]);
-        setSubmitSuccess(true);
+    if (form.serviceType === 'Dine-In') {
+      if (!selectedSlot) {
+        setFormError(lang === 'en' 
+          ? "Please select an available dining slot from the grid below!" 
+          : "कृपया उपलब्ध बुकिङ समयहरू मध्ये एक चयन गर्नुहोस्!");
         return;
       }
+      if (Number(form.guests) > (dbSettings?.max_party_size || 20)) {
+        setFormError(`Party size cannot exceed maximum limit of ${dbSettings?.max_party_size || 20} guests.`);
+        return;
+      }
+    }
 
-      const insertResult = await supabase
-        .from('reservations')
-        .insert(payload)
-        .select('table_id,reservation_date,start_time,end_time,status');
+    setFormError(null);
+    
+    try {
+      // Format start time and end time safely
+      let start_time = form.time;
+      let end_time = form.time;
+      let table_id = "unassigned";
 
-      if (insertResult.error) {
-        throw new Error(insertResult.error.message);
+      if (form.serviceType === 'Dine-In' && selectedSlot) {
+        const sh = selectedSlot.start.getHours().toString().padStart(2, '0');
+        const sm = selectedSlot.start.getMinutes().toString().padStart(2, '0');
+        start_time = `${sh}:${sm}`;
+
+        const eh = selectedSlot.end.getHours().toString().padStart(2, '0');
+        const em = selectedSlot.end.getMinutes().toString().padStart(2, '0');
+        end_time = `${eh}:${em}`;
+        
+        table_id = selectedSlot.tableId;
       }
 
-      const insertedReservation: ReservationRecord = insertResult.data?.[0] || {
-        full_name: payload.full_name,
-        email: payload.email,
-        phone: payload.phone,
-        party_size: payload.party_size,
-        table_id: payload.table_id,
-        reservation_date: payload.reservation_date,
-        start_time: payload.start_time,
-        end_time: payload.end_time,
-        status: payload.status,
-        special_requests: payload.special_requests
+      const resData = {
+        full_name: form.name.trim(),
+        email: form.email.trim(),
+        phone: form.phone.trim(),
+        party_size: Number(form.guests),
+        table_id: table_id,
+        reservation_date: form.date,
+        start_time: start_time,
+        end_time: end_time,
+        status: "pending",
+        special_requests: form.message.trim(),
+        created_at: new Date().toISOString()
       };
 
-      setSupabaseReservations(prev => {
-        const incomingIdentity = getReservationIdentity(insertedReservation);
-        return [
-          ...prev.filter(reservation => getReservationIdentity(reservation) !== incomingIdentity),
-          insertedReservation
-        ];
-      });
-
-      setSubmittedReservations(prev => [
-        ...prev,
-        {
-          ...form,
-          time: selectedSlot.label
-        }
-      ]);
+      try {
+        await addDoc(collection(db, 'reservations'), resData);
+      } catch (err: any) {
+        handleFirestoreError(err, OperationType.CREATE, 'reservations');
+      }
       setSubmitSuccess(true);
-    } catch (error) {
-      console.error('[Supabase Reservation Insert Error]', error);
-      setFormError(lang === 'en'
-        ? 'Failed to save reservation. Please try again or contact Sutra Lounge directly.'
-        : 'बुकिङ सुरक्षित गर्न सकिएन। कृपया पुनः प्रयास गर्नुहोस् वा सिधै Sutra Lounge सम्पर्क गर्नुहोस्।');
-    } finally {
-      setIsSubmittingReservation(false);
+    } catch (err: any) {
+      console.error("Firestore Save Error:", err);
+      setFormError(lang === 'en' 
+        ? "Failed to save reservation. Please verify database connection." 
+        : "डाटाबेस त्रुटि: बुकिङ सुरक्षित गर्न सकिएन। पुनः प्रयास गर्नुहोस्।");
     }
   };
 
@@ -966,7 +885,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
                 SUTRA LOUNGE
               </span>
               <span className="font-mono text-[9px] tracking-widest text-gold uppercase block -mt-1 font-semibold">
-                {t('nav_brand_subtitle')}
+                {lang === 'en' ? 'Best Restaurant in Hetauda' : 'हेटौंडाको उत्कृष्ट रेस्टुरेन्ट'}
               </span>
             </div>
           </button>
@@ -980,25 +899,25 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
               {t('nav_home')}
             </button>
             <button 
-              onClick={() => scrollToSection(menuSectionRef, 'menu')} 
+              onClick={() => scrollToSection(menuSectionRef)} 
               className="text-xs tracking-wider uppercase font-bold text-charcoal-muted hover:text-gold transition-colors cursor-pointer focus:outline-none bg-transparent border-none p-0"
             >
               {t('nav_menu')}
             </button>
             <button 
-              onClick={() => scrollToSection(servicesSectionRef, 'services')} 
+              onClick={() => scrollToSection(servicesSectionRef)} 
               className="text-xs tracking-wider uppercase font-bold text-charcoal-muted hover:text-gold transition-colors cursor-pointer focus:outline-none bg-transparent border-none p-0"
             >
               {t('nav_services')}
             </button>
             <button 
-              onClick={() => scrollToSection(storySectionRef, 'story-section')} 
+              onClick={() => scrollToSection(storySectionRef)} 
               className="text-xs tracking-wider uppercase font-bold text-charcoal-muted hover:text-gold transition-colors cursor-pointer focus:outline-none bg-transparent border-none p-0"
             >
               {t('nav_story')}
             </button>
             <button 
-              onClick={() => scrollToSection(reviewsSectionRef, 'reviews')} 
+              onClick={() => scrollToSection(reviewsSectionRef)} 
               className="text-xs tracking-wider uppercase font-bold text-charcoal-muted hover:text-gold transition-colors cursor-pointer focus:outline-none bg-transparent border-none p-0"
             >
               {t('nav_reviews')}
@@ -1070,7 +989,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
             </a>
             
             <button 
-              onClick={() => scrollToSection(contactSectionRef, 'contact')} 
+              onClick={() => scrollToSection(contactSectionRef)}
               className="bg-gold hover:bg-gold-hover text-cream-soft px-6 py-3 rounded-full text-xs font-bold tracking-wider uppercase transition-all duration-300 hover:shadow-md cursor-pointer"
               id="top-cta-action"
             >
@@ -1133,31 +1052,31 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
                   {t('nav_home')}
                 </button>
                 <button 
-                  onClick={() => scrollToSection(menuSectionRef, 'menu')}
+                  onClick={() => scrollToSection(menuSectionRef)}
                   className="block w-full text-left text-sm font-bold uppercase tracking-wider text-charcoal py-2 border-b border-cream-deep cursor-pointer focus:outline-none bg-transparent border-none p-0"
                 >
                   {t('nav_menu')}
                 </button>
                 <button 
-                  onClick={() => scrollToSection(servicesSectionRef, 'services')}
+                  onClick={() => scrollToSection(servicesSectionRef)}
                   className="block w-full text-left text-sm font-bold uppercase tracking-wider text-charcoal py-2 border-b border-cream-deep cursor-pointer focus:outline-none bg-transparent border-none p-0"
                 >
                   {t('nav_services')}
                 </button>
                 <button 
-                  onClick={() => scrollToSection(storySectionRef, 'story-section')}
+                  onClick={() => scrollToSection(storySectionRef)}
                   className="block w-full text-left text-sm font-bold uppercase tracking-wider text-charcoal py-2 border-b border-cream-deep cursor-pointer focus:outline-none bg-transparent border-none p-0"
                 >
                   {t('nav_story')}
                 </button>
                 <button 
-                  onClick={() => scrollToSection(reviewsSectionRef, 'reviews')}
+                  onClick={() => scrollToSection(reviewsSectionRef)}
                   className="block w-full text-left text-sm font-bold uppercase tracking-wider text-charcoal py-2 border-b border-cream-deep cursor-pointer focus:outline-none bg-transparent border-none p-0"
                 >
                   {t('nav_reviews')}
                 </button>
                 <button 
-                  onClick={() => scrollToSection(contactSectionRef, 'contact')}
+                  onClick={() => scrollToSection(contactSectionRef)}
                   className="block w-full text-left text-sm font-bold uppercase tracking-wider text-gold py-2 cursor-pointer focus:outline-none bg-transparent border-none p-0"
                 >
                   {t('nav_visit_reserve')}
@@ -1249,7 +1168,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
               </span>
               <span className="inline-flex items-center gap-1 px-3 py-1 bg-cream-deep rounded-full text-[10px] sm:text-xs font-bold tracking-wider text-charcoal-muted uppercase">
                 <Sparkles className="w-3 h-3 text-gold" />
-                {t('hero_budget')}
+                {lang === 'en' ? 'Budget: Rs 500 – 3,000 per person' : 'बजेट: प्रति व्यक्ति रु ५०० – ३,०००'}
               </span>
             </motion.div>
 
@@ -1277,8 +1196,8 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
             <motion.div variants={fadeInUp} className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md pt-2">
               <div className="border border-cream-deep bg-cream-soft rounded-2xl p-4 flex items-center justify-between hover:border-gold/30 transition-colors duration-300">
                 <div className="text-left">
-                  <p className="text-[10px] font-mono tracking-wider text-gold uppercase font-bold">{t('hero_address_label')}</p>
-                  <p className="text-xs font-semibold text-charcoal truncate max-w-[160px]">{t('hero_address_value')}</p>
+                  <p className="text-[10px] font-mono tracking-wider text-gold uppercase font-bold">{lang === 'en' ? 'Address' : 'ठेगाना'}</p>
+                  <p className="text-xs font-semibold text-charcoal truncate max-w-[160px]">{lang === 'en' ? 'Nagar Bikash Samiti Marg' : 'नगर विकास समिति मार्ग'}</p>
                 </div>
                 <a 
                   href={BUSINESS_DETAILS.mapsLink} 
@@ -1293,8 +1212,8 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
 
               <div className="border border-cream-deep bg-cream-soft rounded-2xl p-4 flex items-center justify-between hover:border-gold/30 transition-colors duration-300">
                 <div className="text-left">
-                  <p className="text-[10px] font-mono tracking-wider text-gold uppercase font-bold font-semibold">{t('hero_hours_label')}</p>
-                  <p className="text-xs font-semibold text-charcoal">{t('hero_hours_value')}</p>
+                  <p className="text-[10px] font-mono tracking-wider text-gold uppercase font-bold font-semibold">{lang === 'en' ? 'Opening Hours' : t('location_hours_label')}</p>
+                  <p className="text-xs font-semibold text-charcoal">{lang === 'en' ? 'Daily: 8:00 AM – 9:00 PM' : 'दैनिक: बिहान ८:०० – बेलुका ९:००'}</p>
                 </div>
                 <div className="p-2 bg-cream-deep text-charcoal-muted rounded-xl">
                   <Clock className="w-4 h-4 text-gold" />
@@ -1305,20 +1224,20 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
             {/* Main Action CTAs */}
             <motion.div variants={fadeInUp} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-4">
               <button
-                onClick={() => scrollToSection(contactSectionRef, 'contact')}
+                onClick={() => scrollToSection(contactSectionRef)}
                 className="bg-gold hover:bg-gold-hover text-cream-soft py-4 px-8 rounded-full text-xs font-bold tracking-wider uppercase transition-all duration-300 shadow-md hover:shadow-lg flex items-center justify-center gap-2 cursor-pointer scale-100 hover:scale-102 active:scale-98"
                 id="hero-book-now"
               >
-                <span>{t('hero_cta_visit')}</span>
+                <span>{lang === 'en' ? 'Visit Us (Secure Table)' : 'हामीलाई भेट्नुहोस् / टेबल बुकिङ'}</span>
                 <ChevronRight className="w-4 h-4" />
               </button>
               
               <button
-                onClick={() => scrollToSection(menuSectionRef, 'menu')}
+                onClick={() => scrollToSection(menuSectionRef)}
                 className="bg-transparent border border-gold hover:bg-gold-light text-gold py-4 px-8 rounded-full text-xs font-bold tracking-wider uppercase transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer scale-100 hover:scale-102 active:scale-98"
                 id="hero-explore-menu"
               >
-                <span>{t('hero_cta_explore')}</span>
+                <span>{lang === 'en' ? 'Explore Highlights' : t('hero_cta_menu')}</span>
               </button>
             </motion.div>
 
@@ -1336,7 +1255,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
               
               <div className="relative overflow-hidden rounded-2xl shadow-xl aspect-square sm:aspect-[4/3] lg:aspect-square bg-cream-deep">
                 <img 
-                  src={heroImageUrl || heroImage} 
+                  src={dbSettings?.hero_image_url || heroImageUrl || heroImage} 
                   alt="Sutra Lounge cozy elegant wood interior and gold lighting" 
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                   referrerPolicy="no-referrer"
@@ -1346,10 +1265,10 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
                 <div className="absolute bottom-4 left-4 right-4 bg-charcoal/95 backdrop-blur-sm p-4 rounded-xl border border-gold/20 flex flex-col sm:flex-row gap-3 justify-between items-start sm:items-center text-cream-soft">
                   <div>
                     <h4 className="font-serif text-sm font-bold tracking-wide">
-                      {t('hero_overlay_vibe')}
+                      {lang === 'en' ? 'Sutra Lounge Vibe' : 'सुत्र लाउन्ज वातावरण'}
                     </h4>
                     <span className="text-[10px] text-gold font-mono tracking-widest uppercase font-semibold block">
-                      {t('hero_overlay_desc')}
+                      {lang === 'en' ? 'Hetauda • Cozy & Well-Decorated' : 'हेटौंडा • आरामदायी र सुसज्जित'}
                     </span>
                   </div>
                   <div className="text-right whitespace-nowrap shrink-0">
@@ -1357,7 +1276,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
                       ★★★★☆ {BUSINESS_DETAILS.rating}
                     </p>
                     <p className="text-[9px] text-cream-soft/60">
-                      {BUSINESS_DETAILS.reviewCount} {t('hero_feedback_suffix')}
+                      {BUSINESS_DETAILS.reviewCount} {lang === 'en' ? 'Local Feedback' : 'स्थानीय प्रतिक्रियाहरू'}
                     </p>
                   </div>
                 </div>
@@ -1534,7 +1453,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
                           ? `Hetauda Greetings! I am highly interested in tasting or booking a table for "${dish.title}" at Sutra Lounge!`
                           : `हेटौंडाबाट नमस्कार! म विशेष गरी सुत्र लाउन्जको "${dish.title}" परिकार चाख्न वा टेबल बुकिङ गर्न इच्छुक छु!`
                       }));
-                      scrollToSection(contactSectionRef, 'contact');
+                      scrollToSection(contactSectionRef);
                     }}
                     className="text-[10px] font-extrabold uppercase tracking-widest text-charcoal hover:text-gold flex items-center gap-1 cursor-pointer transition-colors"
                   >
@@ -1576,7 +1495,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
                   if (categoryElement) {
                     categoryElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
                   } else {
-                    scrollToSection(menuSectionRef, 'menu');
+                    scrollToSection(menuSectionRef);
                   }
                 }}
                 className="bg-charcoal hover:bg-gold text-white hover:text-charcoal transition-all text-xs font-bold uppercase tracking-wider px-6 py-3 rounded-full cursor-pointer flex items-center justify-center gap-1.5 shadow-sm active:scale-95"
@@ -1587,7 +1506,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
               
               <button 
                 type="button"
-                onClick={() => scrollToSection(contactSectionRef, 'contact')}
+                onClick={() => scrollToSection(contactSectionRef)}
                 className="bg-transparent border-2 border-charcoal hover:bg-charcoal hover:text-white transition-all text-xs font-bold uppercase tracking-wider px-6 py-3 rounded-full cursor-pointer text-center active:scale-95"
               >
                 <span>{lang === 'en' ? 'Reserve a Table' : 'क्याबिन/टेबल बुकिङ'}</span>
@@ -1712,7 +1631,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
                           ? `Interested in ordering the ${item.title}.`
                           : `म सुत्र लाउन्जको ${item.title} परिकार अर्डर गर्न इच्छुक छु।`
                       }));
-                      scrollToSection(contactSectionRef, 'contact');
+                      scrollToSection(contactSectionRef);
                     }}
                     className="text-[10px] font-bold uppercase tracking-wider text-gold hover:text-gold-hover flex items-center gap-1 cursor-pointer"
                   >
@@ -1735,7 +1654,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
             className="lg:col-span-5 aspect-[4/3] lg:aspect-auto lg:h-full min-h-[300px]"
           >
             <img 
-              src={dishImageUrl || dishImage} 
+              src={dbSettings?.dish_image_url || dishImageUrl || dishImage} 
               alt="Gourmet Plated Dish at Sutra Lounge Hetauda" 
               className="w-full h-full object-cover select-none"
               referrerPolicy="no-referrer"
@@ -1789,7 +1708,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
 
             <div className="pt-2">
               <button
-                onClick={() => scrollToSection(contactSectionRef, 'contact')}
+                onClick={() => scrollToSection(contactSectionRef)}
                 className="bg-gold hover:bg-gold-hover text-cream-soft text-xs font-bold uppercase tracking-wider px-6 py-3.5 rounded-full transition-all duration-300 scale-100 active:scale-95 cursor-pointer shadow-sm hover:shadow"
               >
                 {lang === 'en' ? 'Inquire or Order Now' : 'अर्डर वा सोधपुछ गर्नुहोस्'}
@@ -1883,7 +1802,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
                             service.id === 'takeout' ? 'Takeout' :
                             service.id === 'events' || service.id === 'sports' ? 'Catering' : 'General'
                         }));
-                        scrollToSection(contactSectionRef, 'contact');
+                        scrollToSection(contactSectionRef);
                       }}
                       className="text-xs font-bold tracking-wider uppercase text-gold hover:text-gold-hover flex items-center gap-1 cursor-pointer"
                     >
@@ -2356,7 +2275,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
       {/* DYNAMIC RESERVATION HUB */}
       <section 
         ref={contactSectionRef} 
-        id="contact" 
+        id="reservation" 
         className="py-16 md:py-24 bg-cream-soft px-4 sm:px-6 lg:px-8 scroll-mt-24"
       >
         <div className="max-w-4xl mx-auto">
@@ -2539,7 +2458,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
                         type="number" 
                         name="guests" 
                         min="1" 
-                        max={Number(supabaseSettings?.max_party_size) || 20}
+                        max={dbSettings?.max_party_size || 20}
                         value={form.guests}
                         onChange={(e) => {
                           handleFormChange(e);
@@ -2565,48 +2484,39 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
 
                       {form.date ? (
                         (() => {
-                          if (supabaseReservationLoadError) {
+                          const slots = calculateAvailableSlots(form.date, Number(form.guests));
+                          if (slots.length === 0) {
                             return (
-                              <div className="p-4 bg-red-50 border border-red-200/60 rounded-xl text-xs text-red-700 flex items-center gap-2">
-                                <AlertTriangle className="w-4 h-4 text-red-500 shrink-0" />
-                                <span>{supabaseReservationLoadError}</span>
+                              <div className="p-4 bg-amber-50 border border-amber-200/60 rounded-xl text-xs text-amber-800 flex items-center gap-2">
+                                <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+                                <span>
+                                  {lang === 'en' 
+                                    ? 'No tables matching this capacity are available on selected date. Try another date or adjust party size!' 
+                                    : 'चयन गरिएको मितिमा पाहुनाको संख्या अनुसारको टेबल उपलब्ध छैन। कृपया अर्को मिति वा पाहुना संख्या परिवर्तन गर्नुहोस्।'}
+                                </span>
                               </div>
                             );
                           }
-
-                          const slots = availableSlots;
-                           if (slots.length === 0) {
-                             return (
-                               <div className="p-4 bg-amber-50 border border-amber-200/60 rounded-xl text-xs text-amber-800 flex items-center gap-2">
-                                 <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
-                                 <span>
-                                   {lang === 'en' 
-                                     ? 'No availability. Select another date, reduce party size, or try a later time.' 
-                                     : 'उपलब्धता छैन। कृपया अर्को मिति रोज्नुहोस्, पाहुना संख्या घटाउनुहोस् वा पछिको समय प्रयास गर्नुहोस्।'}
-                                 </span>
-                               </div>
-                             );
-                           }
                           return (
-                           <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2">
-                             {slots.map((slot, index) => {
-                               const isSelected = selectedSlot && selectedSlot.start.getTime() === slot.start.getTime();
-                               return (
-                                 <button
-                                   key={index}
-                                   type="button"
-                                   onClick={() => setSelectedSlot(slot)}
-                                   className={`py-3 px-3 text-xs font-mono rounded-xl border text-center transition-all cursor-pointer scale-100 active:scale-95 min-h-[44px]
-                                     ${isSelected 
-                                       ? 'bg-gold text-cream-soft border-gold font-bold shadow-sm animate-pulse-once' 
-                                       : 'bg-white hover:bg-cream-soft/60 text-charcoal border-cream-deep hover:border-gold/30'}`}
-                                 >
-                                   {slot.label}
-                                 </button>
-                               );
-                             })}
-                           </div>
-                        );
+                            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2">
+                              {slots.map((slot, index) => {
+                                const isSelected = selectedSlot && selectedSlot.start.getTime() === slot.start.getTime();
+                                return (
+                                  <button
+                                    key={index}
+                                    type="button"
+                                    onClick={() => setSelectedSlot(slot)}
+                                    className={`py-2 px-3 text-xs font-mono rounded-lg border text-center transition-all cursor-pointer scale-100 active:scale-95
+                                      ${isSelected 
+                                        ? 'bg-gold text-cream-soft border-gold font-bold shadow-sm animate-pulse-once' 
+                                        : 'bg-white hover:bg-cream-soft/60 text-charcoal border-cream-deep hover:border-gold/30'}`}
+                                  >
+                                    {slot.label}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          );
                         })()
                       ) : (
                         <p className="text-xs text-charcoal-muted font-light leading-relaxed">
@@ -2655,10 +2565,9 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
                   <div className="pt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <button 
                       type="submit"
-                      disabled={isSubmittingReservation}
-                      className="bg-gold hover:bg-gold-hover text-cream-soft font-bold rounded-xl py-4 uppercase text-xs tracking-wider transition-all shadow-md cursor-pointer text-center disabled:opacity-60 disabled:cursor-not-allowed"
+                      className="bg-gold hover:bg-gold-hover text-cream-soft font-bold rounded-xl py-4 uppercase text-xs tracking-wider transition-all shadow-md cursor-pointer text-center"
                     >
-                      {isSubmittingReservation ? (lang === 'en' ? 'Saving Reservation...' : 'बुकिङ सुरक्षित गर्दै...') : (lang === 'en' ? 'Submit Booking Query' : 'बुकिङ सोधपुछ पठाउनुहोस्')}
+                      {lang === 'en' ? 'Submit Booking Query' : 'बुकिङ सोधपुछ पठाउनुहोस्'}
                     </button>
                     
                     <a 
@@ -2709,7 +2618,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
                       <strong className="text-charcoal-muted">{lang === 'en' ? 'Guests:' : 'पाहुना संख्या:'}</strong> {form.guests} {lang === 'en' ? 'Persons' : 'जना'}
                     </p>
                     <p className="text-charcoal">
-                      <strong className="text-charcoal-muted">{lang === 'en' ? 'Date & Time:' : 'मिति र समय:'}</strong> {form.date} &bull; {selectedSlot ? selectedSlot.label : formatTimeTo12Hour(form.time)}
+                      <strong className="text-charcoal-muted">{lang === 'en' ? 'Date & Time:' : 'मिति र समय:'}</strong> {form.date} &bull; {formatTimeTo12Hour(form.time)}
                     </p>
                     <p className="text-charcoal">
                       <strong className="text-charcoal-muted">{lang === 'en' ? 'Phone:' : 'फोन नम्बर:'}</strong> {form.phone}
@@ -3098,22 +3007,22 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
             </h4>
             <ul className="space-y-2 text-xs font-light text-cream-soft/75">
               <li>
-                <button onClick={() => scrollToSection(menuSectionRef, 'menu')} className="hover:text-gold transition-colors cursor-pointer">
+                <button onClick={() => scrollToSection(menuSectionRef)} className="hover:text-gold transition-colors cursor-pointer">
                   {lang === 'en' ? 'The Lounge Menu' : 'लाउन्ज मेनु'}
                 </button>
               </li>
               <li>
-                <button onClick={() => scrollToSection(servicesSectionRef, 'services')} className="hover:text-gold transition-colors cursor-pointer">
+                <button onClick={() => scrollToSection(servicesSectionRef)} className="hover:text-gold transition-colors cursor-pointer">
                   {lang === 'en' ? 'Our Services' : 'हाम्रा सेवाहरू'}
                 </button>
               </li>
               <li>
-                <button onClick={() => scrollToSection(storySectionRef, 'story-section')} className="hover:text-gold transition-colors cursor-pointer">
+                <button onClick={() => scrollToSection(storySectionRef)} className="hover:text-gold transition-colors cursor-pointer">
                   {lang === 'en' ? 'Our Story' : 'हाम्रो कथा'}
                 </button>
               </li>
               <li>
-                <button onClick={() => scrollToSection(contactSectionRef, 'contact')} className="hover:text-gold transition-colors cursor-pointer">
+                <button onClick={() => scrollToSection(contactSectionRef)} className="hover:text-gold transition-colors cursor-pointer">
                   {lang === 'en' ? 'Reserve a Table' : 'क्याबिन/टेबल बुकिङ'}
                 </button>
               </li>

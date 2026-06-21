@@ -90,8 +90,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
   const [blockedDates, setBlockedDates] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>({
     restaurant_name: "Sutra Lounge",
-    restaurant_email: "sutraloungehtd@gmail.com",
-    restaurant_phone: "057-522111",
+    restaurant_email: "info@sutralounge.com.np",
+    restaurant_phone: "+977 1500000",
     restaurant_address: "Nagar Bikash Samiti Marg, Hetauda 44107, Nepal",
     slot_interval_minutes: 30,
     booking_notice_hours: 2,
@@ -206,10 +206,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
     });
 
     const unsubHours = onSnapshot(collection(db, 'business_hours'), (snapshot) => {
-      const list = snapshot.docs.map(doc => ({ id: doc.id, day: doc.id, ...doc.data() } as any));
+      const list = snapshot.docs.map(doc => ({ weekday: doc.id, ...doc.data() } as any));
       // Standard order
-      const order = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-      list.sort((a, b) => order.indexOf(a.id.toLowerCase()) - order.indexOf(b.id.toLowerCase()));
+      const order = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      list.sort((a, b) => order.indexOf(a.weekday) - order.indexOf(b.weekday));
       setBusinessHours(list);
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, 'business_hours');
@@ -217,7 +217,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
 
     const unsubBlocked = onSnapshot(collection(db, 'blocked_dates'), (snapshot) => {
       const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
-      list.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+      list.sort((a, b) => (b.blocked_date || '').localeCompare(a.blocked_date || ''));
       setBlockedDates(list);
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, 'blocked_dates');
@@ -229,8 +229,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
         const data = defaultDoc.data() || {};
         setSettings({
           restaurant_name: data.restaurant_name || "Sutra Lounge",
-          restaurant_email: data.restaurant_email || "sutraloungehtd@gmail.com",
-          restaurant_phone: data.restaurant_phone || "057-522111",
+          restaurant_email: data.restaurant_email || "info@sutralounge.com.np",
+          restaurant_phone: data.restaurant_phone || "+977 1500000",
           restaurant_address: data.restaurant_address || "Nagar Bikash Samiti Marg, Hetauda 44107, Nepal",
           slot_interval_minutes: Number(data.slot_interval_minutes || 30),
           booking_notice_hours: Number(data.booking_notice_hours || 2),
@@ -668,115 +668,114 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
         </AnimatePresence>
 
         {/* Header bar */}
-        <div className="bg-charcoal text-cream-soft px-4 sm:px-5 py-4 border-b border-gold/15 flex items-center justify-between shrink-0">
+        <div className="bg-charcoal text-cream-soft px-5 py-4 border-b border-gold/15 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <div className="bg-gold p-2 rounded-xl text-charcoal">
               <Lock className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="font-serif text-base sm:text-lg font-extrabold tracking-tight">SUTRA ADMIN CONSOLE</h2>
-              <p className="text-[9px] sm:text-[10px] font-mono tracking-widest text-gold text-left">SECURE FIRMWARE INTERACTION PORTAL</p>
+              <h2 className="font-serif text-lg font-extrabold tracking-tight">SUTRA ADMIN CONSOLE</h2>
+              <p className="text-[10px] font-mono tracking-widest text-gold text-left">SECURE FIRMWARE INTERACTION PORTAL</p>
             </div>
           </div>
           <button 
             type="button" 
             onClick={onClose} 
-            className="text-cream-soft/60 hover:text-cream-soft p-2 sm:p-1.5 rounded-lg border border-cream-deep/10 hover:border-cream-deep/20 transition-all cursor-pointer min-w-[40px] min-h-[40px] flex items-center justify-center"
-            aria-label="Close admin panel"
+            className="text-cream-soft/60 hover:text-cream-soft p-1.5 rounded-lg border border-cream-deep/10 hover:border-cream-deep/20 transition-all cursor-pointer"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Main Interface Router */}
         {!isAuthenticated ? (
           <div className="flex-1 flex items-center justify-center p-6 bg-cream-soft">
-               <form onSubmit={handleLoginSubmit} className="bg-white border border-cream-deep/60 rounded-3xl p-5 sm:p-10 w-full max-w-md shadow-xl text-left space-y-6">
-                <div className="text-center space-y-2">
-                  <div className="w-12 h-12 bg-gold/10 rounded-2xl flex items-center justify-center text-gold mx-auto">
-                    <ShieldAlert className="w-6 h-6" />
-                  </div>
-                  <h3 className="font-serif text-xl font-extrabold text-charcoal">Restricted Access</h3>
-                  <p className="text-xs text-charcoal-muted leading-relaxed">System logs show unauthorized attempt. Verify your credentials or administrator security PIN code to grant clearance.</p>
+            <form onSubmit={handleLoginSubmit} className="bg-white border border-cream-deep/60 rounded-3xl p-6 sm:p-10 w-full max-w-md shadow-xl text-left space-y-6">
+              <div className="text-center space-y-2">
+                <div className="w-12 h-12 bg-gold/10 rounded-2xl flex items-center justify-center text-gold mx-auto">
+                  <ShieldAlert className="w-6 h-6" />
                 </div>
+                <h3 className="font-serif text-xl font-extrabold text-charcoal">Restricted Access</h3>
+                <p className="text-xs text-charcoal-muted leading-relaxed">System logs show unauthorized attempt. Verify your credentials or administrator security PIN code to grant clearance.</p>
+              </div>
 
-                {loginError && (
-                  <div className="p-3.5 bg-red-50 border border-red-200/60 rounded-xl text-xs text-red-700 flex items-start gap-2">
-                    <AlertTriangle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
-                    <div className="flex-1">{loginError}</div>
-                  </div>
-                )}
-
-                {/* Login Method Tab selectors */}
-                <div className="grid grid-cols-2 gap-1 bg-cream-deep/40 p-1 rounded-xl">
-                  <button
-                    type="button"
-                    onClick={() => { setLoginMethod('pin'); setLoginError(null); }}
-                    className={`py-3 text-xs font-bold rounded-lg transition-all cursor-pointer ${loginMethod === 'pin' ? 'bg-charcoal text-gold' : 'text-charcoal-muted hover:text-charcoal'}`}
-                  >
-                    Clearance PIN
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setLoginMethod('credentials'); setLoginError(null); }}
-                    className={`py-3 text-xs font-bold rounded-lg transition-all cursor-pointer ${loginMethod === 'credentials' ? 'bg-charcoal text-gold' : 'text-charcoal-muted hover:text-charcoal'}`}
-                  >
-                    Credentials
-                  </button>
+              {loginError && (
+                <div className="p-3.5 bg-red-50 border border-red-200/60 rounded-xl text-xs text-red-700 flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                  <div className="flex-1">{loginError}</div>
                 </div>
+              )}
 
-                {loginMethod === 'pin' ? (
+              {/* Login Method Tab selectors */}
+              <div className="grid grid-cols-2 gap-1 bg-cream-deep/40 p-1 rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => { setLoginMethod('pin'); setLoginError(null); }}
+                  className={`py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${loginMethod === 'pin' ? 'bg-charcoal text-gold' : 'text-charcoal-muted hover:text-charcoal'}`}
+                >
+                  Clearance PIN
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setLoginMethod('credentials'); setLoginError(null); }}
+                  className={`py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${loginMethod === 'credentials' ? 'bg-charcoal text-gold' : 'text-charcoal-muted hover:text-charcoal'}`}
+                >
+                  Credentials
+                </button>
+              </div>
+
+              {loginMethod === 'pin' ? (
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-mono tracking-wider text-charcoal-muted uppercase font-bold block">SECURITY PIN CODE</label>
+                  <input 
+                    type="password" 
+                    maxLength={6}
+                    placeholder="Enter admin PIN"
+                    value={pin}
+                    onChange={(e) => setPin(e.target.value)}
+                    className="w-full bg-cream-soft px-4 py-3 rounded-xl border border-cream-deep focus:outline-none focus:border-gold text-center text-lg font-mono tracking-widest text-charcoal font-bold"
+                  />
+                  <p className="text-[10px] text-charcoal-muted/70 text-center">Hint: standard system PIN '2026' or '8503' is accepted.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-mono tracking-wider text-charcoal-muted uppercase font-bold block">SECURITY PIN CODE</label>
+                    <label className="text-[10px] font-mono tracking-wider text-charcoal-muted uppercase font-bold block">EMAIL ADDRESS</label>
+                    <input 
+                      type="email" 
+                      placeholder="admin@sutralounge.com.np"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full bg-cream-soft px-4 py-3 rounded-xl border border-cream-deep focus:outline-none focus:border-gold text-xs font-light text-charcoal"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-mono tracking-wider text-charcoal-muted uppercase font-bold block">PASSWORD</label>
                     <input 
                       type="password" 
-                      maxLength={6}
-                      placeholder="Enter admin PIN"
-                      value={pin}
-                      onChange={(e) => setPin(e.target.value)}
-                      className="w-full bg-cream-soft px-4 py-4 rounded-xl border border-cream-deep focus:outline-none focus:border-gold text-center text-lg font-mono tracking-widest text-charcoal font-bold min-h-[48px]"
+                      placeholder="Enter password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full bg-cream-soft px-4 py-3 rounded-xl border border-cream-deep focus:outline-none focus:border-gold text-xs font-mono text-charcoal"
                     />
-                    <p className="text-[10px] text-charcoal-muted/70 text-center">Hint: standard system PIN '2026' or '8503' is accepted.</p>
                   </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-mono tracking-wider text-charcoal-muted uppercase font-bold block">EMAIL ADDRESS</label>
-                      <input 
-                        type="email" 
-                        placeholder="admin@sutralounge.com.np"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="w-full bg-cream-soft px-4 py-3.5 rounded-xl border border-cream-deep focus:outline-none focus:border-gold text-xs font-light text-charcoal min-h-[48px]"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-mono tracking-wider text-charcoal-muted uppercase font-bold block">PASSWORD</label>
-                      <input 
-                        type="password" 
-                        placeholder="Enter password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="w-full bg-cream-soft px-4 py-3.5 rounded-xl border border-cream-deep focus:outline-none focus:border-gold text-xs font-mono text-charcoal min-h-[48px]"
-                      />
-                    </div>
-                  </div>
-                )}
+                </div>
+              )}
 
-                <button 
-                  type="submit"
-                  disabled={isLoggingIn}
-                  className="w-full bg-gold hover:bg-gold-hover text-cream-soft font-bold rounded-xl py-4 uppercase text-xs tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2 min-h-[48px]"
-                >
-                  {isLoggingIn ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 animate-spin text-charcoal" />
-                      <span>Processing Clearance...</span>
-                    </>
-                  ) : (
-                    <span>Verify Credentials</span>
-                  )}
-                </button>
+              <button 
+                type="submit"
+                disabled={isLoggingIn}
+                className="w-full bg-gold hover:bg-gold-hover text-cream-soft font-bold rounded-xl py-3.5 uppercase text-xs tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2"
+              >
+                {isLoggingIn ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin text-charcoal" />
+                    <span>Processing Clearance...</span>
+                  </>
+                ) : (
+                  <span>Verify Credentials</span>
+                )}
+              </button>
 
               <div className="relative flex py-1 items-center">
                 <div className="flex-grow border-t border-cream-deep/60"></div>
@@ -788,7 +787,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                 type="button"
                 onClick={handleGoogleSignIn}
                 disabled={isLoggingIn}
-                className="w-full bg-white hover:bg-cream-soft border border-cream-deep/80 text-charcoal font-bold rounded-xl py-4 text-xs tracking-wide transition-all cursor-pointer flex items-center justify-center gap-2.5 shadow-xs min-h-[48px]"
+                className="w-full bg-white hover:bg-cream-soft border border-cream-deep/80 text-charcoal font-bold rounded-xl py-3.5 text-xs tracking-wide transition-all cursor-pointer flex items-center justify-center gap-2.5 shadow-xs"
               >
                 <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
                   <path fill="#EA4335" d="M5.2662 9.7655C6.199 7.0275 8.7915 5.0649 11.885 5.0649C13.5104 5.0649 14.9723 5.626 16.1249 6.5627L19.7825 2.9051C17.6111 1.0886 14.8876 0 11.885 0C7.29 0 3.366 2.6588 1.4812 6.5165L5.2662 9.7655Z" />
@@ -827,7 +826,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                     key={tab.id}
                     type="button"
                     onClick={() => setActiveTab(tab.id as any)}
-                    className={`w-full py-3 px-3.5 min-h-[44px] rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-3 transition-all shrink-0 cursor-pointer text-left
+                    className={`w-full py-2.5 px-3.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-3 transition-all shrink-0 cursor-pointer text-left
                       ${activeTab === tab.id ? 'bg-gold text-charcoal shadow-sm' : 'text-cream-soft/60 hover:bg-cream-deep/10 hover:text-cream-soft'}`}
                   >
                     <IconComponent className="w-4 h-4 shrink-0" />
@@ -976,16 +975,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
 
                   {/* Reservations Table */}
                   <div className="bg-white border border-cream-deep rounded-2xl overflow-hidden shadow-xs">
-                    <div className="overflow-x-auto -mx-2 px-2">
-                      <table className="w-full text-left text-xs min-w-[640px]">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs min-w-[700px]">
                         <thead className="bg-charcoal text-cream-soft font-mono uppercase text-[9px] tracking-wider border-b border-cream-deep">
                           <tr>
-                            <th className="p-3 sm:p-4">Patron / Guest</th>
-                            <th className="p-3 sm:p-4">Contact</th>
-                            <th className="p-3 sm:p-4">Table / Size</th>
-                            <th className="p-3 sm:p-4">Date / Hours</th>
-                            <th className="p-3 sm:p-4">Status Flag</th>
-                            <th className="p-3 sm:p-4 text-right">Actions</th>
+                            <th className="p-4">Patron / Guest</th>
+                            <th className="p-4">Contact</th>
+                            <th className="p-4">Table / Size</th>
+                            <th className="p-4">Date / Hours</th>
+                            <th className="p-4">Status Flag</th>
+                            <th className="p-4 text-right">Actions</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-cream-deep/60">
@@ -996,23 +995,23 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                               const tableObj = tables.find(t => t.id === res.table_id);
                               return (
                                 <tr key={res.id} className="hover:bg-cream-soft/35 transition-colors">
-                                  <td className="p-3 sm:p-4">
+                                  <td className="p-4">
                                     <p className="font-semibold text-charcoal">{res.full_name}</p>
-                                    <p className="text-[10px] text-charcoal-muted font-light font-mono truncate max-w-[120px] sm:max-w-[150px]">{res.email || 'No email registered'}</p>
+                                    <p className="text-[10px] text-charcoal-muted font-light font-mono truncate max-w-[150px]">{res.email || 'No email registered'}</p>
                                   </td>
-                                  <td className="p-3 sm:p-4">
+                                  <td className="p-4">
                                     <a href={`tel:${res.phone}`} className="font-mono text-gold-hover hover:underline block">{res.phone}</a>
                                   </td>
-                                  <td className="p-3 sm:p-4">
+                                  <td className="p-4">
                                     <p className="font-semibold text-charcoal">{tableObj ? tableObj.table_name : `Table (${res.table_id})`}</p>
                                     <p className="text-[10px] text-charcoal-muted">{res.party_size} Guests</p>
                                   </td>
-                                  <td className="p-3 sm:p-4">
+                                  <td className="p-4">
                                     <p className="font-semibold text-charcoal font-mono">{res.reservation_date}</p>
                                     <p className="text-[10px] font-mono text-charcoal-muted">{res.start_time} - {res.end_time}</p>
                                   </td>
-                                  <td className="p-3 sm:p-4">
-                                    <span className={`inline-block px-2 py-1.5 rounded-full text-[9px] font-bold font-mono uppercase tracking-wide
+                                  <td className="p-4">
+                                    <span className={`inline-block px-2.5 py-1.5 rounded-full text-[9px] font-bold font-mono uppercase tracking-wide
                                       ${res.status === 'pending' ? 'bg-amber-100 text-amber-800 border border-amber-200' : ''}
                                       ${res.status === 'confirmed' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : ''}
                                       ${res.status === 'completed' ? 'bg-blue-100 text-blue-800 border border-blue-200' : ''}
@@ -1021,12 +1020,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                                       {res.status}
                                     </span>
                                   </td>
-                                  <td className="p-3 sm:p-4 text-right space-x-1 whitespace-nowrap">
+                                  <td className="p-4 text-right space-x-1.5 whitespace-nowrap">
                                     <select
                                       value={res.status}
                                       disabled={!isSuperAdmin}
                                       onChange={(e) => handleUpdateStatus(res.id, e.target.value)}
-                                      className="bg-cream-soft border border-cream-deep text-[10px] font-bold py-1.5 px-2 rounded-md text-charcoal cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed min-h-[32px]"
+                                      className="bg-cream-soft border border-cream-deep text-[10px] font-bold py-1 px-1.5 rounded-md text-charcoal cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                       <option value="pending">Pending</option>
                                       <option value="confirmed">Confirmed</option>
@@ -1036,10 +1035,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                                     {isSuperAdmin && (
                                       <button
                                         onClick={() => handleDeleteReservation(res.id)}
-                                        className="text-red-500 hover:text-red-700 p-1.5 rounded-md hover:bg-red-50/50 transition-all inline-block align-middle min-w-[32px] min-h-[32px]"
+                                        className="text-red-500 hover:text-red-700 p-1 rounded-md hover:bg-red-50/50 transition-all inline-block align-middle"
                                         title="Delete Reservation"
                                       >
-                                        <Trash2 className="w-4 h-4" />
+                                        <Trash2 className="w-3.5 h-3.5" />
                                       </button>
                                     )}
                                   </td>
@@ -1049,7 +1048,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
 
                           {reservations.length === 0 && (
                             <tr>
-                              <td colSpan={6} className="p-8 sm:p-10 text-center text-charcoal-muted font-light">No records found in Firestore reservations collection.</td>
+                              <td colSpan={6} className="p-10 text-center text-charcoal-muted font-light">No records found in Firestore reservations collection.</td>
                             </tr>
                           )}
                         </tbody>
@@ -1084,7 +1083,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                             placeholder="e.g. Table 7 (Cabin C)"
                             value={newTable.table_name}
                             onChange={(e) => setNewTable(prev => ({ ...prev, table_name: e.target.value }))}
-                            className="w-full bg-white px-3 py-3.5 min-h-[44px] rounded-xl border border-cream-deep text-xs text-charcoal"
+                            className="w-full bg-white px-3 py-2 rounded-xl border border-cream-deep text-xs text-charcoal"
                           />
                         </div>
 
@@ -1098,7 +1097,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                               max={50}
                               value={newTable.capacity}
                               onChange={(e) => setNewTable(prev => ({ ...prev, capacity: Number(e.target.value) }))}
-                              className="w-full bg-white px-3 py-3.5 min-h-[44px] rounded-xl border border-cream-deep text-xs text-charcoal"
+                              className="w-full bg-white px-3 py-2 rounded-xl border border-cream-deep text-xs text-charcoal"
                             />
                           </div>
 
@@ -1109,7 +1108,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                               placeholder="e.g. VIP Cabin"
                               value={newTable.area}
                               onChange={(e) => setNewTable(prev => ({ ...prev, area: e.target.value }))}
-                              className="w-full bg-white px-3 py-3.5 min-h-[44px] rounded-xl border border-cream-deep text-xs text-charcoal"
+                              className="w-full bg-white px-3 py-2 rounded-xl border border-cream-deep text-xs text-charcoal"
                             />
                           </div>
                         </div>
@@ -1128,7 +1127,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                         <div className="space-y-2">
                           <button 
                             type="submit"
-                            className="w-full bg-charcoal hover:bg-charcoal/95 text-gold font-bold py-3.5 min-h-[44px] rounded-xl uppercase text-[10px] tracking-wider transition-all cursor-pointer"
+                            className="w-full bg-charcoal hover:bg-charcoal/95 text-gold font-bold py-2.5 rounded-xl uppercase text-[10px] tracking-wider transition-all cursor-pointer"
                           >
                             {editingTable ? 'Save Table Changes' : 'Register Table'}
                           </button>
@@ -1139,7 +1138,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                                 setEditingTable(null);
                                 setNewTable({ table_name: '', capacity: 2, area: 'Main Hall', is_active: true });
                               }}
-                              className="w-full bg-cream-deep hover:bg-cream-deep/80 text-charcoal font-bold py-3.5 min-h-[44px] rounded-xl uppercase text-[10px] tracking-wider transition-all cursor-pointer"
+                              className="w-full bg-cream-deep hover:bg-cream-deep/80 text-charcoal font-bold py-2 rounded-xl uppercase text-[10px] tracking-wider transition-all cursor-pointer"
                             >
                               Cancel Edit
                             </button>
@@ -1166,7 +1165,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                               {isSuperAdmin ? (
                                 <button
                                   onClick={() => handleToggleTableActive(t.id, t.is_active)}
-                                  className="text-charcoal/80 hover:text-gold p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-cream-deep/30"
+                                  className="text-charcoal/80 hover:text-gold p-1"
                                   title={t.is_active ? "Deactivate" : "Activate"}
                                 >
                                   {t.is_active ? <ToggleRight className="w-5 h-5 text-gold" /> : <ToggleLeft className="w-5 h-5 text-zinc-400" />}
@@ -1187,7 +1186,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                                       setEditingTable(t);
                                       setNewTable({ table_name: t.table_name, capacity: t.capacity, area: t.area, is_active: t.is_active });
                                     }}
-                                    className="text-gold hover:text-gold-hover text-[10px] font-semibold flex items-center gap-1 cursor-pointer min-h-[32px] px-2 py-1.5 rounded-lg hover:bg-gold/5 transition-all"
+                                    className="text-gold hover:text-gold-hover text-[10px] font-semibold flex items-center gap-1 cursor-pointer"
                                     title="Edit Table Details"
                                   >
                                     <Edit3 className="w-3 h-3" />
@@ -1195,7 +1194,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                                   </button>
                                   <button 
                                     onClick={() => handleDeleteTable(t.id)}
-                                    className="text-red-500 hover:text-red-700 text-[10px] font-semibold flex items-center gap-1 cursor-pointer min-h-[32px] px-2 py-1.5 rounded-lg hover:bg-red-50 transition-all"
+                                    className="text-red-500 hover:text-red-700 text-[10px] font-semibold flex items-center gap-1 cursor-pointer"
                                   >
                                     <Trash2 className="w-3 h-3" />
                                     <span>Delete</span>
@@ -1241,7 +1240,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                             placeholder="e.g. Aberdeen Recipe Sandwich"
                             value={newMenuItem.name}
                             onChange={(e) => setNewMenuItem(prev => ({ ...prev, name: e.target.value }))}
-                            className="w-full bg-white px-3 py-3.5 min-h-[44px] rounded-xl border border-cream-deep text-xs text-charcoal"
+                            className="w-full bg-white px-3 py-2 rounded-xl border border-cream-deep text-xs text-charcoal"
                           />
                         </div>
 
@@ -1254,7 +1253,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                               min={0}
                               value={newMenuItem.price}
                               onChange={(e) => setNewMenuItem(prev => ({ ...prev, price: Number(e.target.value) }))}
-                              className="w-full bg-white px-3 py-3.5 min-h-[44px] rounded-xl border border-cream-deep text-xs text-charcoal font-mono"
+                              className="w-full bg-white px-3 py-2 rounded-xl border border-cream-deep text-xs text-charcoal font-mono"
                             />
                           </div>
 
@@ -1263,7 +1262,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                             <select
                               value={newMenuItem.category}
                               onChange={(e) => setNewMenuItem(prev => ({ ...prev, category: e.target.value }))}
-                              className="w-full bg-white px-3 py-3.5 min-h-[44px] rounded-xl border border-cream-deep text-xs text-charcoal"
+                              className="w-full bg-white px-3 py-2 rounded-xl border border-cream-deep text-xs text-charcoal"
                             >
                               <option value="Mains">Mains</option>
                               <option value="Sandwiches">Sandwiches</option>
@@ -1278,11 +1277,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                         <div className="space-y-1.5">
                           <label className="text-[10px] font-mono tracking-wider text-charcoal-muted uppercase block">Description</label>
                           <textarea 
-                            rows={3}
+                            rows={2.5}
                             placeholder="A brief culinary description..."
                             value={newMenuItem.description}
                             onChange={(e) => setNewMenuItem(prev => ({ ...prev, description: e.target.value }))}
-                            className="w-full bg-white px-3 py-3 min-h-[44px] rounded-xl border border-cream-deep text-xs text-charcoal resize-none"
+                            className="w-full bg-white px-3 py-2 rounded-xl border border-cream-deep text-xs text-charcoal resize-none"
                           />
                         </div>
 
@@ -1312,7 +1311,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                         <div className="space-y-2">
                           <button 
                             type="submit"
-                            className="w-full bg-charcoal hover:bg-charcoal/95 text-gold font-bold py-3.5 min-h-[44px] rounded-xl uppercase text-[10px] tracking-wider transition-all cursor-pointer"
+                            className="w-full bg-charcoal hover:bg-charcoal/95 text-gold font-bold py-2.5 rounded-xl uppercase text-[10px] tracking-wider transition-all cursor-pointer"
                           >
                             {editingMenuItem ? 'Save Delicacy Changes' : 'Add to Catalog'}
                           </button>
@@ -1323,7 +1322,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                                 setEditingMenuItem(null);
                                 setNewMenuItem({ name: '', description: '', price: 300, category: 'Mains', is_featured: false, is_active: true });
                               }}
-                              className="w-full bg-cream-deep hover:bg-cream-deep/80 text-charcoal font-bold py-3.5 min-h-[44px] rounded-xl uppercase text-[10px] tracking-wider transition-all cursor-pointer"
+                              className="w-full bg-cream-deep hover:bg-cream-deep/80 text-charcoal font-bold py-2 rounded-xl uppercase text-[10px] tracking-wider transition-all cursor-pointer"
                             >
                               Cancel Edit
                             </button>
@@ -1498,12 +1497,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                         
                         <div className="space-y-1.5">
                           <label className="text-[10px] font-mono tracking-wider text-charcoal-muted uppercase block">Select Calendar Date *</label>
-                           <input 
+                          <input 
                             type="date"
                             required
                             value={newBlockedDate.blocked_date}
                             onChange={(e) => setNewBlockedDate(prev => ({ ...prev, blocked_date: e.target.value }))}
-                            className="w-full bg-white px-3 py-3.5 min-h-[44px] rounded-xl border border-cream-deep text-xs font-mono text-charcoal"
+                            className="w-full bg-white px-3 py-2 rounded-xl border border-cream-deep text-xs font-mono text-charcoal"
                           />
                         </div>
 
@@ -1514,13 +1513,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                             placeholder="e.g. National Holy Day"
                             value={newBlockedDate.reason}
                             onChange={(e) => setNewBlockedDate(prev => ({ ...prev, reason: e.target.value }))}
-                            className="w-full bg-white px-3 py-3.5 min-h-[44px] rounded-xl border border-cream-deep text-xs text-charcoal"
+                            className="w-full bg-white px-3 py-2 rounded-xl border border-cream-deep text-xs text-charcoal"
                           />
                         </div>
 
                         <button 
                           type="submit"
-                          className="w-full bg-charcoal hover:bg-charcoal/95 text-gold font-bold py-3.5 min-h-[44px] rounded-xl uppercase text-[10px] tracking-wider transition-all cursor-pointer"
+                          className="w-full bg-charcoal hover:bg-charcoal/95 text-gold font-bold py-2.5 rounded-xl uppercase text-[10px] tracking-wider transition-all cursor-pointer"
                         >
                           Authorize Blockout
                         </button>
