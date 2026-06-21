@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { 
   Phone, 
   MessageSquare, 
@@ -31,11 +31,19 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { BUSINESS_DETAILS as INITIAL_BUSINESS_DETAILS, SERVICES_LIST as INITIAL_SERVICES_LIST, FAQS as INITIAL_FAQS, REASSURANCE_POINTS as INITIAL_REASSURANCE_POINTS, MENU_HIGHLIGHTS as INITIAL_MENU_HIGHLIGHTS, AUTHENTIC_REVIEWS as INITIAL_AUTHENTIC_REVIEWS, OWNER_UPDATE as INITIAL_OWNER_UPDATE, MAPS_GALLERY_PHOTOS as INITIAL_MAPS_GALLERY_PHOTOS, PROMO_ANNOUNCEMENTS as INITIAL_PROMO_ANNOUNCEMENTS } from './data';
-import { InquiryForm } from './types';
+import { InquiryForm, RestaurantSettingsRecord } from './types';
 import { LazyImage } from './components/LazyImage';
 import { AdminPanel } from './components/AdminPanel';
-import { db, seedDatabaseIfEmpty, handleFirestoreError, OperationType } from './firebase';
-import { collection, onSnapshot, addDoc } from 'firebase/firestore';
+import {
+  AvailableReservationSlot,
+  BusinessHourRecord,
+  BlockedDateRecord,
+  ReservationRecord,
+  RestaurantTableRecord,
+  calculateAvailableReservationSlots,
+  createReservationInsertPayload
+} from './reservationLogic';
+import { supabase, supabaseConfigured } from './supabase';
 import {
   LanguageType,
   STATIC_TRANSLATIONS,
@@ -167,185 +175,140 @@ const formatTimeTo12Hour = (timeStr: string) => {
 };
 
 export default function App() {
-  // Seeding and Firestore Sync States
-  const [dbReservations, setDbReservations] = useState<any[]>([]);
-  const [dbTables, setDbTables] = useState<any[]>([]);
-  const [dbBusinessHours, setDbBusinessHours] = useState<any[]>([]);
-  const [dbBlockedDates, setDbBlockedDates] = useState<any[]>([]);
-  const [dbSettings, setDbSettings] = useState<any>({
-    restaurant_name: "Sutra Lounge",
-    restaurant_email: "sutraloungehtd@gmail.com",
-    restaurant_phone: "057-522111",
-    restaurant_address: "Nagar Bikash Samiti Marg, Hetauda 44107, Nepal",
-    slot_interval_minutes: 30,
-    booking_notice_hours: 2,
-    default_reservation_duration_minutes: 90,
-    max_party_size: 20,
-    hero_image_url: "",
-    dish_image_url: ""
-  });
-  const [dbMenuItems, setDbMenuItems] = useState<any[]>([]);
-  const [selectedSlot, setSelectedSlot] = useState<any | null>(null);
+  const [supabaseReservations, setSupabaseReservations] = useState<ReservationRecord[]>([]);
+  const [supabaseTables, setSupabaseTables] = useState<RestaurantTableRecord[]>([]);
+  const [supabaseBusinessHours, setSupabaseBusinessHours] = useState<BusinessHourRecord[]>([]);
+  const [supabaseBlockedDates, setSupabaseBlockedDates] = useState<BlockedDateRecord[]>([]);
+  const [supabaseSettings, setSupabaseSettings] = useState<RestaurantSettingsRecord | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<AvailableReservationSlot | null>(null);
+  const [supabaseReservationLoadError, setSupabaseReservationLoadError] = useState<string | null>(null);
+  const [isSubmittingReservation, setIsSubmittingReservation] = useState(false);
 
-  // Trigger seeding once on app load
-  useEffect(() => {
-    seedDatabaseIfEmpty();
-  }, []);
+  const getReservationIdentity = (reservation: ReservationRecord) => `${reservation.reservation_date || ''}|${reservation.table_id || ''}|${reservation.start_time || ''}|${reservation.end_time || ''}|${reservation.status || ''}|${reservation.full_name || ''}|${reservation.phone || ''}`;
 
-  // Listen to Firestore updates
-  useEffect(() => {
-    const unsubReservations = onSnapshot(collection(db, 'reservations'), (snapshot) => {
-      const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setDbReservations(list);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'reservations');
-    });
-    const unsubTables = onSnapshot(collection(db, 'restaurant_tables'), (snapshot) => {
-      const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setDbTables(list);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'restaurant_tables');
-    });
-    const unsubHours = onSnapshot(collection(db, 'business_hours'), (snapshot) => {
-      const list = snapshot.docs.map(doc => ({ weekday: doc.id, ...doc.data() }));
-      setDbBusinessHours(list);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'business_hours');
-    });
-    const unsubBlocked = onSnapshot(collection(db, 'blocked_dates'), (snapshot) => {
-      const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setDbBlockedDates(list);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'blocked_dates');
-    });
-    const unsubSettings = onSnapshot(collection(db, 'restaurant_settings'), (snapshot) => {
-      const defaultDoc = snapshot.docs.find(doc => doc.id === 'default');
-      if (defaultDoc) {
-        const data = defaultDoc.data() || {};
-        setDbSettings({
-          restaurant_name: data.restaurant_name || "Sutra Lounge",
-          restaurant_email: data.restaurant_email || "sutraloungehtd@gmail.com",
-          restaurant_phone: data.restaurant_phone || "057-522111",
-          restaurant_address: data.restaurant_address || "Nagar Bikash Samiti Marg, Hetauda 44107, Nepal",
-          slot_interval_minutes: Number(data.slot_interval_minutes || 30),
-          booking_notice_hours: Number(data.booking_notice_hours || 2),
-          default_reservation_duration_minutes: Number(data.default_reservation_duration_minutes || 90),
-          max_party_size: Number(data.max_party_size || 20),
-          hero_image_url: data.hero_image_url || "",
-          dish_image_url: data.dish_image_url || ""
-        });
-      }
-    }, (error) => {
-      handleFirestoreError(error, OperationType.GET, 'restaurant_settings');
-    });
-    const unsubMenu = onSnapshot(collection(db, 'menu_items'), (snapshot) => {
-      const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setDbMenuItems(list);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'menu_items');
-    });
-
-    return () => {
-      unsubReservations();
-      unsubTables();
-      unsubHours();
-      unsubBlocked();
-      unsubSettings();
-      unsubMenu();
-    };
-  }, []);
-
-  // Dynamic slot calculations
-  const calculateAvailableSlots = (selectedDateStr: string, guests: number): any[] => {
-    if (!selectedDateStr) return [];
-    
-    // Check blocked holidays
-    const isBlocked = dbBlockedDates.some(b => b.blocked_date === selectedDateStr);
-    if (isBlocked) return [];
-
-    if (guests > (dbSettings.max_party_size || 20)) return [];
-
-    // Determine weekday from date YYYY-MM-DD
-    const parts = selectedDateStr.split('-');
-    if (parts.length !== 3) return [];
-    const year = parseInt(parts[0], 10);
-    const month = parseInt(parts[1], 10);
-    const day = parseInt(parts[2], 10);
-    if (isNaN(year) || isNaN(month) || isNaN(day)) return [];
-
-    const targetDate = new Date(year, month - 1, day);
-    const weekdayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const weekdayName = weekdayNames[targetDate.getDay()];
-
-    const dayConfig = dbBusinessHours.find(h => h.weekday.toLowerCase() === weekdayName.toLowerCase());
-    if (!dayConfig || !dayConfig.is_open) return [];
-
-    // Parse business hours (e.g. "08:00")
-    const [startHour, startMin] = dayConfig.start_time.split(':').map(Number);
-    const [endHour, endMin] = dayConfig.end_time.split(':').map(Number);
-
-    const startMinutes = startHour * 60 + startMin;
-    const endMinutes = endHour * 60 + endMin;
-
-    const slotInterval = dbSettings.slot_interval_minutes || 30;
-    const duration = dbSettings.default_reservation_duration_minutes || 90;
-
-    const activeTables = dbTables.filter(t => t.is_active && t.capacity >= guests);
-    if (activeTables.length === 0) return [];
-
-    const slots = [];
-    const now = new Date();
-
-    for (let minutes = startMinutes; minutes + duration <= endMinutes; minutes += slotInterval) {
-      const slotHour = Math.floor(minutes / 60);
-      const slotMin = minutes % 60;
-
-      const slotStart = new Date(year, month - 1, day, slotHour, slotMin, 0, 0);
-      const slotEnd = new Date(slotStart.getTime() + duration * 60 * 1000);
-
-      // booking notice window check
-      const noticeMs = (dbSettings.booking_notice_hours || 2) * 60 * 60 * 1000;
-      if (slotStart.getTime() < now.getTime() + noticeMs) continue;
-
-      let assignedTableId = null;
-
-      for (const table of activeTables) {
-        const isBooked = dbReservations.some(res => {
-          if (res.status === 'cancelled' || res.table_id !== table.id) return false;
-          if (res.reservation_date !== selectedDateStr) return false;
-
-          const [resStartH, resStartM] = res.start_time.split(':').map(Number);
-          const [resEndH, resEndM] = res.end_time.split(':').map(Number);
-
-          const resStart = new Date(year, month - 1, day, resStartH, resStartM, 0, 0);
-          const resEnd = new Date(year, month - 1, day, resEndH, resEndM, 0, 0);
-
-          return slotStart.getTime() < resEnd.getTime() && slotEnd.getTime() > resStart.getTime();
-        });
-
-        if (!isBooked) {
-          assignedTableId = table.id;
-          break;
-        }
-      }
-
-      if (assignedTableId) {
-        const displayHours = slotHour % 12 || 12;
-        const displayMins = slotMin.toString().padStart(2, '0');
-        const ampm = slotHour >= 12 ? 'PM' : 'AM';
-        const label = `${displayHours}:${displayMins} ${ampm}`;
-
-        slots.push({
-          start: slotStart,
-          end: slotEnd,
-          label,
-          tableId: assignedTableId
-        });
-      }
+const loadSupabaseReservationData = async () => {
+    if (!supabaseConfigured || !supabase) {
+      setSupabaseReservationLoadError(null); // Clear error - will use demo fallback
+      // Set demo default data for standalone mode
+      setSupabaseSettings({
+        slot_interval_minutes: 30,
+        booking_notice_hours: 2,
+        default_reservation_duration_minutes: 90,
+        max_party_size: 20
+      });
+      setSupabaseBusinessHours(
+        ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+          .map(day => ({ day, is_open: true, start_time: '08:00', end_time: '21:00' }))
+      );
+      setSupabaseBlockedDates([]);
+      setSupabaseTables([
+        { id: 't1', capacity: 2, is_active: true },
+        { id: 't2', capacity: 2, is_active: true },
+        { id: 't3', capacity: 4, is_active: true },
+        { id: 't4', capacity: 6, is_active: true },
+        { id: 't5', capacity: 8, is_active: true }
+      ]);
+      setSupabaseReservations([]);
+      return;
     }
 
-    return slots;
+    try {
+      const [settingsResult, hoursResult, blockedResult, tablesResult, reservationsResult] = await Promise.all([
+        supabase
+          .from('restaurant_settings')
+          .select('slot_interval_minutes,booking_notice_hours,default_reservation_duration_minutes,max_party_size')
+          .eq('id', 'default')
+          .maybeSingle(),
+        supabase
+          .from('business_hours')
+          .select('day,is_open,start_time,end_time'),
+        supabase
+          .from('blocked_dates')
+          .select('date,reason'),
+        supabase
+          .from('restaurant_tables')
+          .select('id,capacity,is_active'),
+        supabase
+          .from('reservations')
+          .select('full_name,email,phone,party_size,table_id,reservation_date,start_time,end_time,status,special_requests')
+      ]);
+
+      const errors: string[] = [];
+      const recordErrors = [
+        ['restaurant_settings', settingsResult.error],
+        ['business_hours', hoursResult.error],
+        ['blocked_dates', blockedResult.error],
+        ['restaurant_tables', tablesResult.error],
+        ['reservations', reservationsResult.error]
+      ] as const;
+
+      recordErrors.forEach(([collectionName, error]) => {
+        if (error) {
+          console.error(`[Supabase Reservation Data Load Error] ${collectionName}:`, error);
+          errors.push(`${collectionName}: ${error.message}`);
+        }
+      });
+
+      if (!settingsResult.data) {
+        const message = 'restaurant_settings.default is missing required reservation settings';
+        console.error(`[Supabase Reservation Data Load Error] ${message}`);
+        errors.push(message);
+      }
+
+      if (errors.length > 0) {
+        setSupabaseReservationLoadError('Reservation data could not be loaded from Supabase. Using demo availability.');
+      } else {
+        setSupabaseReservationLoadError(null);
+      }
+
+      setSupabaseSettings(settingsResult.data || {
+        slot_interval_minutes: 30,
+        booking_notice_hours: 2,
+        default_reservation_duration_minutes: 90,
+        max_party_size: 20
+      });
+      setSupabaseBusinessHours(hoursResult.data || []);
+      setSupabaseBlockedDates(blockedResult.data || []);
+      setSupabaseTables(tablesResult.data || []);
+      setSupabaseReservations(reservationsResult.data || []);
+    } catch (error) {
+      console.error('[Supabase Reservation Data Load Error]', error);
+      setSupabaseReservationLoadError('Reservation data could not be loaded. Using demo availability.');
+    }
   };
+
+  useEffect(() => {
+    loadSupabaseReservationData();
+
+    let realtimeChannel: any = null;
+
+    if (supabaseConfigured && supabase) {
+      realtimeChannel = supabase
+        .channel('public-reservations-channel')
+        .on('postgres_changes', { schema: 'public', event: '*', table: 'reservations' }, (payload: any) => {
+          if (payload.eventType === 'DELETE') {
+            const deletedReservation = payload.old as ReservationRecord;
+            const deletedIdentity = getReservationIdentity(deletedReservation);
+            setSupabaseReservations(prev => prev.filter(reservation => getReservationIdentity(reservation) !== deletedIdentity));
+            return;
+          }
+
+          const incomingReservation = payload.new as ReservationRecord;
+          const incomingIdentity = getReservationIdentity(incomingReservation);
+          setSupabaseReservations(prev => [
+            ...prev.filter(reservation => getReservationIdentity(reservation) !== incomingIdentity),
+            incomingReservation
+          ]);
+        })
+        .subscribe();
+    }
+
+    return () => {
+      if (realtimeChannel) {
+        supabase?.removeChannel(realtimeChannel);
+      }
+    };
+  }, []);
 
   // Adaptive reactive states with shadow overrides for secure administration
   const [businessDetails, setBusinessDetails] = useState(() => {
@@ -396,27 +359,8 @@ export default function App() {
   });
 
   // Shadow variables corresponding to lower level exports
-  const BUSINESS_DETAILS = {
-    ...businessDetails,
-    name: dbSettings?.restaurant_name || businessDetails.name,
-    email: dbSettings?.restaurant_email || businessDetails.email,
-    phone: dbSettings?.restaurant_phone || businessDetails.phone,
-    address: dbSettings?.restaurant_address || businessDetails.address,
-    hours: dbBusinessHours?.length > 0 
-      ? dbBusinessHours.map(h => ({ day: h.weekday, time: h.is_open ? `${h.start_time} - ${h.end_time}` : 'Closed' }))
-      : businessDetails.hours
-  };
-  const MENU_HIGHLIGHTS = dbMenuItems?.length > 0 
-    ? dbMenuItems.filter(i => i.is_active).map(i => ({
-        id: i.id,
-        title: i.name,
-        price: `NPR ${i.price}`,
-        description: i.description,
-        category: i.category,
-        isPopular: i.is_featured,
-        image: SIGNATURE_DISHES[0].image, // fallback
-      }))
-    : menuHighlights;
+  const BUSINESS_DETAILS = businessDetails;
+  const MENU_HIGHLIGHTS = menuHighlights;
   const SERVICES_LIST = servicesList;
   const OWNER_UPDATE = ownerUpdate;
   const MAPS_GALLERY_PHOTOS = galleryPhotos;
@@ -687,6 +631,46 @@ export default function App() {
 
   const [submittedReservations, setSubmittedReservations] = useState<InquiryForm[]>([]);
 
+  const availableSlots = useMemo(() => {
+    if (form.serviceType !== 'Dine-In' || !form.date) {
+      return [];
+    }
+
+    return calculateAvailableReservationSlots({
+      selectedDateStr: form.date,
+      guests: Number(form.guests),
+      businessHours: supabaseBusinessHours,
+      blockedDates: supabaseBlockedDates,
+      reservations: supabaseReservations,
+      tables: supabaseTables,
+      settings: supabaseSettings,
+      now: new Date()
+    });
+  }, [
+    form.serviceType,
+    form.date,
+    form.guests,
+    supabaseBusinessHours,
+    supabaseBlockedDates,
+    supabaseReservations,
+    supabaseTables,
+    supabaseSettings
+  ]);
+
+  useEffect(() => {
+    if (!selectedSlot) {
+      return;
+    }
+
+    const selectedStillAvailable = availableSlots.some(slot =>
+      slot.start.getTime() === selectedSlot.start.getTime() && slot.tableId === selectedSlot.tableId
+    );
+
+    if (!selectedStillAvailable) {
+      setSelectedSlot(null);
+    }
+  }, [availableSlots, selectedSlot]);
+
   // Refs for navigation anchoring
   const menuSectionRef = useRef<HTMLDivElement>(null);
   const servicesSectionRef = useRef<HTMLDivElement>(null);
@@ -753,80 +737,135 @@ export default function App() {
 
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
-    setFormError(null); // Clear errors dynamically
+    setFormError(null);
     if (type === 'checkbox') {
       const checked = (e.target as HTMLInputElement).checked;
       setForm(prev => ({ ...prev, [name]: checked }));
     } else {
       setForm(prev => ({ ...prev, [name]: value }));
+      if (name === 'date' || name === 'guests' || name === 'serviceType') {
+        setSelectedSlot(null);
+      }
     }
   };
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (form.serviceType !== 'Dine-In') {
+      setFormError(lang === 'en'
+        ? 'Please select Dine-In Table Booking to submit a Supabase table reservation.'
+        : 'कृपया Supabase टेबल बुकिङ पेश गर्न Dine-In Table Booking चयन गर्नुहोस्।');
+      return;
+    }
+
     if (!form.name.trim() || !form.phone.trim()) {
       setFormError("Please fill in your name and a valid phone number to request booking!");
       return;
     }
 
-    if (form.serviceType === 'Dine-In') {
-      if (!selectedSlot) {
-        setFormError(lang === 'en' 
-          ? "Please select an available dining slot from the grid below!" 
-          : "कृपया उपलब्ध बुकिङ समयहरू मध्ये एक चयन गर्नुहोस्!");
-        return;
-      }
-      if (Number(form.guests) > (dbSettings?.max_party_size || 20)) {
-        setFormError(`Party size cannot exceed maximum limit of ${dbSettings?.max_party_size || 20} guests.`);
-        return;
-      }
+    if (!selectedSlot) {
+      setFormError(lang === 'en'
+        ? "Please select an available dining slot from the grid below!"
+        : "कृपया उपलब्ध बुकिङ समयहरू मध्ये एक चयन गर्नुहोस्!");
+      return;
     }
 
+    const maxPartySize = Number(supabaseSettings?.max_party_size);
+    if (!Number.isFinite(maxPartySize) || Number(form.guests) > maxPartySize) {
+      setFormError(`Party size cannot exceed maximum limit of ${Number.isFinite(maxPartySize) ? maxPartySize : 0} guests.`);
+      return;
+    }
+
+    const selectedDateFromSlot = `${selectedSlot.start.getFullYear()}-${String(selectedSlot.start.getMonth() + 1).padStart(2, '0')}-${String(selectedSlot.start.getDate()).padStart(2, '0')}`;
+    if (selectedDateFromSlot !== form.date) {
+      setFormError(lang === 'en'
+        ? 'Selected slot date does not match the requested reservation date.'
+        : 'चयन गरिएको समयको मिति अनुरोध गरिएको बुकिङ मितिसँग मेल खाँदैन।');
+      return;
+    }
+
+    const payload = createReservationInsertPayload({
+      fullName: form.name,
+      email: form.email,
+      phone: form.phone,
+      partySize: Number(form.guests),
+      tableId: selectedSlot.tableId,
+      reservationDate: form.date,
+      start: selectedSlot.start,
+      end: selectedSlot.end,
+      specialRequests: form.message
+    });
+
+    if (!payload) {
+      setFormError(lang === 'en'
+        ? 'Reservation details are invalid. Please select the slot again and try again.'
+        : 'बुकिङ विवरण अमान्य छ। कृपया समय पुनः चयन गरेर प्रयास गर्नुहोस्।');
+      return;
+    }
+
+    setIsSubmittingReservation(true);
     setFormError(null);
-    
+
     try {
-      // Format start time and end time safely
-      let start_time = form.time;
-      let end_time = form.time;
-      let table_id = "unassigned";
-
-      if (form.serviceType === 'Dine-In' && selectedSlot) {
-        const sh = selectedSlot.start.getHours().toString().padStart(2, '0');
-        const sm = selectedSlot.start.getMinutes().toString().padStart(2, '0');
-        start_time = `${sh}:${sm}`;
-
-        const eh = selectedSlot.end.getHours().toString().padStart(2, '0');
-        const em = selectedSlot.end.getMinutes().toString().padStart(2, '0');
-        end_time = `${eh}:${em}`;
-        
-        table_id = selectedSlot.tableId;
+      if (!supabaseConfigured || !supabase) {
+        // Demo mode - still show success for testing
+        setSubmittedReservations(prev => [
+          ...prev,
+          {
+            ...form,
+            time: selectedSlot.label
+          }
+        ]);
+        setSubmitSuccess(true);
+        return;
       }
 
-      const resData = {
-        full_name: form.name.trim(),
-        email: form.email.trim(),
-        phone: form.phone.trim(),
-        party_size: Number(form.guests),
-        table_id: table_id,
-        reservation_date: form.date,
-        start_time: start_time,
-        end_time: end_time,
-        status: "pending",
-        special_requests: form.message.trim(),
-        created_at: new Date().toISOString()
+      const insertResult = await supabase
+        .from('reservations')
+        .insert(payload)
+        .select('table_id,reservation_date,start_time,end_time,status');
+
+      if (insertResult.error) {
+        throw new Error(insertResult.error.message);
+      }
+
+      const insertedReservation: ReservationRecord = insertResult.data?.[0] || {
+        full_name: payload.full_name,
+        email: payload.email,
+        phone: payload.phone,
+        party_size: payload.party_size,
+        table_id: payload.table_id,
+        reservation_date: payload.reservation_date,
+        start_time: payload.start_time,
+        end_time: payload.end_time,
+        status: payload.status,
+        special_requests: payload.special_requests
       };
 
-      try {
-        await addDoc(collection(db, 'reservations'), resData);
-      } catch (err: any) {
-        handleFirestoreError(err, OperationType.CREATE, 'reservations');
-      }
+      setSupabaseReservations(prev => {
+        const incomingIdentity = getReservationIdentity(insertedReservation);
+        return [
+          ...prev.filter(reservation => getReservationIdentity(reservation) !== incomingIdentity),
+          insertedReservation
+        ];
+      });
+
+      setSubmittedReservations(prev => [
+        ...prev,
+        {
+          ...form,
+          time: selectedSlot.label
+        }
+      ]);
       setSubmitSuccess(true);
-    } catch (err: any) {
-      console.error('Firestore Save Error:', err);
+    } catch (error) {
+      console.error('[Supabase Reservation Insert Error]', error);
       setFormError(lang === 'en'
-        ? 'Failed to save reservation. Please verify database connection.'
-        : 'डाटाबेस त्रुटि: बुकिङ सुरक्षित गर्न सकिएन। पुनः प्रयास गर्नुहोस्।');
+        ? 'Failed to save reservation. Please try again or contact Sutra Lounge directly.'
+        : 'बुकिङ सुरक्षित गर्न सकिएन। कृपया पुनः प्रयास गर्नुहोस् वा सिधै Sutra Lounge सम्पर्क गर्नुहोस्।');
+    } finally {
+      setIsSubmittingReservation(false);
     }
   };
 
@@ -1297,7 +1336,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
               
               <div className="relative overflow-hidden rounded-2xl shadow-xl aspect-square sm:aspect-[4/3] lg:aspect-square bg-cream-deep">
                 <img 
-                  src={dbSettings?.hero_image_url || heroImageUrl || heroImage} 
+                  src={heroImageUrl || heroImage} 
                   alt="Sutra Lounge cozy elegant wood interior and gold lighting" 
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                   referrerPolicy="no-referrer"
@@ -1696,7 +1735,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
             className="lg:col-span-5 aspect-[4/3] lg:aspect-auto lg:h-full min-h-[300px]"
           >
             <img 
-              src={dbSettings?.dish_image_url || dishImageUrl || dishImage} 
+              src={dishImageUrl || dishImage} 
               alt="Gourmet Plated Dish at Sutra Lounge Hetauda" 
               className="w-full h-full object-cover select-none"
               referrerPolicy="no-referrer"
@@ -2500,7 +2539,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
                         type="number" 
                         name="guests" 
                         min="1" 
-                        max={dbSettings?.max_party_size || 20}
+                        max={Number(supabaseSettings?.max_party_size) || 20}
                         value={form.guests}
                         onChange={(e) => {
                           handleFormChange(e);
@@ -2526,39 +2565,48 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
 
                       {form.date ? (
                         (() => {
-                          const slots = calculateAvailableSlots(form.date, Number(form.guests));
-                          if (slots.length === 0) {
+                          if (supabaseReservationLoadError) {
                             return (
-                              <div className="p-4 bg-amber-50 border border-amber-200/60 rounded-xl text-xs text-amber-800 flex items-center gap-2">
-                                <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
-                                <span>
-                                  {lang === 'en' 
-                                    ? 'No tables matching this capacity are available on selected date. Try another date or adjust party size!' 
-                                    : 'चयन गरिएको मितिमा पाहुनाको संख्या अनुसारको टेबल उपलब्ध छैन। कृपया अर्को मिति वा पाहुना संख्या परिवर्तन गर्नुहोस्।'}
-                                </span>
+                              <div className="p-4 bg-red-50 border border-red-200/60 rounded-xl text-xs text-red-700 flex items-center gap-2">
+                                <AlertTriangle className="w-4 h-4 text-red-500 shrink-0" />
+                                <span>{supabaseReservationLoadError}</span>
                               </div>
                             );
                           }
+
+                          const slots = availableSlots;
+                           if (slots.length === 0) {
+                             return (
+                               <div className="p-4 bg-amber-50 border border-amber-200/60 rounded-xl text-xs text-amber-800 flex items-center gap-2">
+                                 <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+                                 <span>
+                                   {lang === 'en' 
+                                     ? 'No availability. Select another date, reduce party size, or try a later time.' 
+                                     : 'उपलब्धता छैन। कृपया अर्को मिति रोज्नुहोस्, पाहुना संख्या घटाउनुहोस् वा पछिको समय प्रयास गर्नुहोस्।'}
+                                 </span>
+                               </div>
+                             );
+                           }
                           return (
-                            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2">
-                              {slots.map((slot, index) => {
-                                const isSelected = selectedSlot && selectedSlot.start.getTime() === slot.start.getTime();
-                                return (
-                                  <button
-                                    key={index}
-                                    type="button"
-                                    onClick={() => setSelectedSlot(slot)}
-                                    className={`py-2 px-3 text-xs font-mono rounded-lg border text-center transition-all cursor-pointer scale-100 active:scale-95
-                                      ${isSelected 
-                                        ? 'bg-gold text-cream-soft border-gold font-bold shadow-sm animate-pulse-once' 
-                                        : 'bg-white hover:bg-cream-soft/60 text-charcoal border-cream-deep hover:border-gold/30'}`}
-                                  >
-                                    {slot.label}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          );
+                           <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2">
+                             {slots.map((slot, index) => {
+                               const isSelected = selectedSlot && selectedSlot.start.getTime() === slot.start.getTime();
+                               return (
+                                 <button
+                                   key={index}
+                                   type="button"
+                                   onClick={() => setSelectedSlot(slot)}
+                                   className={`py-3 px-3 text-xs font-mono rounded-xl border text-center transition-all cursor-pointer scale-100 active:scale-95 min-h-[44px]
+                                     ${isSelected 
+                                       ? 'bg-gold text-cream-soft border-gold font-bold shadow-sm animate-pulse-once' 
+                                       : 'bg-white hover:bg-cream-soft/60 text-charcoal border-cream-deep hover:border-gold/30'}`}
+                                 >
+                                   {slot.label}
+                                 </button>
+                               );
+                             })}
+                           </div>
+                        );
                         })()
                       ) : (
                         <p className="text-xs text-charcoal-muted font-light leading-relaxed">
@@ -2607,9 +2655,10 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
                   <div className="pt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <button 
                       type="submit"
-                      className="bg-gold hover:bg-gold-hover text-cream-soft font-bold rounded-xl py-4 uppercase text-xs tracking-wider transition-all shadow-md cursor-pointer text-center"
+                      disabled={isSubmittingReservation}
+                      className="bg-gold hover:bg-gold-hover text-cream-soft font-bold rounded-xl py-4 uppercase text-xs tracking-wider transition-all shadow-md cursor-pointer text-center disabled:opacity-60 disabled:cursor-not-allowed"
                     >
-                      {lang === 'en' ? 'Submit Booking Query' : 'बुकिङ सोधपुछ पठाउनुहोस्'}
+                      {isSubmittingReservation ? (lang === 'en' ? 'Saving Reservation...' : 'बुकिङ सुरक्षित गर्दै...') : (lang === 'en' ? 'Submit Booking Query' : 'बुकिङ सोधपुछ पठाउनुहोस्')}
                     </button>
                     
                     <a 
@@ -2660,7 +2709,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
                       <strong className="text-charcoal-muted">{lang === 'en' ? 'Guests:' : 'पाहुना संख्या:'}</strong> {form.guests} {lang === 'en' ? 'Persons' : 'जना'}
                     </p>
                     <p className="text-charcoal">
-                      <strong className="text-charcoal-muted">{lang === 'en' ? 'Date & Time:' : 'मिति र समय:'}</strong> {form.date} &bull; {formatTimeTo12Hour(form.time)}
+                      <strong className="text-charcoal-muted">{lang === 'en' ? 'Date & Time:' : 'मिति र समय:'}</strong> {form.date} &bull; {selectedSlot ? selectedSlot.label : formatTimeTo12Hour(form.time)}
                     </p>
                     <p className="text-charcoal">
                       <strong className="text-charcoal-muted">{lang === 'en' ? 'Phone:' : 'फोन नम्बर:'}</strong> {form.phone}

@@ -1,13 +1,94 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>My Google AI Studio App</title>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+  <meta name="theme-color" content="#c5a85c" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="theme-color" content="#8B4513" />
+    <title>Sutra Lounge Hetauda - Restaurant & Lounge in Hetauda</title>
+    <meta name="description" content="The gamechanger in the restaurant & lounge scene in Hetauda. Serving Breakfast Combo, Appetizers & Quick Bites, Mains (Indian Specialty), Cafe & Sandwiches, and Mocktails & Beverages. Located at Nagar Bikash Samiti Marg, Hetauda 44107, Nepal." />
+
+    <!-- Favicons -->
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/android-icon-192x192.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-icon-180x180.png" />
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="restaurant.restaurant" />
+    <meta property="og:url" content="https://sutralounge.com.np/" />
+    <meta property="og:title" content="Sutra Lounge Hetauda - Restaurant & Lounge" />
+    <meta property="og:description" content="The gamechanger in the restaurant & lounge scene in Hetauda. Serving Breakfast Combo, Appetizers & Quick Bites, Mains (Indian Specialty), Cafe & Sandwiches, and Mocktails & Beverages." />
+    <meta property="og:image" content="https://sutralounge.com.np/og-image.jpg" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:locale:alternate" content="ne_NP" />
+
+    <!-- Twitter Cards -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://sutralounge.com.np/" />
+    <meta name="twitter:title" content="Sutra Lounge Hetauda - Restaurant & Lounge" />
+    <meta name="twitter:description" content="The gamechanger in the restaurant & lounge scene in Hetauda. Serving Breakfast Combo, Appetizers & Quick Bites, Mains (Indian Specialty), Cafe & Sandwiches, and Mocktails & Beverages." />
+    <meta name="twitter:image" content="https://sutralounge.com.np/og-image.jpg" />
+
+    <!-- Language Alternates -->
+    <link rel="alternate" hreflang="en" href="https://sutralounge.com.np/" />
+    <link rel="alternate" hreflang="ne" href="https://sutralounge.com.np/ne/" />
+    <link rel="alternate" hreflang="x-default" href="https://sutralounge.com.np/" />
+
+    <!-- Restaurant Schema -->
+    <meta name="restaurant-name" content="Sutra Lounge Hetauda" />
+    <meta name="restaurant-cuisine" content="Breakfast Combo, Appetizers & Quick Bites, Mains, Cafe & Sandwiches, Mocktails & Beverages" />
+    <meta name="restaurant-phone" content="057-522111" />
+    <meta name="restaurant-email" content="sutraloungehtd@gmail.com" />
+
+    <!-- Preconnect for performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <!-- JSON-LD Restaurant Schema -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Restaurant",
+      "name": "Sutra Lounge Hetauda",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "Nagar Bikash Samiti Marg",
+        "addressLocality": "Hetauda",
+        "postalCode": "44107",
+        "addressCountry": "NP"
+      },
+      "telephone": "+977-57-522111",
+      "email": "sutraloungehtd@gmail.com",
+      "url": "https://sutralounge.com.np/",
+      "openingHours": "Mo-Su 08:00-21:00",
+      "priceRange": "NPR 500-1200",
+      "servesCuisine": ["Breakfast", "Indian", "Cafe", "Beverages"],
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.2",
+        "reviewCount": "312"
+      },
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": "27.4237096",
+        "longitude": "85.0347971"
+      },
+      "image": "https://sutralounge.com.np/og-image.jpg",
+      "sameAs": [
+        "https://www.facebook.com/sutralounge",
+        "https://www.instagram.com/sutralounge"
+      ]
+    }
+    </script>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
-

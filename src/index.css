@@ -1,34 +1,36 @@
+/* Font imports */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=JetBrains+Mono:wght@400;500&display=swap');
-@import "tailwindcss";
 
-@theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-serif: "Playfair Display", ui-serif, Georgia, serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
-  
-  /* Luxury Gold palette */
+/* Tailwind v4 imports */
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
+
+/* Custom CSS variables */
+:root {
   --color-gold: #c5a85c;
   --color-gold-hover: #b39243;
   --color-gold-light: #fbf7ef;
-  
-  /* Beige & Cream backgrounds */
   --color-cream-soft: #faf8f5;
   --color-cream-deep: #f5eedf;
-  
-  /* Deep warm charcoal for typography contrast */
   --color-charcoal: #1c1a17;
   --color-charcoal-muted: #4e4a43;
 }
 
+/* Base styles */
 body {
   background-color: var(--color-cream-soft);
   color: var(--color-charcoal);
-  font-family: var(--font-sans);
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
   overflow-x: hidden;
   scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  margin: 0;
+  padding: 0;
 }
 
-/* Custom transitions and scrollbar */
+/* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
 }
@@ -41,4 +43,55 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-gold);
+}
+
+/* Custom utilities */
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* Mobile-first responsive text sizes */
+.text-2\.5xl {
+  font-size: 1.75rem;
+  line-height: 2.1rem;
+}
+.text-3\.5xl {
+  font-size: 2.25rem;
+  line-height: 2.6rem;
+}
+.text-6\.5xl {
+  font-size: 4rem;
+  line-height: 4.5rem;
+}
+
+@media (min-width: 640px) {
+  .sm\:text-2\.5xl { font-size: 1.75rem; }
+  .sm\:text-3\.5xl { font-size: 2.25rem; }
+}
+
+@media (min-width: 768px) {
+  .md\:text-2\.5xl { font-size: 1.75rem; }
+  .md\:text-3\.5xl { font-size: 2.25rem; }
+}
+
+@media (min-width: 1024px) {
+  .lg\:text-2\.5xl { font-size: 1.75rem; }
+  .lg\:text-3\.5xl { font-size: 2.25rem; }
+  .lg\:text-6\.5xl { font-size: 4rem; }
+}
+
+/* Ensure proper touch targets on mobile */
+@media (max-width: 768px) {
+  button, a {
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* Increase touch target minimum size */
+  .min-h-44 {
+    min-height: 44px;
+  }
 }
