@@ -36,7 +36,11 @@ import {
   Mail,
   MapPin,
   Trash,
-  FileText
+  FileText,
+  Copy,
+  Link,
+  Sliders,
+  CheckCheck
 } from 'lucide-react';
 import { 
   ResponsiveContainer, 
@@ -153,10 +157,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
   const [editingPhotoId, setEditingPhotoId] = useState<string | null>(null);
   const [newPhotoForm, setNewPhotoForm] = useState({
     url: '',
-    caption: ''
+    caption: '',
+    category: 'Food'
   });
 
+  const [galleryFilter, setGalleryFilter] = useState<string>('All');
+
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Batch Update States
+  const [isBatchMode, setIsBatchMode] = useState(false);
+  const [batchMenuItems, setBatchMenuItems] = useState<any[]>([]);
+  const [batchGalleryPhotos, setBatchGalleryPhotos] = useState<any[]>([]);
+  const [batchSubTab, setBatchSubTab] = useState<'dishes' | 'gallery'>('dishes');
+  const [isSavingBatch, setIsSavingBatch] = useState(false);
 
   // Live Subscription streams directly from Firestore proxy layer
   useEffect(() => {
@@ -256,25 +270,63 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
     if (savedPhotos) {
       try {
         const parsed = JSON.parse(savedPhotos);
-        const withIds = parsed.map((ph: any, idx: number) => ({
-          ...ph,
-          id: ph.id || `ph_${idx}_${Date.now()}`
-        }));
-        setGalleryPhotosList(withIds);
-        if (setGalleryPhotos) setGalleryPhotos(withIds);
+        import('../data').then(m => {
+          const baselineUrls = new Set(parsed.map((ph: any) => ph.url));
+          const venuePhotos = (m.MAPS_GALLERY_PHOTOS || []).map((ph: any, idx: number) => ({
+            ...ph,
+            id: ph.id || `ph_${idx}_${Date.now()}`
+          }));
+          const mappedDishes = (m.MENU_HIGHLIGHTS || []).map((dish: any, dishIdx: number) => ({
+            url: dish.image,
+            caption: dish.title,
+            category: dish.category?.toLowerCase().includes('drink') || dish.category?.toLowerCase().includes('beverage') ? 'Drinks' : 'Food',
+            author: 'Sutra Kitchen',
+            stars: 5,
+            id: `dish_ph_${dishIdx}_${Date.now()}`
+          }));
+          const combinedBaseline = [...venuePhotos, ...mappedDishes];
+          const newToAppend = combinedBaseline.filter(item => !baselineUrls.has(item.url));
+          if (newToAppend.length > 0) {
+            const merged = [...parsed, ...newToAppend];
+            const withIds = merged.map((ph: any, idx: number) => ({
+              ...ph,
+              id: ph.id || `ph_${idx}_${Date.now()}`
+            }));
+            setGalleryPhotosList(withIds);
+            localStorage.setItem('sutra_admin_gallery_photos', JSON.stringify(withIds));
+            localStorage.setItem('sutra_gallery_photos', JSON.stringify(withIds));
+            if (setGalleryPhotos) setGalleryPhotos(withIds);
+          } else {
+            const withIds = parsed.map((ph: any, idx: number) => ({
+              ...ph,
+              id: ph.id || `ph_${idx}_${Date.now()}`
+            }));
+            setGalleryPhotosList(withIds);
+            if (setGalleryPhotos) setGalleryPhotos(withIds);
+          }
+        });
       } catch (e) {
         setGalleryPhotosList([]);
       }
     } else {
       import('../data').then(m => {
-        const withIds = (m.MAPS_GALLERY_PHOTOS || []).map((ph: any, idx: number) => ({
+        const venuePhotos = (m.MAPS_GALLERY_PHOTOS || []).map((ph: any, idx: number) => ({
           ...ph,
           id: ph.id || `ph_${idx}_${Date.now()}`
         }));
-        setGalleryPhotosList(withIds);
-        localStorage.setItem('sutra_admin_gallery_photos', JSON.stringify(withIds));
-        localStorage.setItem('sutra_gallery_photos', JSON.stringify(withIds));
-        if (setGalleryPhotos) setGalleryPhotos(withIds);
+        const mappedDishes = (m.MENU_HIGHLIGHTS || []).map((dish: any, dishIdx: number) => ({
+          url: dish.image,
+          caption: dish.title,
+          category: dish.category?.toLowerCase().includes('drink') || dish.category?.toLowerCase().includes('beverage') ? 'Drinks' : 'Food',
+          author: 'Sutra Kitchen',
+          stars: 5,
+          id: `dish_ph_${dishIdx}_${Date.now()}`
+        }));
+        const combined = [...venuePhotos, ...mappedDishes];
+        setGalleryPhotosList(combined);
+        localStorage.setItem('sutra_admin_gallery_photos', JSON.stringify(combined));
+        localStorage.setItem('sutra_gallery_photos', JSON.stringify(combined));
+        if (setGalleryPhotos) setGalleryPhotos(combined);
       });
     }
 
@@ -496,6 +548,54 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
     }
   };
 
+  // Batch Mode Handlers
+  const handleBatchMenuItemChange = (id: string, field: string, value: any) => {
+    setBatchMenuItems(prev => prev.map(item => item.id === id ? { ...item, [field]: value } : item));
+  };
+
+  const handleBatchGalleryPhotoChange = (id: string, field: string, value: any) => {
+    setBatchGalleryPhotos(prev => prev.map(photo => photo.id === id ? { ...photo, [field]: value } : photo));
+  };
+
+  const handleSaveBatchChangesSubmit = async () => {
+    setIsSavingBatch(true);
+    try {
+      if (batchSubTab === 'dishes') {
+        const promises = batchMenuItems.map(item => {
+          const payload = {
+            name: item.name,
+            description: item.description || '',
+            price: Number(item.price),
+            category: item.category,
+            is_featured: !!item.is_featured,
+            is_active: !!item.is_active,
+            image_url: (item.image_url || '').trim()
+          };
+          return updateDoc(doc(db, 'menu_items', item.id), payload);
+        });
+        await Promise.all(promises);
+        triggerToast("Dish photo URLs & visibility batch-saved successfully!");
+      } else {
+        const updated = batchGalleryPhotos.map(ph => ({
+          ...ph,
+          url: (ph.url || '').trim(),
+          caption: (ph.caption || 'Sutra Lounge Premium Photo').trim(),
+          is_active: ph.is_active !== undefined ? !!ph.is_active : true
+        }));
+        setGalleryPhotosList(updated);
+        if (setGalleryPhotos) setGalleryPhotos(updated);
+        localStorage.setItem('sutra_admin_gallery_photos', JSON.stringify(updated));
+        localStorage.setItem('sutra_gallery_photos', JSON.stringify(updated));
+        triggerToast("Gallery assets batch-saved successfully!");
+      }
+      setIsBatchMode(false);
+    } catch (e: any) {
+      triggerToast(`Batch write error: ${e.message}`);
+    } finally {
+      setIsSavingBatch(false);
+    }
+  };
+
   // Settings & business hours mutations
   const handleSaveSettingsAndHours = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -534,7 +634,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
           return {
             ...ph,
             url: newPhotoForm.url.trim(),
-            caption: newPhotoForm.caption.trim() || 'Sutra Lounge Premium Photo'
+            caption: newPhotoForm.caption.trim() || 'Sutra Lounge Premium Photo',
+            category: newPhotoForm.category || 'Food'
           };
         }
         return ph;
@@ -545,14 +646,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
       localStorage.setItem('sutra_gallery_photos', JSON.stringify(updated));
       setShowAddPhotoModal(false);
       setEditingPhotoId(null);
-      setNewPhotoForm({ url: '', caption: '' });
+      setNewPhotoForm({ url: '', caption: '', category: 'Food' });
       triggerToast("Photo asset updated successfully via image link");
     } else {
       const newPhoto = {
         url: newPhotoForm.url.trim(),
         caption: newPhotoForm.caption.trim() || 'Sutra Lounge Premium Photo',
         author: 'Sutra Staff',
-        category: 'Food',
+        category: newPhotoForm.category || 'Food',
         stars: 5,
         id: "ph_" + Date.now()
       };
@@ -563,7 +664,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
       localStorage.setItem('sutra_admin_gallery_photos', JSON.stringify(updated));
       localStorage.setItem('sutra_gallery_photos', JSON.stringify(updated));
       setShowAddPhotoModal(false);
-      setNewPhotoForm({ url: '', caption: '' });
+      setNewPhotoForm({ url: '', caption: '', category: 'Food' });
       triggerToast("Photo ingested into static portfolio grid");
     }
   };
@@ -576,6 +677,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
     localStorage.setItem('sutra_admin_gallery_photos', JSON.stringify(updated));
     localStorage.setItem('sutra_gallery_photos', JSON.stringify(updated));
     triggerToast("Asset purged successfully");
+  };
+
+  const handleApplyPhotoToDish = async (dishId: string, imageUrl: string) => {
+    try {
+      const dish = menuItems.find(m => m.id === dishId);
+      if (!dish) return;
+      await updateDoc(doc(db, 'menu_items', dishId), { image_url: imageUrl });
+      triggerToast(`Photo assigned to ${dish.name}!`);
+    } catch (e: any) {
+      triggerToast(`Assignment failed: ${e.message}`);
+    }
   };
 
   if (!isOpen) return null;
@@ -1473,78 +1585,420 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
               {activeTab === 'gallery' && (
                 <div className="space-y-6 text-left animate-page-open">
                   
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-cream-deep/15 pb-4">
                     <div>
-                      <h3 className="font-serif text-2xl font-black text-gold">Simple Gallery Catalog</h3>
-                      <p className="text-xs text-gray-400 font-light mt-0.5">Ingest new marketing visual banners, delete obsolete assets, and curate portfolio elements.</p>
+                      <h3 className="font-serif text-2xl font-black text-gold">Premium Gallery Portfolio</h3>
+                      <p className="text-xs text-gray-400 font-light mt-0.5">
+                        {isBatchMode 
+                          ? "Perform batch updates to dish images and gallery properties simultaneously." 
+                          : "Manage, host, and link visual elements. You can copy any hosted image link and link them directly to dishes."}
+                      </p>
                     </div>
-                    <button 
-                      type="button"
-                      onClick={() => {
-                        setEditingPhotoId(null);
-                        setNewPhotoForm({ url: '', caption: '' });
-                        setShowAddPhotoModal(true);
-                      }}
-                      className="bg-gold hover:bg-gold-hover text-charcoal font-bold px-4 py-2.5 rounded-xl uppercase text-[11px] tracking-wide flex items-center gap-2 shadow-md cursor-pointer"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>Upload Asset Link</span>
-                    </button>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const nextState = !isBatchMode;
+                          setIsBatchMode(nextState);
+                          if (nextState) {
+                            setBatchMenuItems(menuItems);
+                            setBatchGalleryPhotos(galleryPhotosList);
+                          }
+                        }}
+                        className={`font-bold px-4 py-2.5 rounded-xl uppercase text-[11px] tracking-wide flex items-center gap-2 shadow-md cursor-pointer transition-all ${isBatchMode ? 'bg-indigo-600 hover:bg-indigo-700 text-white animate-pulse' : 'bg-slate-800 hover:bg-slate-700 text-gold border border-gold/20'}`}
+                      >
+                        <Sliders className="w-4 h-4" />
+                        <span>{isBatchMode ? "Exit Batch Mode" : "Batch Settings"}</span>
+                      </button>
+
+                      {!isBatchMode && (
+                        <button 
+                          type="button"
+                          onClick={() => {
+                            setEditingPhotoId(null);
+                            setNewPhotoForm({ url: '', caption: '', category: 'Food' });
+                            setShowAddPhotoModal(true);
+                          }}
+                          className="bg-gold hover:bg-gold-hover text-charcoal font-bold px-4 py-2.5 rounded-xl uppercase text-[11px] tracking-wide flex items-center gap-2 shadow-md cursor-pointer animate-none"
+                        >
+                          <Plus className="w-4 h-4" />
+                          <span>Upload Asset Link</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
 
-                  {/* Portfolio grid */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 max-h-[500px] overflow-y-auto pr-1">
-                    {galleryPhotosList.map((photo) => (
-                      <div 
-                        key={photo.id}
-                        className={`group relative rounded-2xl overflow-hidden border transition-all hover:scale-[1.01] ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-cream-deep'}`}
-                      >
-                        <div className="aspect-[4/3] bg-charcoal-muted overflow-hidden relative">
-                          <img 
-                            src={photo.url} 
-                            alt={photo.caption}
-                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                            referrerPolicy="no-referrer"
-                          />
-                          <div className="absolute top-2.5 right-2.5 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setEditingPhotoId(photo.id);
-                                setNewPhotoForm({
-                                  url: photo.url,
-                                  caption: photo.caption
-                                });
-                                setShowAddPhotoModal(true);
-                              }}
-                              className="bg-gold hover:bg-gold-hover text-charcoal p-2 rounded-xl flex items-center justify-center cursor-pointer shadow-md"
-                              title="Edit asset details via link"
-                            >
-                              <Edit3 className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDeletePhoto(photo.id)}
-                              className="bg-red-600 hover:bg-red-750 text-white p-2 rounded-xl flex items-center justify-center cursor-pointer shadow-md"
-                              title="Discard asset"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                  {isBatchMode ? (
+                    <div className="space-y-6 animate-page-open text-xs">
+                      {/* Segmented control for batch targeting */}
+                      <div className="flex gap-2 p-1.5 rounded-2xl bg-slate-950/40 border border-cream-deep/10 max-w-md">
+                        <button
+                          type="button"
+                          onClick={() => setBatchSubTab('dishes')}
+                          className={`flex-1 py-2 px-3 rounded-xl font-bold uppercase text-[10px] tracking-wider transition-all cursor-pointer text-center ${batchSubTab === 'dishes' ? 'bg-gold text-charcoal shadow-sm font-black' : 'text-gray-400 hover:text-white'}`}
+                        >
+                          Cuisines Dishes ({batchMenuItems.length})
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setBatchSubTab('gallery')}
+                          className={`flex-1 py-2 px-3 rounded-xl font-bold uppercase text-[10px] tracking-wider transition-all cursor-pointer text-center ${batchSubTab === 'gallery' ? 'bg-gold text-charcoal shadow-sm font-black' : 'text-gray-400 hover:text-white'}`}
+                        >
+                          Gallery Portfolio ({batchGalleryPhotos.length})
+                        </button>
+                      </div>
+
+                      {batchSubTab === 'dishes' ? (
+                        <div className="space-y-4">
+                          <div className="flex justify-between items-center bg-gold/5 border border-gold/10 p-3 rounded-2xl">
+                            <span className="text-gray-300 font-medium font-serif">Dishes Batch Edit Spreadsheet Grid</span>
+                            <span className="text-[10px] text-gold font-mono uppercase bg-gold/10 px-2.5 py-0.5 rounded-lg font-black">Syncs directly to menu catalog</span>
+                          </div>
+
+                          <div className="rounded-3xl border border-cream-deep/10 overflow-hidden bg-slate-900/50">
+                            <div className="max-h-[420px] overflow-y-auto pr-1">
+                              <table className="w-full text-left border-collapse">
+                                <thead>
+                                  <tr className="bg-slate-950/60 border-b border-cream-deep/10 text-[9px] font-mono font-black text-gray-400 uppercase tracking-widest">
+                                    <th className="py-3 px-4">Dish Details & Category</th>
+                                    <th className="py-3 px-4 w-12">Preview</th>
+                                    <th className="py-3 px-4">Dish Photo URL Path</th>
+                                    <th className="py-3 px-4 text-center w-24">Visible/Active</th>
+                                    <th className="py-3 px-4 text-center w-24">Spotlight (Featured)</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-cream-deep/5">
+                                  {batchMenuItems.map((item) => (
+                                    <tr key={item.id} className="hover:bg-slate-950/20 transition-colors">
+                                      <td className="py-3.5 px-4">
+                                        <p className="font-serif font-bold text-gray-105 text-sm">{item.name}</p>
+                                        <span className="font-mono text-[9px] bg-slate-800 text-gold px-2 py-0.5 rounded-md mt-1 inline-block uppercase font-bold tracking-wider">{item.category}</span>
+                                      </td>
+                                      <td className="py-3.5 px-4">
+                                        <div className="w-10 h-10 bg-charcoal-muted rounded-xl border border-cream-deep/10 flex items-center justify-center shrink-0 overflow-hidden relative shadow-sm">
+                                          {item.image_url ? (
+                                            <img
+                                              src={item.image_url}
+                                              alt=""
+                                              className="w-full h-full object-cover"
+                                              referrerPolicy="no-referrer"
+                                            />
+                                          ) : (
+                                            <span className="text-[10px] font-mono text-gray-500 font-bold uppercase">{String(item.name || 'S').substring(0, 1)}</span>
+                                          )}
+                                        </div>
+                                      </td>
+                                      <td className="py-3.5 px-4">
+                                        <div className="relative">
+                                          <input
+                                            type="url"
+                                            placeholder="Paste image security link..."
+                                            value={item.image_url || ''}
+                                            onChange={(e) => handleBatchMenuItemChange(item.id, 'image_url', e.target.value)}
+                                            className={`w-full px-3 py-2 border rounded-xl outline-none font-mono text-[11px] ${isDarkMode ? 'bg-slate-950 border-slate-805 text-white focus:border-gold' : 'bg-white border-cream-deep text-charcoal focus:border-gold'}`}
+                                          />
+                                          {item.image_url && (
+                                            <button 
+                                              type="button"
+                                              onClick={() => handleBatchMenuItemChange(item.id, 'image_url', '')}
+                                              className="absolute right-2.5 top-2.5 text-gray-400 hover:text-red-400 cursor-pointer"
+                                              title="Clear Input"
+                                            >
+                                              <X className="w-3.5 h-3.5" />
+                                            </button>
+                                          )}
+                                        </div>
+                                      </td>
+                                      <td className="py-3.5 px-4 text-center">
+                                        <button
+                                          type="button"
+                                          onClick={() => handleBatchMenuItemChange(item.id, 'is_active', !item.is_active)}
+                                          className="mx-auto flex items-center justify-center cursor-pointer text-gray-300 hover:text-gold"
+                                        >
+                                          {item.is_active ? (
+                                            <ToggleRight className="w-6 h-6 text-emerald-400" />
+                                          ) : (
+                                            <ToggleLeft className="w-6 h-6 text-gray-500" />
+                                          )}
+                                        </button>
+                                      </td>
+                                      <td className="py-3.5 px-4 text-center">
+                                        <button
+                                          type="button"
+                                          onClick={() => handleBatchMenuItemChange(item.id, 'is_featured', !item.is_featured)}
+                                          className="mx-auto flex items-center justify-center cursor-pointer text-gray-300 hover:text-gold"
+                                        >
+                                          {item.is_featured ? (
+                                            <Sparkles className="w-5 h-5 text-gold fill-gold" />
+                                          ) : (
+                                            <Sparkles className="w-5 h-5 text-gray-500" />
+                                          )}
+                                        </button>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
                           </div>
                         </div>
-                        <div className="p-3 leading-normal select-none text-left">
-                          <p className="text-[11px] font-semibold text-gray-500 truncate">{photo.caption}</p>
-                          <span className="text-[9px] text-gray-400 font-mono mt-0.5 block truncate">Asset ID: {String(photo.id || '').substring(0, 10)}</span>
-                        </div>
-                      </div>
-                    ))}
+                      ) : (
+                        <div className="space-y-4">
+                          <div className="flex justify-between items-center bg-gold/5 border border-gold/10 p-3 rounded-2xl">
+                            <span className="text-gray-300 font-medium font-serif">Gallery Portfolio Batch Edit Spreadsheet Grid</span>
+                            <span className="text-[10px] text-indigo-400 font-mono uppercase bg-indigo-550/10 px-2.5 py-0.5 rounded-lg font-black">Stored in portfolio persistent configuration</span>
+                          </div>
 
-                    {galleryPhotosList.length === 0 && (
-                      <div className="col-span-full py-20 text-center text-gray-400 text-xs italic">
-                        0 visual elements associated inside system portfolio.
+                          <div className="rounded-3xl border border-cream-deep/10 overflow-hidden bg-slate-900/50">
+                            <div className="max-h-[420px] overflow-y-auto pr-1">
+                              <table className="w-full text-left border-collapse">
+                                <thead>
+                                  <tr className="bg-slate-950/60 border-b border-cream-deep/10 text-[9px] font-mono font-black text-gray-400 uppercase tracking-widest">
+                                    <th className="py-3 px-4 w-1/3">Caption Text</th>
+                                    <th className="py-3 px-4 w-12">Preview</th>
+                                    <th className="py-3 px-4">Marketing Image Link</th>
+                                    <th className="py-3 px-4 text-center w-24">Visible/Active</th>
+                                    <th className="py-3 px-4 text-center w-16">Clear</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-cream-deep/5">
+                                  {batchGalleryPhotos.map((photo) => (
+                                    <tr key={photo.id} className="hover:bg-slate-950/20 transition-colors">
+                                      <td className="py-3.5 px-4">
+                                        <input
+                                          type="text"
+                                          value={photo.caption || ''}
+                                          onChange={(e) => handleBatchGalleryPhotoChange(photo.id, 'caption', e.target.value)}
+                                          placeholder="Aesthetic photograph description..."
+                                          className={`w-full px-3 py-2 border rounded-xl outline-none font-semibold ${isDarkMode ? 'bg-slate-950 border-slate-800 text-white focus:border-gold' : 'bg-white border-cream-deep text-charcoal focus:border-gold'}`}
+                                        />
+                                      </td>
+                                      <td className="py-3.5 px-4 text-center">
+                                        <div className="w-10 h-10 bg-charcoal-muted rounded-xl border border-cream-deep/10 flex items-center justify-center shrink-0 overflow-hidden relative shadow-sm">
+                                          {photo.url ? (
+                                            <img
+                                              src={photo.url}
+                                              alt=""
+                                              className="w-full h-full object-cover"
+                                              referrerPolicy="no-referrer"
+                                            />
+                                          ) : (
+                                            <span className="text-[10px] font-mono text-gray-500 font-bold uppercase">🖼️</span>
+                                          )}
+                                        </div>
+                                      </td>
+                                      <td className="py-3.5 px-4">
+                                        <div className="relative">
+                                          <input
+                                            type="url"
+                                            placeholder="Paste aesthetic asset url link..."
+                                            value={photo.url || ''}
+                                            onChange={(e) => handleBatchGalleryPhotoChange(photo.id, 'url', e.target.value)}
+                                            className={`w-full px-3 py-2 border rounded-xl outline-none font-mono text-[11px] ${isDarkMode ? 'bg-slate-950 border-slate-800 text-white focus:border-gold' : 'bg-white border-cream-deep text-charcoal focus:border-gold'}`}
+                                          />
+                                        </div>
+                                      </td>
+                                      <td className="py-3.5 px-4 text-center">
+                                        <button
+                                          type="button"
+                                          onClick={() => handleBatchGalleryPhotoChange(photo.id, 'is_active', photo.is_active !== undefined ? !photo.is_active : false)}
+                                          className="mx-auto flex items-center justify-center cursor-pointer text-gray-300 hover:text-gold"
+                                        >
+                                          {photo.is_active !== false ? (
+                                            <ToggleRight className="w-6 h-6 text-emerald-400" />
+                                          ) : (
+                                            <ToggleLeft className="w-6 h-6 text-gray-500" />
+                                          )}
+                                        </button>
+                                      </td>
+                                      <td className="py-3.5 px-4 text-center">
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            if (window.confirm("Remove this premium photo from the system permanently?")) {
+                                              setBatchGalleryPhotos(prev => prev.filter(ph => ph.id !== photo.id));
+                                            }
+                                          }}
+                                          className="text-red-500 hover:text-red-700 p-2 cursor-pointer flex justify-center ml-auto mr-auto"
+                                        >
+                                          <Trash2 className="w-4 h-4" />
+                                        </button>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Batch Footer Save/Cancel button blocks */}
+                      <div className="flex gap-3 justify-end pt-3 border-t border-cream-deep/15">
+                        <button
+                          type="button"
+                          onClick={() => setIsBatchMode(false)}
+                          className={`font-mono text-[11px] font-bold px-5 py-3 rounded-xl uppercase tracking-wider cursor-pointer border ${isDarkMode ? 'border-slate-805 text-gray-400 hover:text-white hover:border-slate-700' : 'border-cream-deep text-gray-500 hover:text-charcoal'}`}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          disabled={isSavingBatch}
+                          onClick={handleSaveBatchChangesSubmit}
+                          className="bg-gold hover:bg-gold-hover text-charcoal font-black px-6 py-3 rounded-xl uppercase tracking-wider text-[11px] shadow-lg cursor-pointer flex items-center gap-2"
+                        >
+                          {isSavingBatch ? (
+                            <>
+                              <Clock className="w-4 h-4 animate-spin" />
+                              <span>Saving Batch...</span>
+                            </>
+                          ) : (
+                            <>
+                              <CheckCheck className="w-4 h-4" />
+                              <span>Apply Batch Updates</span>
+                            </>
+                          )}
+                        </button>
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Elegant Category Navigation */}
+                      <div className="flex flex-wrap items-center gap-1.5 border-b border-cream-deep/20 pb-2">
+                        {['All', 'Interior', 'Food', 'Drinks', 'Exterior'].map(cat => (
+                          <button
+                            key={cat}
+                            type="button"
+                            onClick={() => setGalleryFilter(cat)}
+                            className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all duration-200 cursor-pointer ${
+                              galleryFilter === cat
+                                ? 'bg-gold text-charcoal shadow-sm font-black'
+                                : 'bg-cream-deep/20 dark:bg-slate-900 border border-transparent hover:border-gold/20 text-gray-400'
+                            }`}
+                          >
+                            {cat === 'All' ? '⚡ SHOW ALL PORTFOLIO' : cat}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Portfolio grid */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 max-h-[500px] overflow-y-auto pr-1">
+                        {galleryPhotosList
+                          .filter(photo => photo.is_active !== false)
+                          .filter(photo => galleryFilter === 'All' || (photo.category || '').toLowerCase() === galleryFilter.toLowerCase())
+                          .map((photo) => (
+                            <div 
+                              key={photo.id}
+                              className={`group relative rounded-2xl overflow-hidden border transition-all hover:scale-[1.01] flex flex-col justify-between ${
+                                isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-cream-deep'
+                              }`}
+                            >
+                              <div className="aspect-[4/3] bg-charcoal-muted overflow-hidden relative">
+                                <img 
+                                  src={photo.url} 
+                                  alt={photo.caption}
+                                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                  referrerPolicy="no-referrer"
+                                />
+                                
+                                <div className="absolute top-2.5 right-2.5 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setEditingPhotoId(photo.id);
+                                      setNewPhotoForm({
+                                        url: photo.url,
+                                        caption: photo.caption,
+                                        category: photo.category || 'Food'
+                                      });
+                                      setShowAddPhotoModal(true);
+                                    }}
+                                    className="bg-gold hover:bg-gold-hover text-charcoal p-2 rounded-xl flex items-center justify-center cursor-pointer shadow-md"
+                                    title="Edit asset details via link"
+                                  >
+                                    <Edit3 className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeletePhoto(photo.id)}
+                                    className="bg-red-600 hover:bg-red-750 text-white p-2 rounded-xl flex items-center justify-center cursor-pointer shadow-md"
+                                    title="Discard asset"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+
+                                {/* Tiny Category badge */}
+                                <span className="absolute bottom-2.5 left-2.5 bg-slate-950/80 backdrop-blur-xs text-gold text-[8px] font-mono font-bold px-2 py-0.5 rounded-md uppercase tracking-wider border border-gold/10">
+                                  {photo.category || 'Portfolio'}
+                                </span>
+                              </div>
+
+                              <div className="p-3.5 select-none text-left flex flex-col justify-between flex-1 leading-normal">
+                                <div>
+                                  <p className="text-[11px] font-bold text-charcoal dark:text-slate-200 line-clamp-2">{photo.caption}</p>
+                                  <span className="text-[8px] text-gray-500 font-mono mt-0.5 block truncate">URL: {photo.url}</span>
+                                </div>
+
+                                <div className="space-y-2.5 mt-3 pt-3 border-t border-cream-deep/10">
+                                  {/* Utility Buttons: Copy Link */}
+                                  <div className="flex gap-1.5">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        navigator.clipboard.writeText(photo.url);
+                                        triggerToast(`Copied! Pastable dish URL link saved to clipboard.`);
+                                      }}
+                                      className="flex-1 border dark:border-slate-800 hover:border-gold/30 hover:bg-gold/5 text-gold font-mono rounded-lg py-1.5 uppercase text-[9px] font-bold flex items-center justify-center gap-1 cursor-pointer transition-all active:scale-95"
+                                      title="Copy URL Link to Clipboard"
+                                    >
+                                      <Copy className="w-3 h-3 text-gold" />
+                                      <span>Copy Link</span>
+                                    </button>
+                                  </div>
+
+                                  {/* Apply to Menu Item Dropdown Selector */}
+                                  <div className="flex flex-col gap-1 w-full bg-cream-deep/10 dark:bg-slate-950/40 p-2 rounded-xl border border-cream-deep/10 dark:border-slate-800/65">
+                                    <span className="text-[8.5px] font-mono text-gray-400 font-bold uppercase tracking-wider flex items-center gap-1 select-none">
+                                      <Link className="w-2.5 h-2.5 text-gold" />
+                                      <span>Assign directly to menu dish:</span>
+                                    </span>
+                                    <select
+                                      defaultValue=""
+                                      onChange={(e) => {
+                                        if (e.target.value) {
+                                          handleApplyPhotoToDish(e.target.value, photo.url);
+                                          e.target.value = ""; // Reset
+                                        }
+                                      }}
+                                      className={`w-full px-2 py-1 border rounded-lg text-[9px] font-bold outline-none cursor-pointer leading-wide ${
+                                        isDarkMode 
+                                          ? 'bg-slate-950 border-slate-800 text-gold hover:border-gold/30' 
+                                          : 'bg-white border-cream-deep text-charcoal hover:border-gold/30'
+                                      }`}
+                                    >
+                                      <option value="">-- Click to choose menu dish --</option>
+                                      {menuItems.map(dish => (
+                                        <option key={dish.id} value={dish.id}>
+                                          {dish.name} (NPR {dish.price})
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                        ))}
+
+                        {galleryPhotosList.filter(photo => photo.is_active !== false).filter(photo => galleryFilter === 'All' || (photo.category || '').toLowerCase() === galleryFilter.toLowerCase()).length === 0 && (
+                          <div className="col-span-full py-20 text-center text-gray-400 text-xs italic">
+                            0 visual elements associated inside system portfolio tab.
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
 
@@ -1861,7 +2315,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
                 onClick={() => {
                   setShowAddPhotoModal(false);
                   setEditingPhotoId(null);
-                  setNewPhotoForm({ url: '', caption: '' });
+                  setNewPhotoForm({ url: '', caption: '', category: 'Food' });
                 }} 
                 className="text-gray-400"
               >
@@ -1880,6 +2334,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
                   onChange={(e) => setNewPhotoForm(prev => ({ ...prev, url: e.target.value }))}
                   className={`w-full px-3 py-2 border rounded-xl outline-none ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-cream-deep'}`}
                 />
+              </div>
+
+              <div className="space-y-1 leading-normal">
+                <label className="text-[8px] font-mono text-gray-400 uppercase">Gallery Category Class</label>
+                <select
+                  value={newPhotoForm.category || 'Food'}
+                  onChange={(e) => setNewPhotoForm(prev => ({ ...prev, category: e.target.value }))}
+                  className={`w-full px-3 py-2 border rounded-xl outline-none ${isDarkMode ? 'bg-slate-950 border-slate-805 text-white' : 'bg-white border-cream-deep text-charcoal'}`}
+                >
+                  <option value="Interior">Interior / Venue</option>
+                  <option value="Food">Food / Cuisines</option>
+                  <option value="Drinks">Drinks & Cocktails</option>
+                  <option value="Exterior">Exterior / Rooftop Patio</option>
+                </select>
               </div>
 
               <div className="space-y-1 leading-normal">

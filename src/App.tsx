@@ -260,94 +260,134 @@ export default function App() {
 
   // Dynamic slot calculations
   const calculateAvailableSlots = (selectedDateStr: string, guests: number): any[] => {
-    if (!selectedDateStr) return [];
-    
-    // Check blocked holidays
-    const isBlocked = dbBlockedDates.some(b => b.blocked_date === selectedDateStr);
-    if (isBlocked) return [];
+    try {
+      if (!selectedDateStr) return [];
+      
+      // Check blocked holidays: blocked_dates has "blocked_date" property
+      const isBlocked = dbBlockedDates.some(b => b.blocked_date === selectedDateStr);
+      if (isBlocked) {
+        console.log(`[Slot Calculation] Slot generation skipped: Date ${selectedDateStr} is exists in blocked_dates.`);
+        return [];
+      }
 
-    if (guests > (dbSettings.max_party_size || 20)) return [];
+      const partySize = Number(guests);
+      const maxPartySize = Number(dbSettings?.max_party_size || 20);
+      if (partySize > maxPartySize || partySize < 1) {
+        console.log(`[Slot Calculation] Selected party size ${partySize} is outside allowed range (1 - ${maxPartySize}).`);
+        return [];
+      }
 
-    // Determine weekday from date YYYY-MM-DD
-    const parts = selectedDateStr.split('-');
-    if (parts.length !== 3) return [];
-    const year = parseInt(parts[0], 10);
-    const month = parseInt(parts[1], 10);
-    const day = parseInt(parts[2], 10);
-    if (isNaN(year) || isNaN(month) || isNaN(day)) return [];
+      // Determine weekday from date YYYY-MM-DD
+      const parts = selectedDateStr.split('-');
+      if (parts.length !== 3) return [];
+      const year = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10);
+      const day = parseInt(parts[2], 10);
+      if (isNaN(year) || isNaN(month) || isNaN(day)) return [];
 
-    const targetDate = new Date(year, month - 1, day);
-    const weekdayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const weekdayName = weekdayNames[targetDate.getDay()];
+      const targetDate = new Date(year, month - 1, day);
+      const weekdayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const weekdayName = weekdayNames[targetDate.getDay()];
 
-    const dayConfig = dbBusinessHours.find(h => h.weekday.toLowerCase() === weekdayName.toLowerCase());
-    if (!dayConfig || !dayConfig.is_open) return [];
+      const dayConfig = dbBusinessHours.find(h => h.weekday && h.weekday.toLowerCase() === weekdayName.toLowerCase());
+      if (!dayConfig || !dayConfig.is_open) {
+        console.log(`[Slot Calculation] Restaurant is closed on ${weekdayName}.`);
+        return [];
+      }
 
-    // Parse business hours (e.g. "08:00")
-    const [startHour, startMin] = dayConfig.start_time.split(':').map(Number);
-    const [endHour, endMin] = dayConfig.end_time.split(':').map(Number);
+      // Parse business hours (e.g. "08:00")
+      const [startHour, startMin] = dayConfig.start_time.split(':').map(Number);
+      const [endHour, endMin] = dayConfig.end_time.split(':').map(Number);
 
-    const startMinutes = startHour * 60 + startMin;
-    const endMinutes = endHour * 60 + endMin;
+      const startMinutes = startHour * 60 + startMin;
+      const endMinutes = endHour * 60 + endMin;
 
-    const slotInterval = dbSettings.slot_interval_minutes || 30;
-    const duration = dbSettings.default_reservation_duration_minutes || 90;
+      const slotInterval = Number(dbSettings?.slot_interval_minutes || 30);
+      const duration = Number(dbSettings?.default_reservation_duration_minutes || 90);
 
-    const activeTables = dbTables.filter(t => t.is_active && t.capacity >= guests);
-    if (activeTables.length === 0) return [];
+      // Check active tables matching capacity: active restaurant_tables row has capacity >= party_size
+      const activeTables = dbTables.filter(t => {
+        const isActive = t.is_active === true || t.is_active === 'true';
+        const capacity = Number(t.capacity);
+        return isActive && capacity >= partySize;
+      });
 
-    const slots = [];
-    const now = new Date();
+      if (activeTables.length === 0) {
+        console.log(`[Slot Calculation] No active tables have capacity >= ${partySize}.`);
+        return [];
+      }
 
-    for (let minutes = startMinutes; minutes + duration <= endMinutes; minutes += slotInterval) {
-      const slotHour = Math.floor(minutes / 60);
-      const slotMin = minutes % 60;
+      const slots = [];
+      const now = new Date();
+      const bookingNoticeHours = Number(dbSettings?.booking_notice_hours || 2);
+      const noticeMs = bookingNoticeHours * 60 * 60 * 1000;
 
-      const slotStart = new Date(year, month - 1, day, slotHour, slotMin, 0, 0);
-      const slotEnd = new Date(slotStart.getTime() + duration * 60 * 1000);
+      // Start calculating slots
+      for (let minutes = startMinutes; minutes + duration <= endMinutes; minutes += slotInterval) {
+        const slotHour = Math.floor(minutes / 60);
+        const slotMin = minutes % 60;
 
-      // booking notice window check
-      const noticeMs = (dbSettings.booking_notice_hours || 2) * 60 * 60 * 1000;
-      if (slotStart.getTime() < now.getTime() + noticeMs) continue;
+        const slotStart = new Date(year, month - 1, day, slotHour, slotMin, 0, 0);
+        const slotEnd = new Date(slotStart.getTime() + duration * 60 * 1000);
 
-      let assignedTableId = null;
+        // booking notice window check: Slots that violate restaurant_settings.booking_notice_hours must be excluded
+        if (slotStart.getTime() < now.getTime() + noticeMs) {
+          continue;
+        }
 
-      for (const table of activeTables) {
-        const isBooked = dbReservations.some(res => {
-          if (res.status === 'cancelled' || res.table_id !== table.id) return false;
-          if (res.reservation_date !== selectedDateStr) return false;
+        let assignedTableId: string | null = null;
 
-          const [resStartH, resStartM] = res.start_time.split(':').map(Number);
-          const [resEndH, resEndM] = res.end_time.split(':').map(Number);
+        // Try to allocate tables, sorting by capacity for optimal placement
+        const sortedTables = [...activeTables].sort((a, b) => Number(a.capacity) - Number(b.capacity));
 
-          const resStart = new Date(year, month - 1, day, resStartH, resStartM, 0, 0);
-          const resEnd = new Date(year, month - 1, day, resEndH, resEndM, 0, 0);
+        for (const table of sortedTables) {
+          // Check overlapping reservations on the same table
+          const isOverlapping = dbReservations.some(res => {
+            if (res.status === 'cancelled') return false; // Reservations with status = "cancelled" must NOT block tables
+            if (res.table_id !== table.id) return false;
+            if (res.reservation_date !== selectedDateStr) return false;
 
-          return slotStart.getTime() < resEnd.getTime() && slotEnd.getTime() > resStart.getTime();
-        });
+            try {
+              const [resStartH, resStartM] = res.start_time.split(':').map(Number);
+              const [resEndH, resEndM] = res.end_time.split(':').map(Number);
 
-        if (!isBooked) {
-          assignedTableId = table.id;
-          break;
+              const resStart = new Date(year, month - 1, day, resStartH, resStartM, 0, 0);
+              const resEnd = new Date(year, month - 1, day, resEndH, resEndM, 0, 0);
+
+              // Overlap rule: new_start < existing_end AND new_end > existing_start
+              return slotStart.getTime() < resEnd.getTime() && slotEnd.getTime() > resStart.getTime();
+            } catch (e) {
+              console.error("[Slot Calculation] Error parsing overlapping reservation:", res, e);
+              return false;
+            }
+          });
+
+          if (!isOverlapping) {
+            assignedTableId = table.id;
+            break;
+          }
+        }
+
+        if (assignedTableId) {
+          const displayHours = slotHour % 12 || 12;
+          const displayMins = slotMin.toString().padStart(2, '0');
+          const ampm = slotHour >= 12 ? 'PM' : 'AM';
+          const label = `${displayHours}:${displayMins} ${ampm}`;
+
+          slots.push({
+            start: slotStart,
+            end: slotEnd,
+            label,
+            tableId: assignedTableId
+          });
         }
       }
 
-      if (assignedTableId) {
-        const displayHours = slotHour % 12 || 12;
-        const displayMins = slotMin.toString().padStart(2, '0');
-        const ampm = slotHour >= 12 ? 'PM' : 'AM';
-        const label = `${displayHours}:${displayMins} ${ampm}`;
-
-        slots.push({
-          start: slotStart,
-          end: slotEnd,
-          label,
-          tableId: assignedTableId
-        });
-      }
+      return slots;
+    } catch (error) {
+      console.error("[Slot Calculation] Safety loop caught error:", error);
+      return [];
     }
-
-    return slots;
   };
 
   // Adaptive reactive states with shadow overrides for secure administration
@@ -719,6 +759,12 @@ export default function App() {
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     setFormError(null); // Clear errors dynamically
+
+    // Reset slot selection if parameters that affect availability are changed
+    if (name === 'date' || name === 'guests' || name === 'serviceType') {
+      setSelectedSlot(null);
+    }
+
     if (type === 'checkbox') {
       const checked = (e.target as HTMLInputElement).checked;
       setForm(prev => ({ ...prev, [name]: checked }));
@@ -730,19 +776,27 @@ export default function App() {
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim() || !form.phone.trim()) {
-      setFormError("Please fill in your name and a valid phone number to request booking!");
+      setFormError(lang === 'en'
+        ? "Please fill in your name and a valid phone number to request booking!"
+        : "कृपया बुकिङ अनुरोध गर्न आफ्नो पूरा नाम र एउटा मान्य फोन नम्बर भर्नुहोस्!");
       return;
     }
 
+    const partySize = Math.floor(Number(form.guests));
+    const maxPartySize = Number(dbSettings?.max_party_size || 20);
+
     if (form.serviceType === 'Dine-In') {
-      if (!selectedSlot) {
-        setFormError(lang === 'en' 
-          ? "Please select an available dining slot from the grid below!" 
-          : "कृपया उपलब्ध बुकिङ समयहरू मध्ये एक चयन गर्नुहोस्!");
+      if (partySize > maxPartySize || partySize < 1) {
+        setFormError(lang === 'en'
+          ? `Party size cannot exceed maximum limit of ${maxPartySize} guests.`
+          : `पाहुनाको संख्या अधिकतम सीमा ${maxPartySize} भन्दा बढी हुन सक्दैन।`);
         return;
       }
-      if (Number(form.guests) > (dbSettings?.max_party_size || 20)) {
-        setFormError(`Party size cannot exceed maximum limit of ${dbSettings?.max_party_size || 20} guests.`);
+
+      if (!selectedSlot) {
+        setFormError(lang === 'en'
+          ? "Please select an available dining slot from the grid below!"
+          : "कृपया उपलब्ध बुकिङ समयहरू मध्ये एक चयन गर्नुहोस्!");
         return;
       }
     }
@@ -750,34 +804,48 @@ export default function App() {
     setFormError(null);
     
     try {
-      // Format start time and end time safely
       let start_time = form.time;
       let end_time = form.time;
       let table_id = "unassigned";
 
       if (form.serviceType === 'Dine-In' && selectedSlot) {
-        const sh = selectedSlot.start.getHours().toString().padStart(2, '0');
-        const sm = selectedSlot.start.getMinutes().toString().padStart(2, '0');
-        start_time = `${sh}:${sm}`;
-
-        const eh = selectedSlot.end.getHours().toString().padStart(2, '0');
-        const em = selectedSlot.end.getMinutes().toString().padStart(2, '0');
-        end_time = `${eh}:${em}`;
-        
         table_id = selectedSlot.tableId;
+        
+        // Extract exact start_time and end_time formatted as "HH:MM"
+        const startH = selectedSlot.start.getHours().toString().padStart(2, '0');
+        const startM = selectedSlot.start.getMinutes().toString().padStart(2, '0');
+        start_time = `${startH}:${startM}`;
+
+        const endH = selectedSlot.end.getHours().toString().padStart(2, '0');
+        const endM = selectedSlot.end.getMinutes().toString().padStart(2, '0');
+        end_time = `${endH}:${endM}`;
+      } else {
+        // Fallback for non-Dine-In bookings
+        try {
+          const [sh, sm] = form.time.split(':').map(Number);
+          const duration = dbSettings?.default_reservation_duration_minutes || 90;
+          const endTotalMin = sh * 60 + sm + duration;
+          const eh = Math.floor(endTotalMin / 60) % 24;
+          const em = endTotalMin % 60;
+          start_time = `${sh.toString().padStart(2, '0')}:${sm.toString().padStart(2, '0')}`;
+          end_time = `${eh.toString().padStart(2, '0')}:${em.toString().padStart(2, '0')}`;
+        } catch (e) {
+          // Keep defaults
+        }
       }
 
+      // Exact schema representation mapping
       const resData = {
         full_name: form.name.trim(),
-        email: form.email.trim(),
+        email: form.email.trim() || null,
         phone: form.phone.trim(),
-        party_size: Number(form.guests),
+        party_size: partySize,
         table_id: table_id,
         reservation_date: form.date,
         start_time: start_time,
         end_time: end_time,
         status: "pending",
-        special_requests: form.message.trim(),
+        special_requests: form.message.trim() || null,
         created_at: new Date().toISOString()
       };
 
@@ -790,7 +858,7 @@ export default function App() {
     } catch (err: any) {
       console.error("Firestore Save Error:", err);
       setFormError(lang === 'en' 
-        ? "Failed to save reservation. Please verify database connection." 
+        ? "Failed to save reservation. Please verify your database connection or try another slot." 
         : "डाटाबेस त्रुटि: बुकिङ सुरक्षित गर्न सकिएन। पुनः प्रयास गर्नुहोस्।");
     }
   };
@@ -825,9 +893,7 @@ export default function App() {
 
   // Custom pre-configured Nepalese WhatsApp order pre-filler format
   const getWhatsAppMessageUrl = () => {
-    const formattedTime = (form.serviceType === 'Dine-In' && selectedSlot) 
-      ? selectedSlot.label 
-      : formatTimeTo12Hour(form.time);
+    const formattedTime = formatTimeTo12Hour(form.time);
 
     const text = `Hello Sutra Lounge! I would like to make an inquiry via your landing page:
 • Customer: ${form.name}
@@ -2209,6 +2275,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
           >
             <AnimatePresence mode="popLayout">
               {MAPS_GALLERY_PHOTOS
+                .filter(photo => photo.is_active !== false)
                 .filter(photo => selectedGalleryCategory === 'All' || photo.category === selectedGalleryCategory)
                 .map(translatePhoto)
                 .map((photo, index) => (
@@ -2403,25 +2470,24 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
                         type="date" 
                         name="date" 
                         value={form.date}
-                        onChange={(e) => {
-                          handleFormChange(e);
-                          setSelectedSlot(null); // reset slot selection
-                        }}
+                        onChange={handleFormChange}
                         className="w-full bg-cream-soft px-4 py-3.5 rounded-xl border border-cream-deep focus:outline-none focus:border-gold text-sm transition-colors font-mono font-light gap-2"
                       />
                     </div>
 
                     <div className="space-y-2">
                       <label className="text-[11px] font-bold tracking-wider text-charcoal uppercase block">
-                        {lang === 'en' ? 'Requested Time (12H)' : 'बुकिङ समय (१२-घण्टा)'}
+                        {lang === 'en' ? 'Requested Time *' : 'बुकिङ समय *'}
                       </label>
                       {form.serviceType === 'Dine-In' ? (
-                        <div className="w-full bg-cream-deep/20 px-4 py-3.5 rounded-xl border border-cream-deep text-xs font-semibold text-gold-hover h-[48px] flex items-center justify-center font-mono">
-                          {selectedSlot ? selectedSlot.label : (lang === 'en' ? 'Select Slot Below' : 'तल समय रोज्नुहोस्')}
+                        <div id="dine-in-time-text-indicator" className="w-full bg-cream-deep/20 px-4 py-3.5 rounded-xl border border-cream-deep text-xs font-semibold text-gold-hover h-[48px] flex items-center justify-between font-mono">
+                          <span>{selectedSlot ? selectedSlot.label : (lang === 'en' ? 'Select Slot Below' : 'तल समय रोज्नुहोस्')}</span>
+                          <Clock className="w-4 h-4 text-gold-hover shrink-0 animate-pulse-once" />
                         </div>
                       ) : (
                         <select 
                           name="time" 
+                          id="form-time-select-fallback"
                           value={form.time}
                           onChange={handleFormChange}
                           className="w-full bg-cream-soft px-4 py-3.5 rounded-xl border border-cream-deep focus:outline-none focus:border-gold text-sm transition-colors font-mono font-light cursor-pointer"
@@ -2458,19 +2524,17 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-[11px] font-bold tracking-wider text-charcoal uppercase block">
+                       <label className="text-[11px] font-bold tracking-wider text-charcoal uppercase block">
                         {lang === 'en' ? 'Party Size (Guests)' : 'पाहुना संख्या (गेस्ट)'}
                       </label>
                       <input 
                         type="number" 
                         name="guests" 
+                        id="form-guests-picker-input"
                         min="1" 
                         max={dbSettings?.max_party_size || 20}
                         value={form.guests}
-                        onChange={(e) => {
-                          handleFormChange(e);
-                          setSelectedSlot(null); // reset slot selection
-                        }}
+                        onChange={handleFormChange}
                         className="w-full bg-cream-soft px-4 py-3.5 rounded-xl border border-cream-deep focus:outline-none focus:border-gold text-sm transition-colors font-light"
                       />
                     </div>
@@ -2478,13 +2542,13 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
 
                   {/* Dynamic available slot selection for Dine-In Table Booking */}
                   {form.serviceType === 'Dine-In' && (
-                    <div className="space-y-3 bg-cream-deep/20 border border-cream-deep p-4 sm:p-5 rounded-2xl">
+                    <div id="dine-in-slots-container" className="space-y-3 bg-cream-deep/20 border border-cream-deep p-4 sm:p-5 rounded-2xl">
                       <div className="flex justify-between items-center flex-wrap gap-2">
                         <h4 className="text-xs font-bold tracking-wider text-charcoal uppercase flex items-center gap-1.5">
-                          <Clock className="w-3.5 h-3.5 text-gold-hover" />
+                          <Clock className="w-3.5 h-3.5 text-gold-hover shrink-0" />
                           <span>{lang === 'en' ? 'Available Table Booking Slots' : 'उपलब्ध टेबल बुकिङ समयहरू'}</span>
                         </h4>
-                        <span className="text-[10px] font-mono font-semibold text-charcoal bg-cream-deep px-2 py-0.5 rounded-md uppercase">
+                        <span id="slots-meta-badge" className="text-[10px] font-mono font-semibold text-charcoal bg-cream-deep px-2 py-0.5 rounded-md uppercase">
                           {form.date ? `${form.date} (${form.guests} guests)` : 'Select date and party size'}
                         </span>
                       </div>
@@ -2494,28 +2558,29 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
                           const slots = calculateAvailableSlots(form.date, Number(form.guests));
                           if (slots.length === 0) {
                             return (
-                              <div className="p-4 bg-amber-50 border border-amber-200/60 rounded-xl text-xs text-amber-800 flex items-center gap-2">
+                              <div id="no-slots-alert" className="p-4 bg-amber-50 border border-amber-200/60 rounded-xl text-xs text-amber-800 flex items-center gap-2">
                                 <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
                                 <span>
                                   {lang === 'en' 
-                                    ? 'No tables matching this capacity are available on selected date. Try another date or adjust party size!' 
-                                    : 'चयन गरिएको मितिमा पाहुनाको संख्या अनुसारको टेबल उपलब्ध छैन। कृपया अर्को मिति वा पाहुना संख्या परिवर्तन गर्नुहोस्।'}
+                                    ? 'No availability matching this capacity or date. Try another date or adjust party size!' 
+                                    : 'चयन गरिएको मितिमा पाहुनाको संख्या अनुसारको टेबल वा समय उपलब्ध छैन। कृपया अर्को मिति वा पाहुना संख्या परिवर्तन गर्नुहोस्।'}
                                 </span>
                               </div>
                             );
                           }
                           return (
-                            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2">
+                            <div id="slots-grid-wrapper" className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2">
                               {slots.map((slot, index) => {
                                 const isSelected = selectedSlot && selectedSlot.start.getTime() === slot.start.getTime();
                                 return (
                                   <button
+                                    id={`slot-button-${index}`}
                                     key={index}
                                     type="button"
                                     onClick={() => setSelectedSlot(slot)}
                                     className={`py-2 px-3 text-xs font-mono rounded-lg border text-center transition-all cursor-pointer scale-100 active:scale-95
                                       ${isSelected 
-                                        ? 'bg-gold text-cream-soft border-gold font-bold shadow-sm animate-pulse-once' 
+                                        ? 'bg-gold text-cream-soft border-gold font-bold shadow-sm' 
                                         : 'bg-white hover:bg-cream-soft/60 text-charcoal border-cream-deep hover:border-gold/30'}`}
                                   >
                                     {slot.label}
@@ -2526,7 +2591,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
                           );
                         })()
                       ) : (
-                        <p className="text-xs text-charcoal-muted font-light leading-relaxed">
+                        <p id="slots-help-text" className="text-xs text-charcoal-muted font-light leading-relaxed">
                           {lang === 'en' 
                             ? 'Select requested date and party size to compute real available table slots dynamically.' 
                             : 'वास्तविक उपलब्ध समयहरू गणना गर्न कृपया मिति र पाहुना संख्या भर्नुहोस्।'}
