@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+
+# Host
+Host: https://sutralounge.com.np
+
+# Sitemaps
+Sitemap: https://sutralounge.com.np/sitemap.xml
+Sitemap: https://ais-pre-mj74mrcorwg7tcbmw34fdr-534237607704.asia-southeast1.run.app/sitemap.xml

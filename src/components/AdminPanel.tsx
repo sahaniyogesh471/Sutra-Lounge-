@@ -1,62 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  Lock, 
-  Save, 
   X, 
   Plus, 
-  Trash2, 
-  Edit3, 
   CheckCircle,
   Clock,
   Sparkles,
-  AlertTriangle,
   Calendar,
   Settings,
   Activity,
-  PlusCircle,
-  ToggleLeft,
-  ToggleRight,
-  Shield,
   ShoppingBag,
   Image as ImageIcon,
-  Sun,
-  Moon,
-  ChevronLeft,
-  ChevronRight,
-  Filter,
-  DollarSign,
-  TrendingUp,
-  PackageCheck,
-  Check,
-  Search,
-  Eye,
-  Store,
-  Phone,
-  Mail,
-  MapPin,
-  Trash,
   FileText,
   Copy,
   Link,
   Sliders,
-  CheckCheck
+  LogOut,
+  Store,
+  ChevronLeft,
+  ChevronRight,
+  Menu as MenuIcon
 } from 'lucide-react';
 import { 
-  ResponsiveContainer, 
-  AreaChart, 
-  Area, 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  Tooltip, 
-  CartesianGrid, 
-  Legend 
-} from 'recharts';
-import { 
   db, 
-  auth, 
   handleFirestoreError, 
   OperationType,
   collection, 
@@ -69,10 +35,18 @@ import {
   getDoc
 } from '../firebase';
 
+// Webpack/Vite Sub-components
+import { AdminOverview } from './AdminOverview';
+import { AdminOrders } from './AdminOrders';
+import { AdminReservations } from './AdminReservations';
+import { AdminMenu } from './AdminMenu';
+import { AdminGallery } from './AdminGallery';
+import { AdminSettings } from './AdminSettings';
+import { ImageUploader } from './ImageUploader';
+
 interface AdminPanelProps {
   isOpen: boolean;
   onClose: () => void;
-  // Kept for prop-level signature compatibility with App.tsx
   businessDetails: any;
   setBusinessDetails: any;
   menuHighlights: any;
@@ -115,12 +89,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
     restaurant_address: "Nagar Bikash Samiti Marg, Hetauda 44107, Nepal",
   });
 
-  // Current active tab (Simplified MVP Routing)
+  // Current active tab
   const [activeTab, setActiveTab] = useState<'overview' | 'orders' | 'reservations' | 'menu' | 'gallery' | 'settings'>('overview');
 
-  // visual state preferences
-  const [isDarkMode, setIsDarkMode] = useState(false);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  // sidebar togglers
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Filters and queries
   const [searchOrderQuery, setSearchOrderQuery] = useState('');
@@ -155,22 +128,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
 
   const [showAddPhotoModal, setShowAddPhotoModal] = useState(false);
   const [editingPhotoId, setEditingPhotoId] = useState<string | null>(null);
+  const [uploadTab, setUploadTab] = useState<'upload' | 'url'>('upload');
   const [newPhotoForm, setNewPhotoForm] = useState({
     url: '',
     caption: '',
     category: 'Food'
   });
 
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void | Promise<void>;
+  } | null>(null);
+
   const [galleryFilter, setGalleryFilter] = useState<string>('All');
-
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-
-  // Batch Update States
-  const [isBatchMode, setIsBatchMode] = useState(false);
-  const [batchMenuItems, setBatchMenuItems] = useState<any[]>([]);
-  const [batchGalleryPhotos, setBatchGalleryPhotos] = useState<any[]>([]);
-  const [batchSubTab, setBatchSubTab] = useState<'dishes' | 'gallery'>('dishes');
-  const [isSavingBatch, setIsSavingBatch] = useState(false);
 
   // Live Subscription streams directly from Firestore proxy layer
   useEffect(() => {
@@ -240,11 +213,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
           await addDoc(collection(db, 'online_orders'), ord);
         });
       } else {
-        list.sort((a,b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+        list.sort((a,b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || a.gradient_offset || 0).getTime());
         setOrders(list);
       }
     }, (error) => {
-      console.warn("Could not load orders, using mock fallback: ", error);
+      console.warn("Could not load orders: ", error);
     });
 
     // 4. Restaurant Settings
@@ -366,11 +339,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
   const metricPendingOrders = orders.filter(o => o.status === 'new' || o.status === 'preparing').length;
   const metricPendingReservations = reservations.filter(r => r.status === 'pending').length;
 
-  // Manual Order ingest
+  // Manual Order dynamic callbacks setup
   const handleAddManualOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newOrderForm.items.length === 0) {
-      triggerToast("Please add at least 1 delicacy to order lines");
+      triggerToast("Please add at least 1 delicacy item line");
       return;
     }
     try {
@@ -399,13 +372,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
         payment_status: 'pending',
         delivery_address: ''
       });
-      triggerToast("Order added directly inside master queue");
+      triggerToast("Order placed directly into kitchen telemetry feed!");
     } catch (e: any) {
-      triggerToast(`Error adding order: ${e.message}`);
+      triggerToast(`Error: ${e.message}`);
     }
   };
 
-  // Add order-line item
   const handleAddOrderItemLine = () => {
     if (!selectedOrderItemName) return;
     const itemObj = menuItems.find(m => m.name === selectedOrderItemName);
@@ -437,36 +409,42 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
     }));
   };
 
-  // Order state mutations
+  // Order state status mutations
   const handleUpdateOrderStatus = async (orderId: string, status: string) => {
     try {
       await updateDoc(doc(db, 'online_orders', orderId), { status });
       triggerToast(`Order status bumped to ${status.toUpperCase()}`);
     } catch (e: any) {
-      triggerToast(`Failed to update status: ${e.message}`);
+      triggerToast(`Failed: ${e.message}`);
     }
   };
 
   const handleUpdateOrderPaymentStatus = async (orderId: string, payment_status: string) => {
     try {
       await updateDoc(doc(db, 'online_orders', orderId), { payment_status });
-      triggerToast(`Order billing status transitioned to ${payment_status.toUpperCase()}`);
+      triggerToast(`Billing updated to ${payment_status.toUpperCase()}`);
     } catch (e: any) {
-      triggerToast(`Failed to update payment: ${e.message}`);
+      triggerToast(`Error: ${e.message}`);
     }
   };
 
   const handleDeleteOrder = async (orderId: string) => {
-    if (!window.confirm("Remove this order completely from logs?")) return;
-    try {
-      await deleteDoc(doc(db, 'online_orders', orderId));
-      triggerToast("Order destroyed cleanly");
-    } catch (e: any) {
-      triggerToast(`Error removing order: ${e.message}`);
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: "Confirm Deletion",
+      message: "Are you sure you want to remove this order completely from logs?",
+      onConfirm: async () => {
+        try {
+          await deleteDoc(doc(db, 'online_orders', orderId));
+          triggerToast("Order removed cleanly");
+        } catch (e: any) {
+          triggerToast(`Error: ${e.message}`);
+        }
+      }
+    });
   };
 
-  // Reservations mutations
+  // Reservation functions
   const handleUpdateReservationStatus = async (resId: string, status: string) => {
     try {
       await updateDoc(doc(db, 'reservations', resId), { status });
@@ -477,13 +455,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
   };
 
   const handleDeleteReservation = async (resId: string) => {
-    if (!window.confirm("Are you sure you want to delete this reservation?")) return;
-    try {
-      await deleteDoc(doc(db, 'reservations', resId));
-      triggerToast("Reservation deleted successfully");
-    } catch (e: any) {
-      triggerToast(`Failed to delete: ${e.message}`);
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: "Confirm Deletion",
+      message: "Are you sure you want to delete this reservation?",
+      onConfirm: async () => {
+        try {
+          await deleteDoc(doc(db, 'reservations', resId));
+          triggerToast("Reservation deleted successfully");
+        } catch (e: any) {
+          triggerToast(`Failed: ${e.message}`);
+        }
+      }
+    });
   };
 
   // Menu item mutations
@@ -525,85 +509,41 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
         image_url: ''
       });
     } catch (e: any) {
-      triggerToast(`Failed saving menu item: ${e.message}`);
+      triggerToast(`Error saving product: ${e.message}`);
     }
   };
 
   const handleDeleteMenuItem = async (id: string) => {
-    if (!window.confirm("Are you sure you want to delete this menu item?")) return;
-    try {
-      await deleteDoc(doc(db, 'menu_items', id));
-      triggerToast("Dish retired from catalog");
-    } catch (e: any) {
-      triggerToast(` retirement failed: ${e.message}`);
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: "Confirm Deletion",
+      message: "Are you sure you want to remove this menu item from Sutralounge streams?",
+      onConfirm: async () => {
+        try {
+          await deleteDoc(doc(db, 'menu_items', id));
+          triggerToast("Dish retired from active offering");
+        } catch (e: any) {
+          triggerToast(`Error deleting: ${e.message}`);
+        }
+      }
+    });
   };
 
   const handleToggleMenuBoolean = async (id: string, field: 'is_active' | 'is_featured', currentValue: boolean) => {
     try {
       await updateDoc(doc(db, 'menu_items', id), { [field]: !currentValue });
-      triggerToast(`Dish ${field === 'is_active' ? 'availability' : 'promotional highlight'} modified`);
+      triggerToast(`Dish ${field === 'is_active' ? 'status' : ' spotlight'} modified`);
     } catch (e: any) {
-      triggerToast(`Toggle error: ${e.message}`);
+      triggerToast(`Modification error: ${e.message}`);
     }
   };
 
-  // Batch Mode Handlers
-  const handleBatchMenuItemChange = (id: string, field: string, value: any) => {
-    setBatchMenuItems(prev => prev.map(item => item.id === id ? { ...item, [field]: value } : item));
-  };
-
-  const handleBatchGalleryPhotoChange = (id: string, field: string, value: any) => {
-    setBatchGalleryPhotos(prev => prev.map(photo => photo.id === id ? { ...photo, [field]: value } : photo));
-  };
-
-  const handleSaveBatchChangesSubmit = async () => {
-    setIsSavingBatch(true);
-    try {
-      if (batchSubTab === 'dishes') {
-        const promises = batchMenuItems.map(item => {
-          const payload = {
-            name: item.name,
-            description: item.description || '',
-            price: Number(item.price),
-            category: item.category,
-            is_featured: !!item.is_featured,
-            is_active: !!item.is_active,
-            image_url: (item.image_url || '').trim()
-          };
-          return updateDoc(doc(db, 'menu_items', item.id), payload);
-        });
-        await Promise.all(promises);
-        triggerToast("Dish photo URLs & visibility batch-saved successfully!");
-      } else {
-        const updated = batchGalleryPhotos.map(ph => ({
-          ...ph,
-          url: (ph.url || '').trim(),
-          caption: (ph.caption || 'Sutra Lounge Premium Photo').trim(),
-          is_active: ph.is_active !== undefined ? !!ph.is_active : true
-        }));
-        setGalleryPhotosList(updated);
-        if (setGalleryPhotos) setGalleryPhotos(updated);
-        localStorage.setItem('sutra_admin_gallery_photos', JSON.stringify(updated));
-        localStorage.setItem('sutra_gallery_photos', JSON.stringify(updated));
-        triggerToast("Gallery assets batch-saved successfully!");
-      }
-      setIsBatchMode(false);
-    } catch (e: any) {
-      triggerToast(`Batch write error: ${e.message}`);
-    } finally {
-      setIsSavingBatch(false);
-    }
-  };
-
-  // Settings & business hours mutations
+  // Settings & business operations hours savings
   const handleSaveSettingsAndHours = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      // 1. Save core contact details
       await setDoc(doc(db, 'restaurant_settings', 'default'), settings, { merge: true });
 
-      // 2. Save hours
       for (const day of businessHours) {
         await setDoc(doc(db, 'business_hours', day.id), {
           weekday: day.weekday,
@@ -613,9 +553,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
         }, { merge: true });
       }
 
-      triggerToast("Store operational metadata saved successfully");
+      triggerToast("Operational metrics & hours saved");
     } catch (e: any) {
-      triggerToast(`Settings save failed: ${e.message}`);
+      triggerToast(`Failed: ${e.message}`);
     }
   };
 
@@ -623,7 +563,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
     setBusinessHours(prev => prev.map(day => day.id === dayId ? { ...day, [field]: value } : day));
   };
 
-  // Gallery CRUD
+  // Gallery Portfolio CRUD
   const handleAddPhotoSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPhotoForm.url.trim()) return;
@@ -647,7 +587,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
       setShowAddPhotoModal(false);
       setEditingPhotoId(null);
       setNewPhotoForm({ url: '', caption: '', category: 'Food' });
-      triggerToast("Photo asset updated successfully via image link");
+      triggerToast("Photo asset modified successfully");
     } else {
       const newPhoto = {
         url: newPhotoForm.url.trim(),
@@ -665,18 +605,24 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
       localStorage.setItem('sutra_gallery_photos', JSON.stringify(updated));
       setShowAddPhotoModal(false);
       setNewPhotoForm({ url: '', caption: '', category: 'Food' });
-      triggerToast("Photo ingested into static portfolio grid");
+      triggerToast("Visual asset uploaded successfully");
     }
   };
 
   const handleDeletePhoto = (id: string) => {
-    if (!window.confirm("Discard this asset?")) return;
-    const updated = galleryPhotosList.filter(ph => ph.id !== id);
-    setGalleryPhotosList(updated);
-    if (setGalleryPhotos) setGalleryPhotos(updated);
-    localStorage.setItem('sutra_admin_gallery_photos', JSON.stringify(updated));
-    localStorage.setItem('sutra_gallery_photos', JSON.stringify(updated));
-    triggerToast("Asset purged successfully");
+    setConfirmDialog({
+      isOpen: true,
+      title: "Confirm Deletion",
+      message: "Are you sure you want to purge this photographic memory asset from website frontpages?",
+      onConfirm: () => {
+        const updated = galleryPhotosList.filter(ph => ph.id !== id);
+        setGalleryPhotosList(updated);
+        if (setGalleryPhotos) setGalleryPhotos(updated);
+        localStorage.setItem('sutra_admin_gallery_photos', JSON.stringify(updated));
+        localStorage.setItem('sutra_gallery_photos', JSON.stringify(updated));
+        triggerToast("Visual asset purged successfully");
+      }
+    });
   };
 
   const handleApplyPhotoToDish = async (dishId: string, imageUrl: string) => {
@@ -684,1484 +630,278 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
       const dish = menuItems.find(m => m.id === dishId);
       if (!dish) return;
       await updateDoc(doc(db, 'menu_items', dishId), { image_url: imageUrl });
-      triggerToast(`Photo assigned to ${dish.name}!`);
+      triggerToast(`Photo thumbnail assigned to ${dish.name}!`);
     } catch (e: any) {
-      triggerToast(`Assignment failed: ${e.message}`);
+      triggerToast(`Assignment error: ${e.message}`);
     }
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className={`fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-charcoal/85 backdrop-blur-md overflow-hidden animate-fade-in ${isDarkMode ? 'dark text-slate-100' : 'text-charcoal'}`}>
-      <div className={`w-full h-full sm:max-w-7xl sm:h-[90vh] sm:rounded-3xl border shadow-2xl flex flex-col overflow-hidden relative transition-colors duration-200 ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-cream-soft border-cream-deep'}`}>
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-0 md:p-4 overflow-hidden">
+      
+      {/* Dynamic Toast Feedback Overlay */}
+      <AnimatePresence>
+        {toastMessage && (
+          <motion.div 
+            initial={{ opacity: 0, y: 15, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 15, scale: 0.95 }}
+            className="fixed bottom-6 right-6 z-[120] px-5 py-3 rounded-lg bg-[#0a1422] text-white text-xs font-bold font-sans tracking-wide flex items-center gap-2 border border-[#fd761a]/30 shadow-2xl"
+          >
+            <CheckCircle className="w-4 h-4 text-emerald-400" />
+            <span>{toastMessage}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="w-full h-full lg:rounded-2xl border border-gray-200 bg-[#f8f9fa] overflow-hidden flex relative shadow-2xl text-[#191c1d]">
         
-        {/* Floating feedback notification toast */}
-        <AnimatePresence>
-          {toastMessage && (
-            <motion.div 
-              initial={{ opacity: 0, y: -25, x: '-50%' }}
-              animate={{ opacity: 1, y: 0, x: '-50%' }}
-              exit={{ opacity: 0, y: -25, x: '-50%' }}
-              className="absolute top-4 left-1/2 z-[100] px-6 py-3.5 rounded-full bg-slate-900 text-gold text-xs font-bold tracking-wide flex items-center gap-2.5 shadow-2x border border-gold/30"
-            >
-              <CheckCircle className="w-4 h-4 text-emerald-400" />
-              <span>{toastMessage}</span>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Console Header Bar */}
-        <div className="bg-slate-900 text-cream-soft px-5 py-4 border-b border-gold/15 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-4">
-            <div className="bg-gold p-2.5 rounded-2xl text-charcoal">
-              <Lock className="w-4 h-4" />
-            </div>
-            <div>
-              <h2 className="font-serif text-lg font-extrabold tracking-tight">SUTRA OPERATIONS HUB</h2>
-              <p className="text-[9px] font-mono tracking-widest text-gold text-left">DAILY MANAGEMENT INTEGRATION CONSOLE</p>
+        {/* ======================================================= */}
+        {/* SIDE BAR LAYOUT FOR GRAPHICAL DESIGN SAME-TO-SAME */}
+        {/* ======================================================= */}
+        <aside className="w-64 bg-[#0a1422] flex flex-col py-6 shrink-0 hidden md:flex text-white z-20">
+          
+          {/* Sutralounge decorative branding box */}
+          <div className="px-6 mb-8 text-left">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-[#fd761a] flex items-center justify-center shadow-lg shrink-0">
+                <Store className="w-5 h-5 text-white" />
+              </div>
+              <div className="min-w-0">
+                <h1 className="text-white font-extrabold text-lg tracking-tight truncate leading-tight">Sutra Lounge</h1>
+                <p className="text-[#8690a1] text-[10px] uppercase font-bold tracking-widest mt-0.5 leading-none">Console Desk</p>
+              </div>
             </div>
           </div>
-          
-          <div className="flex items-center gap-2">
-            {/* Theme switcher */}
-            <button 
-              type="button"
-              onClick={() => setIsDarkMode(!isDarkMode)}
-              className="p-2 rounded-xl border border-white/10 hover:border-white/25 text-cream-soft/75 hover:text-white transition-all cursor-pointer"
-              title="Toggle Contrast Mode"
-            >
-              {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-            </button>
 
-            {/* Close */}
+          <nav className="flex-1 px-3 space-y-1 text-left">
+            {[
+              { id: 'overview', name: 'Dashboard', icon: Activity },
+              { id: 'menu', name: 'Menu Cuisines', icon: FileText },
+              { id: 'orders', name: 'Active Orders', icon: ShoppingBag },
+              { id: 'reservations', name: 'Reservations', icon: Calendar },
+              { id: 'gallery', name: 'Photographs', icon: ImageIcon },
+              { id: 'settings', name: 'Operations Set', icon: Settings },
+            ].map(tab => {
+              const Icon = tab.icon;
+              const isSelected = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => {
+                    setActiveTab(tab.id as any);
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className={`w-full py-3 px-4 rounded-xl text-left text-xs font-bold tracking-wider flex items-center gap-3 transition-colors duration-150 cursor-pointer select-none
+                    ${isSelected 
+                      ? 'bg-[#fd761a] text-white border-l-4 border-white font-black shadow-md' 
+                      : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`}
+                >
+                  <Icon className="w-4 h-4 shrink-0" />
+                  <span>{tab.name}</span>
+                </button>
+              );
+            })}
+          </nav>
+
+          {/* Sidebar exit action */}
+          <div className="px-3 mt-auto">
             <button 
-              type="button" 
-              onClick={onClose} 
-              className="text-cream-soft/60 hover:text-cream-soft p-2 rounded-xl border border-white/10 hover:border-white/20 transition-all cursor-pointer"
+              onClick={onClose}
+              className="w-full py-3 px-4 rounded-xl text-xs font-bold text-gray-400 hover:bg-red-500/10 hover:text-red-500 flex items-center gap-3 transition-all cursor-pointer"
             >
-              <X className="w-4 h-4" />
+              <LogOut className="w-4 h-4 text-red-500 shrink-0" />
+              <span>Back to Site</span>
             </button>
           </div>
-        </div>
+        </aside>
 
-        {/* Dashboard workspace core */}
-        <div className="flex-1 flex overflow-hidden">
-          
-          {/* Dynamic Collapsible Sidebar navigation */}
-          <div className={`shrink-0 flex flex-col border-r transition-all duration-300 ${isDarkMode ? 'bg-slate-900/60 border-slate-800' : 'bg-cream-soft/80 border-cream-deep'} ${isSidebarCollapsed ? 'w-16' : 'w-56'} hidden md:flex`}>
-            
-            {/* Sidebar metadata header */}
-            <div className="p-4 border-b border-cream-deep/20 flex items-center justify-between">
-              {!isSidebarCollapsed && (
-                <div className="text-left animate-fade-in leading-normal">
-                  <span className="text-[8px] font-mono text-gold block tracking-wider uppercase font-bold">Authorized Session</span>
-                  <span className={`text-[11px] font-semibold block truncate max-w-[140px] ${isDarkMode ? 'text-slate-300' : 'text-charcoal'}`}>{settings.restaurant_name} Admin</span>
-                </div>
-              )}
+        {/* Mobile menu panel overlay */}
+        {isMobileMenuOpen && (
+          <div className="fixed inset-0 z-40 bg-black/50 md:hidden animate-fade-in" onClick={() => setIsMobileMenuOpen(false)}>
+            <div className="w-64 h-full bg-[#0a1422] p-5 flex flex-col text-white" onClick={(e) => e.stopPropagation()}>
+              <div className="flex justify-between items-center mb-8">
+                <span className="font-serif font-black text-white uppercase text-sm tracking-widest">Navigation</span>
+                <button onClick={() => setIsMobileMenuOpen(false)} className="text-gray-400 hover:text-white">
+                  <X className="w-5 h-5 cursor-pointer" />
+                </button>
+              </div>
+
+              <div className="flex-1 space-y-1.5 text-left">
+                {[
+                  { id: 'overview', name: 'Dashboard', icon: Activity },
+                  { id: 'menu', name: 'Menu Cuisines', icon: FileText },
+                  { id: 'orders', name: 'Active Orders', icon: ShoppingBag },
+                  { id: 'reservations', name: 'Reservations', icon: Calendar },
+                  { id: 'gallery', name: 'Photographs', icon: ImageIcon },
+                  { id: 'settings', name: 'Operations Set', icon: Settings },
+                ].map(tab => {
+                  const Icon = tab.icon;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => {
+                        setActiveTab(tab.id as any);
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className={`w-full py-3 px-4 rounded-xl text-left text-xs font-bold flex items-center gap-3 transition-all cursor-pointer ${activeTab === tab.id ? 'bg-[#fd761a] text-white shadow-md' : 'text-gray-400 hover:bg-gray-800'}`}
+                    >
+                      <Icon className="w-4 h-4 shrink-0" />
+                      <span>{tab.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
               <button 
-                type="button" 
-                onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                className={`p-1.5 rounded-lg transition-all text-cream-soft/50 hover:text-gold ${isDarkMode ? 'hover:bg-white/5' : 'hover:bg-black/5'} cursor-pointer`}
+                onClick={onClose}
+                className="py-3 px-4 rounded-xl text-xs font-bold text-red-500 hover:bg-red-50/10 flex items-center gap-3 transition-all cursor-pointer mt-auto"
               >
-                {isSidebarCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+                <LogOut className="w-4 h-4 text-red-500" />
+                <span>Back to Site</span>
               </button>
             </div>
-
-            {/* Sidebar items list */}
-            <div className="flex-1 p-2.5 space-y-1.5 overflow-y-auto">
-              {[
-                { id: 'overview', name: 'Dashboard', icon: Activity },
-                { id: 'orders', name: 'Orders Queue', icon: ShoppingBag },
-                { id: 'reservations', name: 'Bookings Logs', icon: Calendar },
-                { id: 'menu', name: 'Menu Catalog', icon: FileText },
-                { id: 'gallery', name: 'Gallery Assets', icon: ImageIcon },
-                { id: 'settings', name: 'Store Details', icon: Settings },
-              ].map(tab => {
-                const Icon = tab.icon;
-                const isSelected = activeTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    onClick={() => setActiveTab(tab.id as any)}
-                    className={`w-full py-2.5 px-3 rounded-xl text-left text-xs font-bold uppercase tracking-wider flex items-center transition-all cursor-pointer
-                      ${isSidebarCollapsed ? 'justify-center px-0' : 'gap-3'}
-                      ${isSelected 
-                        ? 'bg-gold text-charcoal shadow-md border-b-2 border-gold-hover' 
-                        : isDarkMode ? 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200' : 'text-charcoal-muted hover:bg-cream-deep/20 hover:text-charcoal'}`}
-                    title={tab.name}
-                  >
-                    <Icon className="w-4 h-4 shrink-0" />
-                    {!isSidebarCollapsed && <span>{tab.name}</span>}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Sidebar quick footer info */}
-            {!isSidebarCollapsed && (
-              <div className="p-4 border-t border-cream-deep/20 text-center">
-                <span className="text-[10px] text-gray-400 font-mono">MVP Operational v2.0</span>
-              </div>
-            )}
           </div>
+        )}
 
-          {/* Core Content canvas */}
-          <div className="flex-1 flex flex-col overflow-y-auto p-4 sm:p-6">
-            
-            {/* Mobile bottom-bar navigation as fallback responsive layout */}
-            <div className="flex md:hidden gap-1.5 p-1 bg-slate-900 text-white rounded-2xl mb-4 overflow-x-auto scrollbar-none shrink-0 border border-gold/15">
-              {[
-                { id: 'overview', name: 'Dashboard', icon: Activity },
-                { id: 'orders', name: 'Orders', icon: ShoppingBag },
-                { id: 'reservations', name: 'Bookings', icon: Calendar },
-                { id: 'menu', name: 'Menu', icon: FileText },
-                { id: 'gallery', name: 'Gallery', icon: ImageIcon },
-                { id: 'settings', name: 'Settings', icon: Settings },
-              ].map(tab => {
-                const Icon = tab.icon;
-                const isSelected = activeTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    onClick={() => setActiveTab(tab.id as any)}
-                    className={`py-2 px-3.5 rounded-xl text-[10px] font-bold uppercase tracking-wide flex items-center gap-1.5 transition-all shrink-0 cursor-pointer
-                      ${isSelected ? 'bg-gold text-charcoal' : 'text-white/60 hover:bg-white/10'}`}
-                  >
-                    <Icon className="w-3.5 h-3.5" />
-                    <span>{tab.name}</span>
-                  </button>
-                );
-              })}
+        {/* ======================================================= */}
+        {/* MASTER RIGHT CONTENT REGION */}
+        {/* ======================================================= */}
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+          
+          {/* Header Bar */}
+          <header className="h-16 border-b border-gray-200 bg-white px-6 flex justify-between items-center shrink-0">
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={() => setIsMobileMenuOpen(true)}
+                className="p-1 text-gray-500 hover:text-gray-900 md:hidden"
+              >
+                <MenuIcon className="w-5 h-5 cursor-pointer" />
+              </button>
+              <h1 className="text-sm font-bold text-[#0a1422] uppercase tracking-widest block font-sans select-none">
+                Sutralounge Admin Dashboard Desk
+              </h1>
             </div>
 
-            <div className="flex-1">
+            <div className="flex items-center gap-3">
+              <div className="h-4 w-px bg-gray-200 hidden sm:block"></div>
               
-              {/* ======================================================== */}
-              {/* TAB 1: OVERVIEW SCREEN (DASHBOARD) */}
-              {/* ======================================================== */}
-              {activeTab === 'overview' && (
-                <div className="space-y-6 text-left animate-page-open">
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                    <div>
-                      <h3 className="font-serif text-2xl font-black text-gold">Executive Dashboard</h3>
-                      <p className="text-xs text-gray-400 font-light mt-0.5">Consolidated daily restaurant telemetry metrics, charts, and activity streams.</p>
-                    </div>
-                    <span className="text-[10px] bg-emerald-500/15 text-emerald-500 px-3 py-1 rounded-full border border-emerald-500/10 font-mono uppercase font-bold">Operational Logs Connected</span>
-                  </div>
-
-                  {/* Dynamic clean metric values cards */}
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3.5">
-                    
-                    <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-cream-deep/60 shadow-xs'}`}>
-                      <span className="text-[9px] font-mono uppercase text-gray-400 block font-bold">Total Revenue</span>
-                      <p className="text-lg sm:text-xl font-black text-emerald-500 mt-1">NPR {metricTotalRevenue.toLocaleString()}</p>
-                      <span className="text-[9px] text-gray-500 block mt-0.5 font-mono">Paid (Excl. Cancelled)</span>
-                    </div>
-
-                    <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-cream-deep/60 shadow-xs'}`}>
-                      <span className="text-[9px] font-mono uppercase text-gray-400 block font-bold">Today's Orders</span>
-                      <p className="text-lg sm:text-xl font-bold text-indigo-500 mt-1">{metricTodayOrders}</p>
-                      <span className="text-[9px] text-gray-500 block mt-0.5 font-mono">Placed Today</span>
-                    </div>
-
-                    <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-cream-deep/60 shadow-xs'}`}>
-                      <span className="text-[9px] font-mono uppercase text-gray-400 block font-bold">Total Orders</span>
-                      <p className="text-lg sm:text-xl font-bold text-gold mt-1">{metricTotalOrders}</p>
-                      <span className="text-[9px] text-gray-500 block mt-0.5 font-mono">All-time Logged</span>
-                    </div>
-
-                    <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-cream-deep/60 shadow-xs'}`}>
-                      <span className="text-[9px] font-mono uppercase text-gray-400 block font-bold">Pending Orders</span>
-                      <p className="text-lg sm:text-xl font-bold text-amber-500 mt-1">{metricPendingOrders}</p>
-                      <span className="text-[9px] text-gray-500 block mt-0.5 font-mono">In prep & Uncooked</span>
-                    </div>
-
-                    <div className={`p-4 text-center md:text-left rounded-2xl border col-span-2 md:col-span-1 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-cream-deep/60 shadow-xs'}`}>
-                      <span className="text-[9px] font-mono uppercase text-gray-400 block font-bold">Pending Bookings</span>
-                      <p className="text-lg sm:text-xl font-bold text-red-500 mt-1">{metricPendingReservations}</p>
-                      <span className="text-[9px] text-gray-500 block mt-0.5 font-mono">Waiting Approval</span>
-                    </div>
-
-                  </div>
-
-                  {/* AreaChart trend block */}
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-                    
-                    <div className={`lg:col-span-2 p-5 rounded-2xl border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-cream-deep/60 shadow-xs'}`}>
-                      <div className="flex items-center justify-between mb-4">
-                        <h4 className="font-serif text-xs font-black text-gold tracking-wide uppercase">Weekly Revenue Projection Curve (NPR)</h4>
-                        <span className="text-[9px] bg-slate-100 dark:bg-slate-850 px-2 py-0.5 rounded-md font-mono text-gray-400">Calculated sum</span>
-                      </div>
-                      <div className="h-60 w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <AreaChart
-                            data={[
-                              { day: 'Mon', revenue: Math.max(1200, metricTotalRevenue * 0.12), orders: 4 },
-                              { day: 'Tue', revenue: Math.max(1800, metricTotalRevenue * 0.14), orders: 6 },
-                              { day: 'Wed', revenue: Math.max(1100, metricTotalRevenue * 0.10), orders: 3 },
-                              { day: 'Thu', revenue: Math.max(2200, metricTotalRevenue * 0.16), orders: 8 },
-                              { day: 'Fri', revenue: Math.max(3900, metricTotalRevenue * 0.23), orders: 14 },
-                              { day: 'Sat', revenue: Math.max(4900, metricTotalRevenue * 0.28), orders: 19 },
-                              { day: 'Sun', revenue: Math.max(3200, metricTotalRevenue * 0.17), orders: 11 },
-                            ]}
-                            margin={{ top: 10, right: 10, left: -15, bottom: 0 }}
-                          >
-                            <defs>
-                              <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#d4af37" stopOpacity={0.3}/>
-                                <stop offset="95%" stopColor="#d4af37" stopOpacity={0}/>
-                              </linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" opacity={isDarkMode ? 0.08 : 0.2} />
-                            <XAxis dataKey="day" stroke="#94a3b8" style={{ fontSize: '9px' }} />
-                            <YAxis stroke="#94a3b8" style={{ fontSize: '10px' }} />
-                            <Tooltip contentStyle={isDarkMode ? { backgroundColor: '#0f172a', borderColor: '#334155', color: '#fff' } : {}} />
-                            <Area type="monotone" dataKey="revenue" name="Revenue (NPR)" stroke="#d4af37" fillOpacity={1} fill="url(#revenueGrad)" strokeWidth={2} />
-                          </AreaChart>
-                        </ResponsiveContainer>
-                      </div>
-                    </div>
-
-                    {/* Consolidated System Activities */}
-                    <div className={`p-5 rounded-2xl border flex flex-col justify-between ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-cream-deep/60 shadow-xs'}`}>
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                          <h4 className="font-serif text-xs font-black text-gold uppercase tracking-wider">Operational Timeline</h4>
-                          <span className="text-[9px] font-mono text-emerald-500 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full">REALTIME FEED</span>
-                        </div>
-
-                        <div className="space-y-3 max-h-[220px] overflow-y-auto pr-1">
-                          {[
-                            ...reservations.map(r => ({
-                              id: r.id,
-                              type: 'booking',
-                              heading: `Booking: ${r.full_name}`,
-                              meta: `${r.party_size} Guests · ${r.reservation_date} at ${r.start_time}`,
-                              tag: 'Booking',
-                              tagBg: 'bg-gold/10 text-gold font-semibold',
-                              time: r.created_at || new Date().toISOString()
-                            })),
-                            ...orders.map(o => ({
-                              id: o.id,
-                              type: 'order',
-                              heading: `Order Status: ${o.customer_name}`,
-                              meta: `${o.items?.map((it: any) => `${it.quantity}x ${it.name}`).join(', ') || 'Delicacy Item'} · NPR ${o.total_amount}`,
-                              tag: 'Order',
-                              tagBg: 'bg-emerald-500/10 text-emerald-400 font-semibold',
-                              time: o.created_at || new Date().toISOString()
-                            }))
-                          ]
-                            .sort((a,b) => new Date(b.time || 0).getTime() - new Date(a.time || 0).getTime())
-                            .slice(0, 5)
-                            .map((act, idx) => (
-                              <div key={`${act.id}-${idx}`} className={`p-2 rounded-xl text-xs border text-left flex flex-col gap-1 ${isDarkMode ? 'bg-slate-950/40 border-slate-800' : 'bg-cream-soft/40 border-cream-deep/10'}`}>
-                                <div className="flex justify-between items-center">
-                                  <span className={`px-2 py-0.5 rounded-md font-mono text-[8px] uppercase ${act.tagBg}`}>
-                                    {act.tag}
-                                  </span>
-                                  <span className="text-[8px] text-gray-400 font-mono uppercase">
-                                    {new Date(act.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                  </span>
-                                </div>
-                                <span className={`font-bold truncate ${isDarkMode ? 'text-slate-100' : 'text-charcoal'}`}>{act.heading}</span>
-                                <span className="text-[10px] text-gray-400 truncate">{act.meta}</span>
-                              </div>
-                            ))}
-
-                          {reservations.length === 0 && orders.length === 0 && (
-                            <div className="py-8 text-center text-xs text-gray-400 italic">
-                              No active reservation or food order logs mapped inside DB.
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="border-t border-cream-deep/40 pt-3 mt-4 text-[10px] text-gray-400 leading-normal font-light">
-                        Real-time synchronization aggregates operations instantly. Staff can manage booking validations and cooking processes synchronously.
-                      </div>
-                    </div>
-
-                  </div>
-                </div>
-              )}
-
-              {/* ======================================================== */}
-              {/* TAB 2: ONLINE ORDERS QUEUE */}
-              {/* ======================================================== */}
-              {activeTab === 'orders' && (
-                <div className="space-y-6 text-left animate-page-open">
-                  
-                  {/* Title and Action bar */}
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                    <div>
-                      <h3 className="font-serif text-2xl font-black text-gold">Operational Orders Queue</h3>
-                      <p className="text-xs text-gray-400 font-light mt-0.5 font-light">Process digital kitchen requests, trace packaging stages, and update billing receipts.</p>
-                    </div>
-                    <button 
-                      type="button"
-                      onClick={() => setShowAddOrderModal(true)}
-                      className="bg-gold hover:bg-gold-hover text-charcoal font-bold px-4 py-2.5 rounded-xl uppercase text-[11px] tracking-wide flex items-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>Ingest Customer Order</span>
-                    </button>
-                  </div>
-
-                  {/* Filter and search utilities */}
-                  <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3.5 bg-slate-900/10 dark:bg-slate-900/60 p-3 rounded-2xl border border-cream-deep/20 dark:border-slate-800">
-                    <div className="relative flex-1">
-                      <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                      <input 
-                        type="text" 
-                        placeholder="Search queue by customer name or phone..."
-                        value={searchOrderQuery}
-                        onChange={(e) => setSearchOrderQuery(e.target.value)}
-                        className={`w-full pl-10 pr-4 py-2 text-xs rounded-xl border outline-none font-medium transition-colors ${isDarkMode ? 'bg-slate-950 border-slate-800 focus:border-gold' : 'bg-white border-cream-deep focus:border-gold'}`}
-                      />
-                    </div>
-                    
-                    <div className="flex items-center gap-2 overflow-x-auto min-w-[200px]">
-                      <span className="text-[10px] font-mono font-bold text-gray-400 uppercase hidden sm:inline">Status:</span>
-                      {['all', 'new', 'preparing', 'ready', 'delivered', 'cancelled'].map(st => (
-                        <button
-                          key={st}
-                          type="button"
-                          onClick={() => setFilterOrderStatus(st)}
-                          className={`px-3 py-1.5 rounded-lg text-[10px] font-mono tracking-wider font-extrabold uppercase shrink-0 cursor-pointer
-                            ${filterOrderStatus === st 
-                              ? 'bg-gold text-charcoal' 
-                              : isDarkMode ? 'bg-slate-800/60 text-slate-400 hover:text-slate-100' : 'bg-cream-deep/40 text-charcoal-muted hover:text-charcoal'}`}
-                        >
-                          {st === 'all' ? 'All Queue' : st}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Orders List / Cards Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {orders
-                      .filter(o => {
-                        const nameMatches = o.customer_name?.toLowerCase().includes(searchOrderQuery.toLowerCase()) || 
-                                           o.customer_phone?.includes(searchOrderQuery);
-                        const statusMatches = filterOrderStatus === 'all' || o.status === filterOrderStatus;
-                        return nameMatches && statusMatches;
-                      })
-                      .map(order => {
-                        const getStatusBadge = (s: string) => {
-                          switch (s) {
-                            case 'new': return 'bg-blue-500/10 text-blue-400 border border-blue-500/20';
-                            case 'preparing': return 'bg-orange-500/10 text-orange-400 border border-orange-500/20';
-                            case 'ready': return 'bg-yellow-500/15 text-gold border border-gold/20';
-                            case 'delivered': return 'bg-green-500/10 text-green-400 border border-green-500/20';
-                            default: return 'bg-rose-500/10 text-rose-400 border border-rose-500/20';
-                          }
-                        };
-
-                        const getPaymentBadge = (p: string) => {
-                          return p === 'paid' 
-                            ? 'bg-emerald-500/10 text-emerald-400 font-mono font-black' 
-                            : 'bg-red-500/10 text-red-400 font-mono';
-                        };
-
-                        return (
-                          <div 
-                            key={order.id} 
-                            className={`p-5 rounded-3xl border flex flex-col justify-between transition-all hover:shadow-lg ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-cream-deep/60 shadow-xs'}`}
-                          >
-                            <div className="space-y-4">
-                              {/* Card title and badges */}
-                              <div className="flex justify-between items-start">
-                                <div>
-                                  <h4 className={`font-serif text-sm font-black tracking-tight ${isDarkMode ? 'text-slate-100' : 'text-charcoal'}`}>{order.customer_name}</h4>
-                                  <span className="text-[9px] font-mono text-gray-400 block mt-0.5">{order.customer_phone}</span>
-                                </div>
-                                <span className={`px-2.5 py-1 text-[9px] font-mono tracking-wider text-center font-bold uppercase rounded-lg ${getStatusBadge(order.status)}`}>
-                                  {order.status}
-                                </span>
-                              </div>
-
-                              {/* Cart Items list */}
-                              <div className={`p-3 rounded-2xl text-[11px] space-y-2 border ${isDarkMode ? 'bg-slate-950/40 border-slate-800' : 'bg-cream-soft/40 border-cream-deep/15'}`}>
-                                <div className="border-b border-cream-deep/10 pb-1.5 flex justify-between items-center">
-                                  <span className="text-[9px] text-gray-400 font-mono uppercase font-bold">Dish Items</span>
-                                  <span className="text-[9px] text-gray-400 font-mono uppercase font-bold">Ticket Line</span>
-                                </div>
-                                <div className="space-y-1.5 max-h-[120px] overflow-y-auto">
-                                  {order.items?.map((it: any, index: number) => (
-                                    <div key={index} className="flex justify-between items-center">
-                                      <span className={`font-semibold shrink-0 mr-1.5 text-gray-400`}>{it.quantity}x</span>
-                                      <span className={`flex-1 truncate text-left select-none text-gray-500`}>{it.name}</span>
-                                      <span className="text-[10px] font-mono shrink-0 select-none">NPR {((it.price || 350) * (it.quantity || 1))}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                                <div className="border-t border-cream-deep/10 pt-1.5 flex justify-between font-mono font-black text-xs text-gold">
-                                  <span>TOTAL COST:</span>
-                                  <span>NPR {order.total_amount}</span>
-                                </div>
-                              </div>
-
-                              {/* Operations metadata */}
-                              <div className="text-[11px] space-y-1 block text-left">
-                                <div className="flex justify-between text-gray-400 select-none">
-                                  <span>Destination address:</span>
-                                  <span className={`font-medium max-w-[150px] truncate ${isDarkMode ? 'text-slate-350' : 'text-charcoal'}`}>{order.delivery_address || 'Lounge Dine-In'}</span>
-                                </div>
-                                <div className="flex justify-between select-none">
-                                  <span className="text-gray-400">Payment status:</span>
-                                  <span className={`px-2 py-0.5 text-[9px] uppercase font-bold rounded-md ${getPaymentBadge(order.payment_status)}`}>
-                                    {order.payment_status}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Control action triggers */}
-                            <div className="border-t border-cream-deep/20 mt-4 pt-3.5 space-y-2 text-left">
-                              <span className="text-[9px] font-mono text-gray-400 block tracking-wide uppercase font-bold">Kitchen & Register Status Triggers</span>
-                              <div className="flex flex-wrap gap-1">
-                                {order.status === 'new' && (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleUpdateOrderStatus(order.id, 'preparing')}
-                                    className="px-2 py-1 bg-orange-500 hover:bg-orange-600 text-white font-mono text-[9px] rounded-lg tracking-wide shadow-xs font-bold cursor-pointer transition-colors"
-                                  >
-                                    Accept Prep
-                                  </button>
-                                )}
-                                {order.status === 'preparing' && (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleUpdateOrderStatus(order.id, 'ready')}
-                                    className="px-2 py-1 bg-yellow-500 hover:bg-yellow-600 text-charcoal font-mono text-[9px] rounded-lg tracking-wide shadow-xs font-bold cursor-pointer transition-colors"
-                                  >
-                                    Set Ready
-                                  </button>
-                                )}
-                                {order.status === 'ready' && (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleUpdateOrderStatus(order.id, 'delivered')}
-                                    className="px-2 py-1 bg-emerald-500 hover:bg-emerald-600 text-white font-mono text-[9px] rounded-lg tracking-wide shadow-xs font-bold cursor-pointer transition-colors"
-                                  >
-                                    Dispatched
-                                  </button>
-                                )}
-                                
-                                {order.payment_status === 'pending' ? (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleUpdateOrderPaymentStatus(order.id, 'paid')}
-                                    className="px-2 py-1 bg-teal-600/20 text-teal-400 hover:bg-teal-600/35 font-mono text-[9px] rounded-lg tracking-wide font-extrabold cursor-pointer transition-colors"
-                                  >
-                                    Mark Paid
-                                  </button>
-                                ) : (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleUpdateOrderPaymentStatus(order.id, 'pending')}
-                                    className="px-2 py-1 bg-red-600/20 text-red-400 hover:bg-red-600/35 font-mono text-[9px] rounded-lg tracking-wide font-bold cursor-pointer transition-colors"
-                                  >
-                                    Mark Unpaid
-                                  </button>
-                                )}
-
-                                {order.status !== 'cancelled' && order.status !== 'delivered' && (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleUpdateOrderStatus(order.id, 'cancelled')}
-                                    className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-[9px] rounded-lg tracking-wide font-bold cursor-pointer transition-all ml-auto"
-                                  >
-                                    Cancel
-                                  </button>
-                                )}
-                                <button
-                                  type="button"
-                                  onClick={() => handleDeleteOrder(order.id)}
-                                  className={`p-1.5 rounded-lg border text-rose-500 hover:bg-rose-500/15 cursor-pointer ml-auto shrink-0 ${isDarkMode ? 'border-slate-800' : 'border-cream-deep/30'}`}
-                                  title="Destroy Record"
-                                >
-                                  <Trash className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-
-                    {orders.length === 0 && (
-                      <div className="col-span-full py-16 text-center text-gray-400 text-xs italic">
-                        No orders matched criteria inside Database record.
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* ======================================================== */}
-              {/* TAB 3: BOOKINGS / RESERVATIONS LOGS */}
-              {/* ======================================================== */}
-              {activeTab === 'reservations' && (
-                <div className="space-y-6 text-left animate-page-open">
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                    <div>
-                      <h3 className="font-serif text-2xl font-black text-gold">Dining Reservations logs</h3>
-                      <p className="text-xs text-gray-400 font-light mt-0.5">Control live dine-in table requests, assign guest seating, and validate covers schedules.</p>
-                    </div>
-                  </div>
-
-                  {/* Filter tabs */}
-                  <div className="flex items-center gap-2 bg-slate-900/10 dark:bg-slate-900/60 p-3 rounded-2xl border border-cream-deep/20 dark:border-slate-800 overflow-x-auto">
-                    <span className="text-[10px] font-mono text-gray-400 uppercase font-black mr-2">Filter Bookings:</span>
-                    {['all', 'pending', 'confirmed', 'cancelled', 'completed'].map(rst => (
-                      <button
-                        key={rst}
-                        type="button"
-                        onClick={() => setFilterReservationStatus(rst)}
-                        className={`px-3 py-1.5 rounded-lg text-[10px] font-mono tracking-wider font-extrabold uppercase shrink-0 cursor-pointer
-                          ${filterReservationStatus === rst 
-                            ? 'bg-gold text-charcoal' 
-                            : isDarkMode ? 'bg-slate-800/65 text-slate-400 hover:text-slate-100' : 'bg-cream-deep/40 text-charcoal-muted hover:text-charcoal'}`}
-                      >
-                        {rst === 'all' ? 'All Logs' : rst}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Booking logs list - Clean Table Layout */}
-                  <div className={`border rounded-3xl overflow-hidden ${isDarkMode ? 'bg-slate-900 border-slate-850' : 'bg-white border-cream-deep/50 shadow-xs'}`}>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left text-xs border-collapse">
-                        <thead>
-                          <tr className={`border-b font-mono text-[9px] uppercase tracking-wider ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-400' : 'bg-cream-deep/25 border-cream-deep/40 text-charcoal-muted'}`}>
-                            <th className="p-4">Customer Details</th>
-                            <th className="p-4">Covers Size</th>
-                            <th className="p-4">Date & Time Block</th>
-                            <th className="p-4">Special Requests</th>
-                            <th className="p-4">Status</th>
-                            <th className="p-4 text-right">Operations Line</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-cream-deep/15 dark:divide-slate-850">
-                          {reservations
-                            .filter(r => filterReservationStatus === 'all' || r.status === filterReservationStatus)
-                            .map((res) => {
-                              const getResStatusBadge = (s: string) => {
-                                switch (s) {
-                                  case 'pending': return 'bg-amber-500/10 text-amber-500';
-                                  case 'confirmed': return 'bg-emerald-500/10 text-emerald-400';
-                                  case 'completed': return 'bg-blue-500/10 text-blue-400';
-                                  default: return 'bg-slate-500/10 text-slate-400';
-                                }
-                              };
-
-                              return (
-                                <tr key={res.id} className={`hover:bg-cream-deep/5 dark:hover:bg-slate-800/20 transition-all`}>
-                                  <td className="p-4">
-                                    <div className="font-extrabold text-[13px]">{res.full_name}</div>
-                                    <div className="text-[10px] text-gray-400 mt-0.5">{res.phone} · <span className="font-mono">{res.email}</span></div>
-                                  </td>
-                                  <td className="p-4 text-center font-mono font-black text-xs text-gold">
-                                    <span>{res.party_size || 2} Pax</span>
-                                  </td>
-                                  <td className="p-4 font-mono select-none">
-                                    <div className="font-semibold text-charcoal dark:text-slate-200">{res.reservation_date}</div>
-                                    <div className="text-[10px] text-gray-400">{res.start_time} - {res.end_time || '90m'}</div>
-                                  </td>
-                                  <td className="p-4 max-w-[150px] truncate">
-                                    <span className="text-[11px] text-gray-400 italic block">
-                                      {res.special_requests || 'No culinary notes'}
-                                    </span>
-                                  </td>
-                                  <td className="p-4">
-                                    <span className={`px-2.5 py-1 rounded-md text-[9px] font-mono tracking-wider font-extrabold uppercase ${getResStatusBadge(res.status)}`}>
-                                      {res.status || 'pending'}
-                                    </span>
-                                  </td>
-                                  <td className="p-4 text-right">
-                                    <div className="flex items-center justify-end gap-1.5">
-                                      {res.status === 'pending' && (
-                                        <button
-                                          type="button"
-                                          onClick={() => handleUpdateReservationStatus(res.id, 'confirmed')}
-                                          className="px-2.5 py-1.5 bg-emerald-500 text-white font-mono text-[9px] rounded-lg font-black tracking-wide cursor-pointer hover:bg-emerald-600 transition-colors"
-                                        >
-                                          Confirm
-                                        </button>
-                                      )}
-                                      {res.status === 'confirmed' && (
-                                        <button
-                                          type="button"
-                                          onClick={() => handleUpdateReservationStatus(res.id, 'completed')}
-                                          className="px-2.5 py-1.5 bg-blue-500 text-white font-mono text-[9px] rounded-lg font-black tracking-wide cursor-pointer hover:bg-blue-600 transition-colors"
-                                        >
-                                          Complete
-                                        </button>
-                                      )}
-                                      
-                                      {res.status !== 'cancelled' && (
-                                        <button
-                                          type="button"
-                                          onClick={() => handleUpdateReservationStatus(res.id, 'cancelled')}
-                                          className={`px-2 py-1.5 border font-mono text-[9px] rounded-lg text-rose-450 hover:bg-rose-500/10 cursor-pointer ${isDarkMode ? 'border-slate-800 text-red-400' : 'border-cream-deep/30 text-rose-500'}`}
-                                        >
-                                          Cancel
-                                        </button>
-                                      )}
-                                      
-                                      <button
-                                        type="button"
-                                        onClick={() => handleDeleteReservation(res.id)}
-                                        className={`p-1.5 rounded-lg border text-gray-400 hover:text-red-500 hover:bg-red-500/10 cursor-pointer shrink-0 ${isDarkMode ? 'border-slate-800' : 'border-cream-deep/30'}`}
-                                        title="Purge Log"
-                                      >
-                                        <Trash2 className="w-3.5 h-3.5" />
-                                      </button>
-                                    </div>
-                                  </td>
-                                </tr>
-                              );
-                            })}
-
-                          {reservations.length === 0 && (
-                            <tr>
-                              <td colSpan={6} className="py-16 text-center text-gray-400 text-xs italic">
-                                No customer booking logs initialized.
-                              </td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-
-                </div>
-              )}
-
-              {/* ======================================================== */}
-              {/* TAB 4: MENU CATALOG / DISHES CRUD */}
-              {/* ======================================================== */}
-              {activeTab === 'menu' && (
-                <div className="space-y-6 text-left animate-page-open">
-                  
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-cream-deep/15 pb-1.5">
-                    <div>
-                      <h3 className="font-serif text-2xl font-black text-gold">Master Menu Catalog</h3>
-                      <p className="text-xs text-gray-400 font-light mt-0.5">Toggle live availability configurations, design new cuisines, and modify prices instantly.</p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    
-                    {/* Simplified Form Panel (Left) */}
-                    <div className={`p-5 rounded-3xl border h-fit space-y-4 ${isDarkMode ? 'bg-slate-900 border-slate-850' : 'bg-cream-soft/40 border-cream-deep'}`}>
-                      <h4 className="font-serif text-sm font-black text-gold flex items-center gap-2">
-                        {editingMenuItem ? <Edit3 className="w-4 h-4" /> : <PlusCircle className="w-4 h-4" />}
-                        <span>{editingMenuItem ? 'Update Delicacy' : 'Create Cuisines Dish'}</span>
-                      </h4>
-
-                      <form onSubmit={handleSaveMenuItemSubmit} className="space-y-3.5 text-xs">
-                        <div className="space-y-1">
-                          <label className="text-[9px] font-mono text-gray-400 uppercase block font-bold">Dish display Name *</label>
-                          <input 
-                            type="text" 
-                            required 
-                            placeholder="e.g. Lounge Pan chicken Sandwich"
-                            value={newMenuItem.name}
-                            onChange={(e) => setNewMenuItem(prev => ({ ...prev, name: e.target.value }))}
-                            className={`w-full px-3 py-2 border rounded-xl outline-none text-xs font-semibold ${isDarkMode ? 'bg-slate-950 border-slate-800 text-white focus:border-gold' : 'bg-white border-cream-deep text-charcoal focus:border-gold'}`}
-                          />
-                        </div>
-
-                        <div className="space-y-1">
-                          <label className="text-[9px] font-mono text-gray-400 uppercase block font-bold">Category Mapping</label>
-                          <select
-                            value={newMenuItem.category}
-                            onChange={(e) => setNewMenuItem(prev => ({ ...prev, category: e.target.value }))}
-                            className={`w-full px-3 py-2 border rounded-xl outline-none text-xs font-semibold ${isDarkMode ? 'bg-slate-950 border-slate-800 text-white focus:border-gold' : 'bg-white border-cream-deep text-charcoal focus:border-gold'}`}
-                          >
-                            <option value="Mains">Mains Specialties</option>
-                            <option value="Momo Specialties">Momo Specialties</option>
-                            <option value="Sandwiches">Sandwiches</option>
-                            <option value="Drinks">Drinks & Cocktails</option>
-                            <option value="Breakfast">Breakfast Combos</option>
-                          </select>
-                        </div>
-
-                        <div className="space-y-1">
-                          <label className="text-[9px] font-mono text-gray-400 uppercase block font-bold">Cuisines Pricing (NPR) *</label>
-                          <input 
-                            type="number" 
-                            required 
-                            min={1}
-                            placeholder="Cost in NPR"
-                            value={newMenuItem.price}
-                            onChange={(e) => setNewMenuItem(prev => ({ ...prev, price: Number(e.target.value) }))}
-                            className={`w-full px-3 py-2 border rounded-xl outline-none text-xs font-mono font-bold ${isDarkMode ? 'bg-slate-950 border-slate-800 text-white focus:border-gold' : 'bg-white border-cream-deep text-charcoal focus:border-gold'}`}
-                          />
-                        </div>
-
-                        <div className="space-y-1">
-                          <label className="text-[9px] font-mono text-gray-400 uppercase block font-bold">Dish Image URL (Optional)</label>
-                          <input 
-                            type="url" 
-                            placeholder="https://images.unsplash.com/... (secure link)"
-                            value={newMenuItem.image_url}
-                            onChange={(e) => setNewMenuItem(prev => ({ ...prev, image_url: e.target.value }))}
-                            className={`w-full px-3 py-2 border rounded-xl outline-none text-xs font-mono ${isDarkMode ? 'bg-slate-950 border-slate-800 text-white focus:border-gold' : 'bg-white border-cream-deep text-charcoal focus:border-gold'}`}
-                          />
-                        </div>
-
-                        <div className="space-y-1">
-                          <label className="text-[9px] font-mono text-gray-400 uppercase block font-bold">Culinary Profile description</label>
-                          <textarea 
-                            rows={3}
-                            placeholder="Delicately describe the ingredients, spices, and cooking style..."
-                            value={newMenuItem.description}
-                            onChange={(e) => setNewMenuItem(prev => ({ ...prev, description: e.target.value }))}
-                            className={`w-full px-3 py-2 border rounded-xl outline-none text-xs ${isDarkMode ? 'bg-slate-950 border-slate-800 text-white focus:border-gold' : 'bg-white border-cream-deep text-charcoal focus:border-gold'}`}
-                          />
-                        </div>
-
-                        <div className="flex items-center justify-between pt-2">
-                          <span className="font-mono text-[9px] text-gray-400 uppercase block font-bold">Status Properties:</span>
-                          <div className="flex gap-4">
-                            <label className="flex items-center gap-1.5 cursor-pointer font-semibold select-none">
-                              <input 
-                                type="checkbox"
-                                checked={newMenuItem.is_featured}
-                                onChange={(e) => setNewMenuItem(prev => ({ ...prev, is_featured: e.target.checked }))}
-                                className="rounded text-gold accent-gold scale-105 cursor-pointer"
-                              />
-                              <span>Featured / Spotlight</span>
-                            </label>
-                            <label className="flex items-center gap-1.5 cursor-pointer font-semibold select-none">
-                              <input 
-                                type="checkbox"
-                                checked={newMenuItem.is_active}
-                                onChange={(e) => setNewMenuItem(prev => ({ ...prev, is_active: e.target.checked }))}
-                                className="rounded text-gold accent-gold scale-105 cursor-pointer"
-                              />
-                              <span>Active</span>
-                            </label>
-                          </div>
-                        </div>
-
-                        <div className="flex gap-2 pt-2">
-                          <button 
-                            type="submit"
-                            className="flex-1 bg-gold hover:bg-gold-hover text-charcoal font-black rounded-xl py-2.5 uppercase text-[11px] tracking-wide shadow-md active:scale-95 transition-all text-center cursor-pointer"
-                          >
-                            {editingMenuItem ? 'Apply Edit' : 'Instantiate Dish'}
-                          </button>
-                          {editingMenuItem && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setEditingMenuItem(null);
-                                setNewMenuItem({ name: '', description: '', price: 350, category: 'Mains', is_featured: false, is_active: true, image_url: '' });
-                              }}
-                              className={`px-3 py-2.5 border rounded-xl font-mono uppercase text-[11px] text-gray-400 hover:text-red-500 cursor-pointer ${isDarkMode ? 'border-slate-800' : 'border-cream-deep'}`}
-                            >
-                              Cancel
-                            </button>
-                          )}
-                        </div>
-                      </form>
-                    </div>
-
-                    {/* Catalog Grid View (Right) */}
-                    <div className="lg:col-span-2 space-y-4">
-                      
-                      {/* Responsive Grid layout */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[550px] overflow-y-auto pr-1">
-                        {menuItems.map(item => (
-                          <div 
-                            key={item.id}
-                            className={`p-4 rounded-3xl border flex flex-col justify-between transition-all hover:border-gold/30 hover:shadow-md ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-cream-deep/60'}`}
-                          >
-                            <div className="flex gap-3 text-left">
-                              {/* Thumbnail rendering fallback to initials or a generic illustration */}
-                              <div className="w-14 h-14 bg-gold/10 rounded-2xl border border-gold/10 flex items-center justify-center shrink-0 text-gold font-serif text-lg font-black overflow-hidden relative">
-                                {item.image_url ? (
-                                  <img 
-                                    src={item.image_url} 
-                                    alt={item.name}
-                                    className="w-full h-full object-cover"
-                                    referrerPolicy="no-referrer"
-                                    onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
-                                  />
-                                ) : (
-                                  (item.name || 'Dish').substring(0, 2).toUpperCase()
-                                )}
-                              </div>
-
-                              <div className="min-w-0 flex-1 leading-normal select-none">
-                                <span className="text-[8px] font-mono bg-cream-deep/20 dark:bg-slate-800 text-gold px-2 py-0.5 rounded-md font-bold uppercase">{item.category}</span>
-                                <h4 className="font-extrabold text-sm truncate mt-1 text-charcoal dark:text-slate-100">{item.name}</h4>
-                                <span className="font-mono text-gold text-xs font-black block mt-0.5">NPR {item.price}</span>
-                                <p className="text-[10px] text-gray-400 font-light line-clamp-2 mt-1">{item.description || 'No delicacy description provided'}</p>
-                              </div>
-                            </div>
-
-                            {/* Options action buttons */}
-                            <div className="border-t border-cream-deep/20 mt-4.5 pt-3 flex items-center justify-between text-xs">
-                              <div className="flex gap-3">
-                                <button
-                                  type="button"
-                                  onClick={() => handleToggleMenuBoolean(item.id, 'is_active', item.is_active)}
-                                  className="flex items-center gap-1 hover:text-gold shrink-0 cursor-pointer"
-                                  title="Toggle active status"
-                                >
-                                  {item.is_active ? <ToggleRight className="w-5 h-5 text-emerald-400" /> : <ToggleLeft className="w-5 h-5 text-gray-400" />}
-                                  <span className="text-[9px] font-bold text-gray-400 font-mono tracking-wider uppercase">Active</span>
-                                </button>
-
-                                <button
-                                  type="button"
-                                  onClick={() => handleToggleMenuBoolean(item.id, 'is_featured', item.is_featured)}
-                                  className="flex items-center gap-1 hover:text-gold shrink-0 cursor-pointer"
-                                  title="Featured toggle"
-                                >
-                                  {item.is_featured ? <Sparkles className="w-4 h-4 text-gold fill-gold" /> : <Sparkles className="w-4 h-4 text-gray-400" />}
-                                  <span className="text-[9px] font-bold text-gray-400 font-mono tracking-wider uppercase">Spotlight</span>
-                                </button>
-                              </div>
-
-                              <div className="flex gap-1.5">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setEditingMenuItem(item);
-                                    setNewMenuItem({
-                                      name: item.name,
-                                      description: item.description || '',
-                                      price: item.price,
-                                      category: item.category || 'Mains',
-                                      is_featured: !!item.is_featured,
-                                      is_active: !!item.is_active,
-                                      image_url: item.image_url || ''
-                                    });
-                                    triggerToast(`Ready to update: ${item.name}`);
-                                  }}
-                                  className={`p-1.5 rounded-lg border text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer ${isDarkMode ? 'border-slate-800' : 'border-cream-deep/20'}`}
-                                  title="Edit"
-                                >
-                                  <Edit3 className="w-3.5 h-3.5" />
-                                </button>
-
-                                <button
-                                  type="button"
-                                  onClick={() => handleDeleteMenuItem(item.id)}
-                                  className={`p-1.5 rounded-lg border text-rose-500 hover:bg-rose-500/10 cursor-pointer ${isDarkMode ? 'border-slate-800' : 'border-cream-deep/20'}`}
-                                  title="Retire Item"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-
-                        {menuItems.length === 0 && (
-                          <div className="col-span-full py-20 text-center text-gray-400 text-xs italic">
-                            Delicacies list matches 0 items inside Database.
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                  </div>
-                </div>
-              )}
-
-              {/* ======================================================== */}
-              {/* TAB 5: GALLERY PORTFOLIO */}
-              {/* ======================================================== */}
-              {activeTab === 'gallery' && (
-                <div className="space-y-6 text-left animate-page-open">
-                  
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-cream-deep/15 pb-4">
-                    <div>
-                      <h3 className="font-serif text-2xl font-black text-gold">Premium Gallery Portfolio</h3>
-                      <p className="text-xs text-gray-400 font-light mt-0.5">
-                        {isBatchMode 
-                          ? "Perform batch updates to dish images and gallery properties simultaneously." 
-                          : "Manage, host, and link visual elements. You can copy any hosted image link and link them directly to dishes."}
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const nextState = !isBatchMode;
-                          setIsBatchMode(nextState);
-                          if (nextState) {
-                            setBatchMenuItems(menuItems);
-                            setBatchGalleryPhotos(galleryPhotosList);
-                          }
-                        }}
-                        className={`font-bold px-4 py-2.5 rounded-xl uppercase text-[11px] tracking-wide flex items-center gap-2 shadow-md cursor-pointer transition-all ${isBatchMode ? 'bg-indigo-600 hover:bg-indigo-700 text-white animate-pulse' : 'bg-slate-800 hover:bg-slate-700 text-gold border border-gold/20'}`}
-                      >
-                        <Sliders className="w-4 h-4" />
-                        <span>{isBatchMode ? "Exit Batch Mode" : "Batch Settings"}</span>
-                      </button>
-
-                      {!isBatchMode && (
-                        <button 
-                          type="button"
-                          onClick={() => {
-                            setEditingPhotoId(null);
-                            setNewPhotoForm({ url: '', caption: '', category: 'Food' });
-                            setShowAddPhotoModal(true);
-                          }}
-                          className="bg-gold hover:bg-gold-hover text-charcoal font-bold px-4 py-2.5 rounded-xl uppercase text-[11px] tracking-wide flex items-center gap-2 shadow-md cursor-pointer animate-none"
-                        >
-                          <Plus className="w-4 h-4" />
-                          <span>Upload Asset Link</span>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {isBatchMode ? (
-                    <div className="space-y-6 animate-page-open text-xs">
-                      {/* Segmented control for batch targeting */}
-                      <div className="flex gap-2 p-1.5 rounded-2xl bg-slate-950/40 border border-cream-deep/10 max-w-md">
-                        <button
-                          type="button"
-                          onClick={() => setBatchSubTab('dishes')}
-                          className={`flex-1 py-2 px-3 rounded-xl font-bold uppercase text-[10px] tracking-wider transition-all cursor-pointer text-center ${batchSubTab === 'dishes' ? 'bg-gold text-charcoal shadow-sm font-black' : 'text-gray-400 hover:text-white'}`}
-                        >
-                          Cuisines Dishes ({batchMenuItems.length})
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setBatchSubTab('gallery')}
-                          className={`flex-1 py-2 px-3 rounded-xl font-bold uppercase text-[10px] tracking-wider transition-all cursor-pointer text-center ${batchSubTab === 'gallery' ? 'bg-gold text-charcoal shadow-sm font-black' : 'text-gray-400 hover:text-white'}`}
-                        >
-                          Gallery Portfolio ({batchGalleryPhotos.length})
-                        </button>
-                      </div>
-
-                      {batchSubTab === 'dishes' ? (
-                        <div className="space-y-4">
-                          <div className="flex justify-between items-center bg-gold/5 border border-gold/10 p-3 rounded-2xl">
-                            <span className="text-gray-300 font-medium font-serif">Dishes Batch Edit Spreadsheet Grid</span>
-                            <span className="text-[10px] text-gold font-mono uppercase bg-gold/10 px-2.5 py-0.5 rounded-lg font-black">Syncs directly to menu catalog</span>
-                          </div>
-
-                          <div className="rounded-3xl border border-cream-deep/10 overflow-hidden bg-slate-900/50">
-                            <div className="max-h-[420px] overflow-y-auto pr-1">
-                              <table className="w-full text-left border-collapse">
-                                <thead>
-                                  <tr className="bg-slate-950/60 border-b border-cream-deep/10 text-[9px] font-mono font-black text-gray-400 uppercase tracking-widest">
-                                    <th className="py-3 px-4">Dish Details & Category</th>
-                                    <th className="py-3 px-4 w-12">Preview</th>
-                                    <th className="py-3 px-4">Dish Photo URL Path</th>
-                                    <th className="py-3 px-4 text-center w-24">Visible/Active</th>
-                                    <th className="py-3 px-4 text-center w-24">Spotlight (Featured)</th>
-                                  </tr>
-                                </thead>
-                                <tbody className="divide-y divide-cream-deep/5">
-                                  {batchMenuItems.map((item) => (
-                                    <tr key={item.id} className="hover:bg-slate-950/20 transition-colors">
-                                      <td className="py-3.5 px-4">
-                                        <p className="font-serif font-bold text-gray-105 text-sm">{item.name}</p>
-                                        <span className="font-mono text-[9px] bg-slate-800 text-gold px-2 py-0.5 rounded-md mt-1 inline-block uppercase font-bold tracking-wider">{item.category}</span>
-                                      </td>
-                                      <td className="py-3.5 px-4">
-                                        <div className="w-10 h-10 bg-charcoal-muted rounded-xl border border-cream-deep/10 flex items-center justify-center shrink-0 overflow-hidden relative shadow-sm">
-                                          {item.image_url ? (
-                                            <img
-                                              src={item.image_url}
-                                              alt=""
-                                              className="w-full h-full object-cover"
-                                              referrerPolicy="no-referrer"
-                                            />
-                                          ) : (
-                                            <span className="text-[10px] font-mono text-gray-500 font-bold uppercase">{String(item.name || 'S').substring(0, 1)}</span>
-                                          )}
-                                        </div>
-                                      </td>
-                                      <td className="py-3.5 px-4">
-                                        <div className="relative">
-                                          <input
-                                            type="url"
-                                            placeholder="Paste image security link..."
-                                            value={item.image_url || ''}
-                                            onChange={(e) => handleBatchMenuItemChange(item.id, 'image_url', e.target.value)}
-                                            className={`w-full px-3 py-2 border rounded-xl outline-none font-mono text-[11px] ${isDarkMode ? 'bg-slate-950 border-slate-805 text-white focus:border-gold' : 'bg-white border-cream-deep text-charcoal focus:border-gold'}`}
-                                          />
-                                          {item.image_url && (
-                                            <button 
-                                              type="button"
-                                              onClick={() => handleBatchMenuItemChange(item.id, 'image_url', '')}
-                                              className="absolute right-2.5 top-2.5 text-gray-400 hover:text-red-400 cursor-pointer"
-                                              title="Clear Input"
-                                            >
-                                              <X className="w-3.5 h-3.5" />
-                                            </button>
-                                          )}
-                                        </div>
-                                      </td>
-                                      <td className="py-3.5 px-4 text-center">
-                                        <button
-                                          type="button"
-                                          onClick={() => handleBatchMenuItemChange(item.id, 'is_active', !item.is_active)}
-                                          className="mx-auto flex items-center justify-center cursor-pointer text-gray-300 hover:text-gold"
-                                        >
-                                          {item.is_active ? (
-                                            <ToggleRight className="w-6 h-6 text-emerald-400" />
-                                          ) : (
-                                            <ToggleLeft className="w-6 h-6 text-gray-500" />
-                                          )}
-                                        </button>
-                                      </td>
-                                      <td className="py-3.5 px-4 text-center">
-                                        <button
-                                          type="button"
-                                          onClick={() => handleBatchMenuItemChange(item.id, 'is_featured', !item.is_featured)}
-                                          className="mx-auto flex items-center justify-center cursor-pointer text-gray-300 hover:text-gold"
-                                        >
-                                          {item.is_featured ? (
-                                            <Sparkles className="w-5 h-5 text-gold fill-gold" />
-                                          ) : (
-                                            <Sparkles className="w-5 h-5 text-gray-500" />
-                                          )}
-                                        </button>
-                                      </td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="space-y-4">
-                          <div className="flex justify-between items-center bg-gold/5 border border-gold/10 p-3 rounded-2xl">
-                            <span className="text-gray-300 font-medium font-serif">Gallery Portfolio Batch Edit Spreadsheet Grid</span>
-                            <span className="text-[10px] text-indigo-400 font-mono uppercase bg-indigo-550/10 px-2.5 py-0.5 rounded-lg font-black">Stored in portfolio persistent configuration</span>
-                          </div>
-
-                          <div className="rounded-3xl border border-cream-deep/10 overflow-hidden bg-slate-900/50">
-                            <div className="max-h-[420px] overflow-y-auto pr-1">
-                              <table className="w-full text-left border-collapse">
-                                <thead>
-                                  <tr className="bg-slate-950/60 border-b border-cream-deep/10 text-[9px] font-mono font-black text-gray-400 uppercase tracking-widest">
-                                    <th className="py-3 px-4 w-1/3">Caption Text</th>
-                                    <th className="py-3 px-4 w-12">Preview</th>
-                                    <th className="py-3 px-4">Marketing Image Link</th>
-                                    <th className="py-3 px-4 text-center w-24">Visible/Active</th>
-                                    <th className="py-3 px-4 text-center w-16">Clear</th>
-                                  </tr>
-                                </thead>
-                                <tbody className="divide-y divide-cream-deep/5">
-                                  {batchGalleryPhotos.map((photo) => (
-                                    <tr key={photo.id} className="hover:bg-slate-950/20 transition-colors">
-                                      <td className="py-3.5 px-4">
-                                        <input
-                                          type="text"
-                                          value={photo.caption || ''}
-                                          onChange={(e) => handleBatchGalleryPhotoChange(photo.id, 'caption', e.target.value)}
-                                          placeholder="Aesthetic photograph description..."
-                                          className={`w-full px-3 py-2 border rounded-xl outline-none font-semibold ${isDarkMode ? 'bg-slate-950 border-slate-800 text-white focus:border-gold' : 'bg-white border-cream-deep text-charcoal focus:border-gold'}`}
-                                        />
-                                      </td>
-                                      <td className="py-3.5 px-4 text-center">
-                                        <div className="w-10 h-10 bg-charcoal-muted rounded-xl border border-cream-deep/10 flex items-center justify-center shrink-0 overflow-hidden relative shadow-sm">
-                                          {photo.url ? (
-                                            <img
-                                              src={photo.url}
-                                              alt=""
-                                              className="w-full h-full object-cover"
-                                              referrerPolicy="no-referrer"
-                                            />
-                                          ) : (
-                                            <span className="text-[10px] font-mono text-gray-500 font-bold uppercase">🖼️</span>
-                                          )}
-                                        </div>
-                                      </td>
-                                      <td className="py-3.5 px-4">
-                                        <div className="relative">
-                                          <input
-                                            type="url"
-                                            placeholder="Paste aesthetic asset url link..."
-                                            value={photo.url || ''}
-                                            onChange={(e) => handleBatchGalleryPhotoChange(photo.id, 'url', e.target.value)}
-                                            className={`w-full px-3 py-2 border rounded-xl outline-none font-mono text-[11px] ${isDarkMode ? 'bg-slate-950 border-slate-800 text-white focus:border-gold' : 'bg-white border-cream-deep text-charcoal focus:border-gold'}`}
-                                          />
-                                        </div>
-                                      </td>
-                                      <td className="py-3.5 px-4 text-center">
-                                        <button
-                                          type="button"
-                                          onClick={() => handleBatchGalleryPhotoChange(photo.id, 'is_active', photo.is_active !== undefined ? !photo.is_active : false)}
-                                          className="mx-auto flex items-center justify-center cursor-pointer text-gray-300 hover:text-gold"
-                                        >
-                                          {photo.is_active !== false ? (
-                                            <ToggleRight className="w-6 h-6 text-emerald-400" />
-                                          ) : (
-                                            <ToggleLeft className="w-6 h-6 text-gray-500" />
-                                          )}
-                                        </button>
-                                      </td>
-                                      <td className="py-3.5 px-4 text-center">
-                                        <button
-                                          type="button"
-                                          onClick={() => {
-                                            if (window.confirm("Remove this premium photo from the system permanently?")) {
-                                              setBatchGalleryPhotos(prev => prev.filter(ph => ph.id !== photo.id));
-                                            }
-                                          }}
-                                          className="text-red-500 hover:text-red-700 p-2 cursor-pointer flex justify-center ml-auto mr-auto"
-                                        >
-                                          <Trash2 className="w-4 h-4" />
-                                        </button>
-                                      </td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Batch Footer Save/Cancel button blocks */}
-                      <div className="flex gap-3 justify-end pt-3 border-t border-cream-deep/15">
-                        <button
-                          type="button"
-                          onClick={() => setIsBatchMode(false)}
-                          className={`font-mono text-[11px] font-bold px-5 py-3 rounded-xl uppercase tracking-wider cursor-pointer border ${isDarkMode ? 'border-slate-805 text-gray-400 hover:text-white hover:border-slate-700' : 'border-cream-deep text-gray-500 hover:text-charcoal'}`}
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          type="button"
-                          disabled={isSavingBatch}
-                          onClick={handleSaveBatchChangesSubmit}
-                          className="bg-gold hover:bg-gold-hover text-charcoal font-black px-6 py-3 rounded-xl uppercase tracking-wider text-[11px] shadow-lg cursor-pointer flex items-center gap-2"
-                        >
-                          {isSavingBatch ? (
-                            <>
-                              <Clock className="w-4 h-4 animate-spin" />
-                              <span>Saving Batch...</span>
-                            </>
-                          ) : (
-                            <>
-                              <CheckCheck className="w-4 h-4" />
-                              <span>Apply Batch Updates</span>
-                            </>
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      {/* Elegant Category Navigation */}
-                      <div className="flex flex-wrap items-center gap-1.5 border-b border-cream-deep/20 pb-2">
-                        {['All', 'Interior', 'Food', 'Drinks', 'Exterior'].map(cat => (
-                          <button
-                            key={cat}
-                            type="button"
-                            onClick={() => setGalleryFilter(cat)}
-                            className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all duration-200 cursor-pointer ${
-                              galleryFilter === cat
-                                ? 'bg-gold text-charcoal shadow-sm font-black'
-                                : 'bg-cream-deep/20 dark:bg-slate-900 border border-transparent hover:border-gold/20 text-gray-400'
-                            }`}
-                          >
-                            {cat === 'All' ? '⚡ SHOW ALL PORTFOLIO' : cat}
-                          </button>
-                        ))}
-                      </div>
-
-                      {/* Portfolio grid */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 max-h-[500px] overflow-y-auto pr-1">
-                        {galleryPhotosList
-                          .filter(photo => photo.is_active !== false)
-                          .filter(photo => galleryFilter === 'All' || (photo.category || '').toLowerCase() === galleryFilter.toLowerCase())
-                          .map((photo) => (
-                            <div 
-                              key={photo.id}
-                              className={`group relative rounded-2xl overflow-hidden border transition-all hover:scale-[1.01] flex flex-col justify-between ${
-                                isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-cream-deep'
-                              }`}
-                            >
-                              <div className="aspect-[4/3] bg-charcoal-muted overflow-hidden relative">
-                                <img 
-                                  src={photo.url} 
-                                  alt={photo.caption}
-                                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                                  referrerPolicy="no-referrer"
-                                />
-                                
-                                <div className="absolute top-2.5 right-2.5 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setEditingPhotoId(photo.id);
-                                      setNewPhotoForm({
-                                        url: photo.url,
-                                        caption: photo.caption,
-                                        category: photo.category || 'Food'
-                                      });
-                                      setShowAddPhotoModal(true);
-                                    }}
-                                    className="bg-gold hover:bg-gold-hover text-charcoal p-2 rounded-xl flex items-center justify-center cursor-pointer shadow-md"
-                                    title="Edit asset details via link"
-                                  >
-                                    <Edit3 className="w-3.5 h-3.5" />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleDeletePhoto(photo.id)}
-                                    className="bg-red-600 hover:bg-red-750 text-white p-2 rounded-xl flex items-center justify-center cursor-pointer shadow-md"
-                                    title="Discard asset"
-                                  >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                  </button>
-                                </div>
-
-                                {/* Tiny Category badge */}
-                                <span className="absolute bottom-2.5 left-2.5 bg-slate-950/80 backdrop-blur-xs text-gold text-[8px] font-mono font-bold px-2 py-0.5 rounded-md uppercase tracking-wider border border-gold/10">
-                                  {photo.category || 'Portfolio'}
-                                </span>
-                              </div>
-
-                              <div className="p-3.5 select-none text-left flex flex-col justify-between flex-1 leading-normal">
-                                <div>
-                                  <p className="text-[11px] font-bold text-charcoal dark:text-slate-200 line-clamp-2">{photo.caption}</p>
-                                  <span className="text-[8px] text-gray-500 font-mono mt-0.5 block truncate">URL: {photo.url}</span>
-                                </div>
-
-                                <div className="space-y-2.5 mt-3 pt-3 border-t border-cream-deep/10">
-                                  {/* Utility Buttons: Copy Link */}
-                                  <div className="flex gap-1.5">
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        navigator.clipboard.writeText(photo.url);
-                                        triggerToast(`Copied! Pastable dish URL link saved to clipboard.`);
-                                      }}
-                                      className="flex-1 border dark:border-slate-800 hover:border-gold/30 hover:bg-gold/5 text-gold font-mono rounded-lg py-1.5 uppercase text-[9px] font-bold flex items-center justify-center gap-1 cursor-pointer transition-all active:scale-95"
-                                      title="Copy URL Link to Clipboard"
-                                    >
-                                      <Copy className="w-3 h-3 text-gold" />
-                                      <span>Copy Link</span>
-                                    </button>
-                                  </div>
-
-                                  {/* Apply to Menu Item Dropdown Selector */}
-                                  <div className="flex flex-col gap-1 w-full bg-cream-deep/10 dark:bg-slate-950/40 p-2 rounded-xl border border-cream-deep/10 dark:border-slate-800/65">
-                                    <span className="text-[8.5px] font-mono text-gray-400 font-bold uppercase tracking-wider flex items-center gap-1 select-none">
-                                      <Link className="w-2.5 h-2.5 text-gold" />
-                                      <span>Assign directly to menu dish:</span>
-                                    </span>
-                                    <select
-                                      defaultValue=""
-                                      onChange={(e) => {
-                                        if (e.target.value) {
-                                          handleApplyPhotoToDish(e.target.value, photo.url);
-                                          e.target.value = ""; // Reset
-                                        }
-                                      }}
-                                      className={`w-full px-2 py-1 border rounded-lg text-[9px] font-bold outline-none cursor-pointer leading-wide ${
-                                        isDarkMode 
-                                          ? 'bg-slate-950 border-slate-800 text-gold hover:border-gold/30' 
-                                          : 'bg-white border-cream-deep text-charcoal hover:border-gold/30'
-                                      }`}
-                                    >
-                                      <option value="">-- Click to choose menu dish --</option>
-                                      {menuItems.map(dish => (
-                                        <option key={dish.id} value={dish.id}>
-                                          {dish.name} (NPR {dish.price})
-                                        </option>
-                                      ))}
-                                    </select>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                        ))}
-
-                        {galleryPhotosList.filter(photo => photo.is_active !== false).filter(photo => galleryFilter === 'All' || (photo.category || '').toLowerCase() === galleryFilter.toLowerCase()).length === 0 && (
-                          <div className="col-span-full py-20 text-center text-gray-400 text-xs italic">
-                            0 visual elements associated inside system portfolio tab.
-                          </div>
-                        )}
-                      </div>
-                    </>
-                  )}
-                </div>
-              )}
-
-              {/* ======================================================== */}
-              {/* TAB 6: STORE OPERATIONS & OPERATING HOURS */}
-              {/* ======================================================== */}
-              {activeTab === 'settings' && (
-                <div className="space-y-6 text-left animate-page-open">
-                  
-                  <div>
-                    <h3 className="font-serif text-2xl font-black text-gold">Operational Settings & Hours</h3>
-                    <p className="text-xs text-gray-400 font-light mt-0.5">Define core contact details, store branding elements, and weekday operating hours in one central place.</p>
-                  </div>
-
-                  <form onSubmit={handleSaveSettingsAndHours} className="space-y-6 text-xs font-semibold max-w-4xl">
-                    
-                    {/* General Settings Section */}
-                    <div className={`p-5 rounded-3xl border space-y-4 ${isDarkMode ? 'bg-slate-900 border-slate-850' : 'bg-white border-cream-deep'}`}>
-                      <h4 className="font-serif text-xs font-black text-gold uppercase tracking-wider flex items-center gap-1.5 border-b border-cream-deep/15 pb-2">
-                        <Store className="w-4 h-4" />
-                        <span>Core Contact Parameters</span>
-                      </h4>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-1">
-                          <label className="text-[9px] font-mono text-gray-400 uppercase block font-bold">Restaurant Operational Brand Name</label>
-                          <input 
-                            type="text" 
-                            value={settings.restaurant_name || ''}
-                            onChange={(e) => setSettings(prev => ({ ...prev, restaurant_name: e.target.value }))}
-                            className={`w-full px-3 py-2 border rounded-xl outline-none ${isDarkMode ? 'bg-slate-950 border-slate-800 text-white focus:border-gold' : 'bg-cream-soft/40 border-cream-deep text-charcoal focus:border-gold'}`}
-                          />
-                        </div>
-
-                        <div className="space-y-1">
-                          <label className="text-[9px] font-mono text-gray-400 uppercase block font-bold">Customer Contact Direct Phone</label>
-                          <input 
-                            type="text" 
-                            value={settings.restaurant_phone || ''}
-                            onChange={(e) => setSettings(prev => ({ ...prev, restaurant_phone: e.target.value }))}
-                            className={`w-full px-3 py-2 border rounded-xl outline-none font-mono ${isDarkMode ? 'bg-slate-950 border-slate-800 text-white focus:border-gold' : 'bg-cream-soft/40 border-cream-deep text-charcoal focus:border-gold'}`}
-                          />
-                        </div>
-
-                        <div className="space-y-1 font-mono">
-                          <label className="text-[9px] font-mono text-gray-400 uppercase block font-bold">Inquiries Email Address</label>
-                          <input 
-                            type="email" 
-                            value={settings.restaurant_email || ''}
-                            onChange={(e) => setSettings(prev => ({ ...prev, restaurant_email: e.target.value }))}
-                            className={`w-full px-3 py-2 border rounded-xl outline-none ${isDarkMode ? 'bg-slate-950 border-slate-800 text-white focus:border-gold' : 'bg-cream-soft/40 border-cream-deep text-charcoal focus:border-gold'}`}
-                          />
-                        </div>
-
-                        <div className="space-y-1 leading-normal">
-                          <label className="text-[9px] font-mono text-gray-400 uppercase block font-bold">Physical Address Location</label>
-                          <input 
-                            type="text" 
-                            value={settings.restaurant_address || ''}
-                            onChange={(e) => setSettings(prev => ({ ...prev, restaurant_address: e.target.value }))}
-                            className={`w-full px-3 py-2 border rounded-xl outline-none font-light ${isDarkMode ? 'bg-slate-950 border-slate-800 text-white focus:border-gold' : 'bg-cream-soft/40 border-cream-deep text-charcoal focus:border-gold'}`}
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Integrated Operating Hours Section */}
-                    <div className={`p-5 rounded-3xl border space-y-4 ${isDarkMode ? 'bg-slate-900 border-slate-850' : 'bg-white border-cream-deep'}`}>
-                      <h4 className="font-serif text-xs font-black text-gold uppercase tracking-wider flex items-center gap-1.5 border-b border-cream-deep/15 pb-2">
-                        <Clock className="w-4 h-4" />
-                        <span>Integrated Operating Hours Schedule</span>
-                      </h4>
-
-                      <div className="space-y-3">
-                        {businessHours.map((day) => (
-                          <div 
-                            key={day.id} 
-                            className={`p-3.5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left border ${isDarkMode ? 'bg-slate-950 border-slate-850' : 'bg-cream-soft/40 border-cream-deep/10'}`}
-                          >
-                            <div className="flex items-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() => handleUpdateHourDayState(day.id, 'is_open', !day.is_open)}
-                                className="cursor-pointer shrink-0"
-                                title="Toggle day opening status"
-                              >
-                                {day.is_open ? <ToggleRight className="w-6 h-6 text-emerald-400" /> : <ToggleLeft className="w-6 h-6 text-gray-400" />}
-                              </button>
-                              <span className="font-extrabold font-serif text-charcoal dark:text-slate-200 uppercase min-w-[90px]">{day.weekday}</span>
-                              <span className={`px-2 py-0.5 rounded-md font-mono text-[8px] font-bold uppercase shrink-0 ${day.is_open ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
-                                {day.is_open ? 'Open' : 'Closed'}
-                              </span>
-                            </div>
-
-                            {day.is_open && (
-                              <div className="flex items-center gap-2.5">
-                                <div className="flex items-center gap-1 font-mono">
-                                  <span>Opens:</span>
-                                  <input 
-                                    type="text" 
-                                    placeholder="HH:MM"
-                                    value={day.start_time || ''}
-                                    onChange={(e) => handleUpdateHourDayState(day.id, 'start_time', e.target.value)}
-                                    className={`w-16 px-1.5 py-1 border rounded-lg text-center font-bold ${isDarkMode ? 'bg-slate-900 border-slate-800 text-gold' : 'bg-white border-cream-deep text-charcoal'}`}
-                                  />
-                                </div>
-                                <div className="flex items-center gap-1 font-mono">
-                                  <span>Closes:</span>
-                                  <input 
-                                    type="text" 
-                                    placeholder="HH:MM"
-                                    value={day.end_time || ''}
-                                    onChange={(e) => handleUpdateHourDayState(day.id, 'end_time', e.target.value)}
-                                    className={`w-16 px-1.5 py-1 border rounded-lg text-center font-bold ${isDarkMode ? 'bg-slate-900 border-slate-800 text-gold' : 'bg-white border-cream-deep text-charcoal'}`}
-                                  />
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Action buttons */}
-                    <div className="text-left pt-2">
-                      <button 
-                        type="submit"
-                        className="bg-gold hover:bg-gold-hover text-charcoal font-black rounded-xl px-7 py-3 uppercase text-xs tracking-wider transition-all shadow-md active:scale-95 cursor-pointer flex items-center gap-2"
-                      >
-                        <Save className="w-4 h-4 text-charcoal" />
-                        <span>Apply & Sync Operations Metadata</span>
-                      </button>
-                    </div>
-
-                  </form>
-                </div>
-              )}
-
+              <button 
+                onClick={onClose}
+                className="p-1 px-3 border border-gray-200 hover:bg-gray-50 rounded-lg text-xs font-bold tracking-wide flex items-center gap-1 cursor-pointer transition-colors"
+                title="Exit dashboard back to site mapping"
+              >
+                <X className="w-3.5 h-3.5" />
+                <span>Exit Desk</span>
+              </button>
             </div>
-          </div>
+          </header>
+
+          {/* Dynamically Rendered Content Container Frame */}
+          <main className="flex-1 overflow-y-auto p-6 bg-[#f8f9fa] relative scrollbar-thin">
+            
+            {activeTab === 'overview' && (
+              <AdminOverview 
+                reservations={reservations}
+                orders={orders}
+                metricTotalRevenue={metricTotalRevenue}
+                metricTodayOrders={metricTodayOrders}
+                metricTotalOrders={metricTotalOrders}
+                metricPendingOrders={metricPendingOrders}
+                metricPendingReservations={metricPendingReservations}
+              />
+            )}
+
+            {activeTab === 'orders' && (
+              <AdminOrders 
+                orders={orders}
+                searchOrderQuery={searchOrderQuery}
+                setSearchOrderQuery={setSearchOrderQuery}
+                filterOrderStatus={filterOrderStatus}
+                setFilterOrderStatus={setFilterOrderStatus}
+                handleUpdateOrderStatus={handleUpdateOrderStatus}
+                handleUpdateOrderPaymentStatus={handleUpdateOrderPaymentStatus}
+                handleDeleteOrder={handleDeleteOrder}
+                setShowAddOrderModal={setShowAddOrderModal}
+              />
+            )}
+
+            {activeTab === 'reservations' && (
+              <AdminReservations 
+                reservations={reservations}
+                filterReservationStatus={filterReservationStatus}
+                setFilterReservationStatus={setFilterReservationStatus}
+                handleUpdateReservationStatus={handleUpdateReservationStatus}
+                handleDeleteReservation={handleDeleteReservation}
+              />
+            )}
+
+            {activeTab === 'menu' && (
+              <AdminMenu 
+                menuItems={menuItems}
+                newMenuItem={newMenuItem}
+                setNewMenuItem={setNewMenuItem}
+                editingMenuItem={editingMenuItem}
+                setEditingMenuItem={setEditingMenuItem}
+                handleSaveMenuItemSubmit={handleSaveMenuItemSubmit}
+                handleDeleteMenuItem={handleDeleteMenuItem}
+                handleToggleMenuBoolean={handleToggleMenuBoolean}
+              />
+            )}
+
+            {activeTab === 'gallery' && (
+              <AdminGallery 
+                galleryPhotosList={galleryPhotosList}
+                galleryFilter={galleryFilter}
+                setGalleryFilter={setGalleryFilter}
+                setShowAddPhotoModal={setShowAddPhotoModal}
+                setEditingPhotoId={setEditingPhotoId}
+                setNewPhotoForm={setNewPhotoForm}
+                handleDeletePhoto={handleDeletePhoto}
+                handleApplyPhotoToDish={handleApplyPhotoToDish}
+                menuItems={menuItems}
+                triggerToast={triggerToast}
+              />
+            )}
+
+            {activeTab === 'settings' && (
+              <AdminSettings 
+                settings={settings}
+                setSettings={setSettings}
+                businessHours={businessHours}
+                handleUpdateHourDayState={handleUpdateHourDayState}
+                handleSaveSettingsAndHours={handleSaveSettingsAndHours}
+              />
+            )}
+
+          </main>
 
         </div>
 
       </div>
 
       {/* ======================================================== */}
-      {/* POPUP MODALS SECTION */}
+      {/* OVERLAY POPUP MODALS FRAME */}
       {/* ======================================================== */}
 
       {/* 1. Add Order Inline Overlay */}
       {showAddOrderModal && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
-          <form onSubmit={handleAddManualOrder} className={`w-full max-w-lg rounded-3xl border p-6 space-y-4 text-left shadow-2xl relative animate-page-open ${isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-cream-soft border-cream-deep text-charcoal'}`}>
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xs z-[110] flex items-center justify-center p-4">
+          <form onSubmit={handleAddManualOrder} className="w-full max-w-lg bg-white rounded-2xl border border-gray-200 p-6 space-y-4 text-left shadow-2xl relative animate-in fade-in duration-200">
             
-            <div className="flex justify-between items-center border-b border-cream-deep/20 pb-3">
+            <div className="flex justify-between items-center border-b border-gray-100 pb-3">
               <div>
-                <h4 className="font-serif font-black text-gold text-sm uppercase">Manual customer order logging</h4>
+                <h4 className="font-bold text-gray-900 text-sm uppercase">Manual customer order logging</h4>
                 <p className="text-[10px] text-gray-400">Ingest an order line directly into Sutralounge master kitchen streams.</p>
               </div>
               <button 
                 type="button" 
                 onClick={() => setShowAddOrderModal(false)}
-                className="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-slate-800"
+                className="text-gray-400 hover:text-gray-700 p-1 rounded-lg hover:bg-gray-100"
               >
                 <X className="w-4 h-4 cursor-pointer" />
               </button>
@@ -2169,53 +909,53 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
 
             <div className="grid grid-cols-2 gap-3.5 text-xs font-semibold">
               <div className="space-y-1">
-                <label className="text-[8px] font-mono text-gray-400 uppercase">Customer Name *</label>
+                <label className="text-[8px] font-mono text-gray-400 uppercase font-bold">Customer Name *</label>
                 <input 
                   type="text" 
                   required 
                   placeholder="Guest display name"
                   value={newOrderForm.customer_name}
                   onChange={(e) => setNewOrderForm(prev => ({ ...prev, customer_name: e.target.value }))}
-                  className={`w-full px-3 py-2 border rounded-xl outline-none ${isDarkMode ? 'bg-slate-950 border-slate-850' : 'bg-white border-cream-deep'}`}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-xl outline-none"
                 />
               </div>
 
-              <div className="space-y-1 font-mono">
-                <label className="text-[8px] font-mono text-gray-400 uppercase">Phone Number *</label>
+              <div className="space-y-1">
+                <label className="text-[8px] font-mono text-gray-400 uppercase font-bold">Phone Number *</label>
                 <input 
                   type="text" 
                   required 
                   placeholder="+977 98..."
                   value={newOrderForm.customer_phone}
                   onChange={(e) => setNewOrderForm(prev => ({ ...prev, customer_phone: e.target.value }))}
-                  className={`w-full px-3 py-2 border rounded-xl outline-none ${isDarkMode ? 'bg-slate-950 border-slate-850' : 'bg-white border-cream-deep'}`}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-xl outline-none font-mono"
                 />
               </div>
 
               <div className="col-span-2 space-y-1 leading-normal">
-                <label className="text-[8px] font-mono text-gray-400 uppercase">Delivery Address (Or Tables Number)</label>
+                <label className="text-[8px] font-mono text-gray-400 uppercase font-bold">Delivery Address (Or Table Number)</label>
                 <input 
                   type="text" 
                   placeholder="e.g. Siddhartha Chowk (or 'Table 3 VIP')"
                   value={newOrderForm.delivery_address}
                   onChange={(e) => setNewOrderForm(prev => ({ ...prev, delivery_address: e.target.value }))}
-                  className={`w-full px-3 py-2 border rounded-xl outline-none ${isDarkMode ? 'bg-slate-950 border-slate-850' : 'bg-white border-cream-deep'}`}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-xl outline-none"
                 />
               </div>
             </div>
 
             {/* Cart builder widgets */}
-            <div className="space-y-2 text-xs border border-cream-deep/20 dark:border-slate-800 p-3 bg-slate-950/20 rounded-2xl">
+            <div className="space-y-2 text-xs border border-gray-150 p-3 bg-gray-50/50 rounded-xl">
               <span className="text-[8px] font-mono text-gray-400 uppercase block font-bold">Dynamic order Line Creator</span>
               <div className="flex gap-2">
                 <select
                   value={selectedOrderItemName}
                   onChange={(e) => setSelectedOrderItemName(e.target.value)}
-                  className={`flex-1 px-3 py-2 border rounded-xl outline-none ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-cream-deep'}`}
+                  className="flex-1 px-3 py-2 bg-white border border-gray-200 rounded-xl outline-none text-xs text-gray-700 font-bold"
                 >
                   <option value="">-- Choose Cuisine Dish --</option>
                   {menuItems.map(m => (
-                    <option key={m.id} value={m.name}>{m.name} (NPR {m.price})</option>
+                    <option key={m.id} value={m.name}>{m.name} (रू {m.price})</option>
                   ))}
                 </select>
 
@@ -2224,49 +964,48 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
                   min={1}
                   value={selectedOrderItemQty}
                   onChange={(e) => setSelectedOrderItemQty(Number(e.target.value))}
-                  className={`w-14 px-2 py-2 border rounded-xl text-center font-mono ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-cream-deep'}`}
+                  className="w-14 px-2 py-2 border border-gray-200 rounded-xl text-center font-mono font-bold"
                 />
 
                 <button
                   type="button"
                   onClick={handleAddOrderItemLine}
-                  className="bg-gold hover:bg-gold-hover text-charcoal font-black rounded-xl px-3.5 py-2 uppercase text-[10px] tracking-wide cursor-pointer flex items-center gap-1 shrink-0"
+                  className="bg-[#fd761a] hover:bg-[#9d4300] text-white font-bold rounded-xl px-3.5 py-2 uppercase text-[10px] tracking-wide cursor-pointer shrink-0"
                 >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Add line</span>
+                  Add line
                 </button>
               </div>
 
               {/* Added items list */}
-              <div className="space-y-2 mt-2 pt-2 border-t border-cream-deep/15 leading-normal max-h-[100px] overflow-y-auto">
+              <div className="space-y-2 mt-2 pt-2 border-t border-gray-100 leading-normal max-h-[100px] overflow-y-auto">
                 {newOrderForm.items.map((line, idx) => (
                   <div key={idx} className="flex justify-between items-center text-xs">
-                    <span className="font-mono text-gold font-black mr-2 bg-gold/15 px-2 py-0.5 rounded-lg text-[10px]">{line.quantity}x</span>
+                    <span className="font-mono text-[#fd761a] font-bold mr-2 bg-orange-50 px-2 py-0.5 rounded-lg text-[10px]">{line.quantity}x</span>
                     <span className="flex-1 truncate select-none text-left">{line.name}</span>
-                    <span className="font-mono font-bold mr-3">NPR {(line.price * line.quantity)}</span>
+                    <span className="font-mono font-bold mr-3">रू {(line.price * line.quantity)}</span>
                     <button 
                       type="button" 
                       onClick={() => handleRemoveOrderItemLine(line.name)} 
                       className="text-red-500 hover:text-red-700 p-0.5"
                     >
-                      <Trash className="w-3.5 h-3.5 cursor-pointer" />
+                      Remove
                     </button>
                   </div>
                 ))}
 
                 {newOrderForm.items.length === 0 && (
-                  <span className="text-[10px] text-gray-500 italic block text-center py-2">Add cuisines lines to populate this receipt.</span>
+                  <span className="text-[10px] text-gray-400 italic block text-center py-2">Add cuisines lines to populate receipt.</span>
                 )}
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3.5 text-xs font-semibold">
               <div className="space-y-1">
-                <label className="text-[8px] font-mono text-gray-400 uppercase">Default Status Setup</label>
+                <label className="text-[8px] font-mono text-gray-400 uppercase font-bold">Default Status Setup</label>
                 <select
                   value={newOrderForm.status}
                   onChange={(e) => setNewOrderForm(prev => ({ ...prev, status: e.target.value as any }))}
-                  className={`w-full px-3 py-2 border rounded-xl outline-none ${isDarkMode ? 'bg-slate-950 border-slate-850' : 'bg-white border-cream-deep'}`}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-xl outline-none"
                 >
                   <option value="new">NEW QUEUE</option>
                   <option value="preparing">COOKING STREAM</option>
@@ -2276,11 +1015,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
               </div>
 
               <div className="space-y-1">
-                <label className="text-[8px] font-mono text-gray-400 uppercase">Payment receipt state</label>
+                <label className="text-[8px] font-mono text-gray-400 uppercase font-bold">Payment receipt state</label>
                 <select
                   value={newOrderForm.payment_status}
                   onChange={(e) => setNewOrderForm(prev => ({ ...prev, payment_status: e.target.value as any }))}
-                  className={`w-full px-3 py-2 border rounded-xl outline-none ${isDarkMode ? 'bg-slate-950 border-slate-850' : 'bg-white border-cream-deep'}`}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-xl outline-none"
                 >
                   <option value="pending">DUE BILLING</option>
                   <option value="paid">SETTLED PAID</option>
@@ -2291,10 +1030,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
             <div className="flex gap-2 pt-4">
               <button
                 type="submit"
-                className="flex-1 bg-gold hover:bg-gold-hover text-charcoal font-black rounded-xl py-3 text-center uppercase tracking-wider text-xs shadow-md cursor-pointer flex items-center justify-center gap-1.5"
+                className="flex-1 bg-[#fd761a] hover:bg-[#9d4300] text-white font-bold rounded-xl py-3 text-center uppercase tracking-wider text-xs shadow-md cursor-pointer"
               >
-                <CheckCircle className="w-4 h-4 text-charcoal" />
-                <span>Publish manual Cooking Order</span>
+                Publish manual kitchen Order
               </button>
             </div>
 
@@ -2304,11 +1042,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
 
       {/* 2. Upload asset overlay */}
       {showAddPhotoModal && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
-          <form onSubmit={handleAddPhotoSubmit} className={`w-full max-w-sm rounded-3xl border p-6 space-y-4 text-left shadow-2xl relative animate-page-open ${isDarkMode ? 'bg-slate-900 border-slate-850' : 'bg-cream-soft border-cream-deep'}`}>
-            <div className="flex justify-between items-center pb-2 border-b border-cream-deep/20">
-              <h4 className="font-serif font-black text-gold text-sm uppercase">
-                {editingPhotoId ? 'Edit photographic detail' : 'Upload visual asset link'}
+        <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-xs z-[110] flex items-center justify-center p-4">
+          <form onSubmit={handleAddPhotoSubmit} className="w-full max-w-sm bg-white rounded-2xl border border-gray-200 p-6 space-y-4 text-left shadow-2xl relative animate-in fade-in duration-200">
+            <div className="flex justify-between items-center pb-2 border-b border-gray-100">
+              <h4 className="font-bold text-gray-900 text-sm uppercase">
+                {editingPhotoId ? 'Edit photo description' : 'Add Gallery Visual Asset'}
               </h4>
               <button 
                 type="button" 
@@ -2317,31 +1055,70 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
                   setEditingPhotoId(null);
                   setNewPhotoForm({ url: '', caption: '', category: 'Food' });
                 }} 
-                className="text-gray-400"
+                className="text-gray-400 hover:text-gray-700"
               >
                 <X className="w-4 h-4 cursor-pointer" />
               </button>
             </div>
 
-            <div className="space-y-3 text-xs font-semibold">
-              <div className="space-y-1">
-                <label className="text-[8px] font-mono text-gray-400 uppercase">Asset image link (Secure https URL only) *</label>
-                <input 
-                  type="url" 
-                  required 
-                  placeholder="https://images.unsplash.com/..."
-                  value={newPhotoForm.url}
-                  onChange={(e) => setNewPhotoForm(prev => ({ ...prev, url: e.target.value }))}
-                  className={`w-full px-3 py-2 border rounded-xl outline-none ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-cream-deep'}`}
-                />
+            {/* Input Method Tabs */}
+            {!editingPhotoId && (
+              <div className="flex rounded-lg bg-gray-100 p-1 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setUploadTab('upload')}
+                  className={`flex-1 py-1.5 rounded-md font-bold transition-all text-center ${
+                    uploadTab === 'upload'
+                      ? 'bg-white text-gray-900 shadow-xs'
+                      : 'text-gray-500 hover:text-gray-900'
+                  }`}
+                >
+                  Files & Phone Camera
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setUploadTab('url')}
+                  className={`flex-1 py-1.5 rounded-md font-bold transition-all text-center ${
+                    uploadTab === 'url'
+                      ? 'bg-white text-gray-900 shadow-xs'
+                      : 'text-gray-500 hover:text-gray-900'
+                  }`}
+                >
+                  Pasted Web Link
+                </button>
               </div>
+            )}
+
+            <div className="space-y-3 text-xs font-semibold">
+              {editingPhotoId || uploadTab === 'upload' ? (
+                <div className="space-y-1">
+                  <ImageUploader
+                    label="Select or take a photo"
+                    value={newPhotoForm.url}
+                    onChange={(base64Url) => setNewPhotoForm(prev => ({ ...prev, url: base64Url }))}
+                    onClear={() => setNewPhotoForm(prev => ({ ...prev, url: '' }))}
+                  />
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  <label className="text-[8px] font-mono text-gray-400 uppercase font-bold">Asset image link (Secure https URL only) *</label>
+                  <input 
+                    type="url" 
+                    required 
+                    placeholder="https://images.unsplash.com/..."
+                    value={newPhotoForm.url}
+                    onChange={(e) => setNewPhotoForm(prev => ({ ...prev, url: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-xl outline-none"
+                  />
+                </div>
+              )}
 
               <div className="space-y-1 leading-normal">
-                <label className="text-[8px] font-mono text-gray-400 uppercase">Gallery Category Class</label>
+                <label className="text-[8px] font-mono text-gray-400 uppercase font-bold">Gallery Category Class</label>
                 <select
                   value={newPhotoForm.category || 'Food'}
                   onChange={(e) => setNewPhotoForm(prev => ({ ...prev, category: e.target.value }))}
-                  className={`w-full px-3 py-2 border rounded-xl outline-none ${isDarkMode ? 'bg-slate-950 border-slate-805 text-white' : 'bg-white border-cream-deep text-charcoal'}`}
+                  className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl outline-none"
                 >
                   <option value="Interior">Interior / Venue</option>
                   <option value="Food">Food / Cuisines</option>
@@ -2351,13 +1128,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
               </div>
 
               <div className="space-y-1 leading-normal">
-                <label className="text-[8px] font-mono text-gray-400 uppercase">Caption title description</label>
+                <label className="text-[8px] font-mono text-gray-400 uppercase font-bold">Caption title description</label>
                 <input 
                   type="text" 
                   placeholder="e.g. Sutralounge Cozy booth details"
                   value={newPhotoForm.caption}
                   onChange={(e) => setNewPhotoForm(prev => ({ ...prev, caption: e.target.value }))}
-                  className={`w-full px-3 py-2 border rounded-xl outline-none ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-cream-deep'}`}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-xl outline-none"
                 />
               </div>
             </div>
@@ -2365,12 +1142,49 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
             <div className="pt-2">
               <button
                 type="submit"
-                className="w-full bg-gold hover:bg-gold-hover text-charcoal font-black rounded-xl py-3 uppercase tracking-wider text-[11px] shadow-md cursor-pointer text-center"
+                disabled={!newPhotoForm.url}
+                className="w-full bg-[#fd761a] hover:bg-[#9d4300] disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold rounded-xl py-3 uppercase tracking-wider text-[11px] shadow-md cursor-pointer text-center"
               >
                 {editingPhotoId ? 'Update Image details' : 'Publish Image'}
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* Custom Confirmation Modal */}
+      {confirmDialog && confirmDialog.isOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-[9999] animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl border border-gray-250 max-w-sm w-full p-6 space-y-4 shadow-2xl relative text-left animate-in zoom-in-95 duration-150">
+            <h4 className="font-bold text-gray-950 text-sm uppercase tracking-wider">
+              {confirmDialog.title}
+            </h4>
+            <p className="text-xs text-gray-650 leading-relaxed font-semibold">
+              {confirmDialog.message}
+            </p>
+            <div className="flex gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setConfirmDialog(null)}
+                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold rounded-xl py-2.5 text-xs uppercase tracking-wider cursor-pointer text-center"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await confirmDialog.onConfirm();
+                  } finally {
+                    setConfirmDialog(null);
+                  }
+                }}
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl py-2.5 text-xs uppercase tracking-wider cursor-pointer text-center"
+              >
+                Yes, Delete
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

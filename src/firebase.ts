@@ -35,13 +35,13 @@ const DEFAULT_STORE: Record<string, Record<string, any>> = {
     }
   },
   business_hours: {
-    sunday: { id: "sunday", day: "Sunday", weekday: "Sunday", is_open: true, start_time: "08:00", end_time: "21:00" },
-    monday: { id: "monday", day: "Monday", weekday: "Monday", is_open: true, start_time: "08:00", end_time: "21:00" },
-    tuesday: { id: "tuesday", day: "Tuesday", weekday: "Tuesday", is_open: true, start_time: "08:00", end_time: "21:00" },
-    wednesday: { id: "wednesday", day: "Wednesday", weekday: "Wednesday", is_open: true, start_time: "08:00", end_time: "21:00" },
-    thursday: { id: "thursday", day: "Thursday", weekday: "Thursday", is_open: true, start_time: "08:00", end_time: "21:00" },
-    friday: { id: "friday", day: "Friday", weekday: "Friday", is_open: true, start_time: "08:00", end_time: "21:00" },
-    saturday: { id: "saturday", day: "Saturday", weekday: "Saturday", is_open: true, start_time: "08:00", end_time: "21:00" }
+    sunday: { id: "sunday", day: "Sunday", weekday: "Sunday", is_open: true, start_time: "12:00", end_time: "22:00" },
+    monday: { id: "monday", day: "Monday", weekday: "Monday", is_open: true, start_time: "12:00", end_time: "22:00" },
+    tuesday: { id: "tuesday", day: "Tuesday", weekday: "Tuesday", is_open: true, start_time: "12:00", end_time: "22:00" },
+    wednesday: { id: "wednesday", day: "Wednesday", weekday: "Wednesday", is_open: true, start_time: "12:00", end_time: "22:00" },
+    thursday: { id: "thursday", day: "Thursday", weekday: "Thursday", is_open: true, start_time: "12:00", end_time: "23:00" },
+    friday: { id: "friday", day: "Friday", weekday: "Friday", is_open: true, start_time: "12:00", end_time: "23:00" },
+    saturday: { id: "saturday", day: "Saturday", weekday: "Saturday", is_open: true, start_time: "12:00", end_time: "22:00" }
   },
   restaurant_tables: {
     t1: { id: "t1", table_name: "Table 1 (Window)", capacity: 2, area: "Main Hall", is_active: true, created_at: "2026-06-21T00:00:00.000Z" },
@@ -333,8 +333,21 @@ export function signInWithPopup(authObj: any, provider: any): Promise<any> {
 }
 
 export async function seedDatabaseIfEmpty() {
-  // Mock fallback is auto-seeded dynamically via DEFAULT_STORE on first read
-  console.log("[Firebase Seed] Dynamic Local Storage Mock seeded successfully.");
+  const key = `sutra_db_v2_business_hours`;
+  const saved = localStorage.getItem(key);
+  if (!saved) {
+    const hours = {
+      sunday: { id: "sunday", day: "Sunday", weekday: "Sunday", is_open: true, start_time: "12:00", end_time: "22:00" },
+      monday: { id: "monday", day: "Monday", weekday: "Monday", is_open: true, start_time: "12:00", end_time: "22:00" },
+      tuesday: { id: "tuesday", day: "Tuesday", weekday: "Tuesday", is_open: true, start_time: "12:00", end_time: "22:00" },
+      wednesday: { id: "wednesday", day: "Wednesday", weekday: "Wednesday", is_open: true, start_time: "12:00", end_time: "22:00" },
+      thursday: { id: "thursday", day: "Thursday", weekday: "Thursday", is_open: true, start_time: "12:00", end_time: "23:00" },
+      friday: { id: "friday", day: "Friday", weekday: "Friday", is_open: true, start_time: "12:00", end_time: "23:00" },
+      saturday: { id: "saturday", day: "Saturday", weekday: "Saturday", is_open: true, start_time: "12:00", end_time: "22:00" }
+    };
+    localStorage.setItem(key, JSON.stringify(hours));
+    console.log("[Firebase Seed] Dynamic Local Storage Mock seeded successfully with updated business hours.");
+  }
   return Promise.resolve();
 }
 

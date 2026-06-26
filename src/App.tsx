@@ -263,8 +263,8 @@ export default function App() {
     try {
       if (!selectedDateStr) return [];
       
-      // Check blocked holidays: blocked_dates has "blocked_date" property
-      const isBlocked = dbBlockedDates.some(b => b.blocked_date === selectedDateStr);
+      // Check blocked holidays: check both fields to be completely compliant and robust
+      const isBlocked = dbBlockedDates.some(b => b.date === selectedDateStr || b.blocked_date === selectedDateStr);
       if (isBlocked) {
         console.log(`[Slot Calculation] Slot generation skipped: Date ${selectedDateStr} is exists in blocked_dates.`);
         return [];
@@ -286,10 +286,32 @@ export default function App() {
       if (isNaN(year) || isNaN(month) || isNaN(day)) return [];
 
       const targetDate = new Date(year, month - 1, day);
+      const targetDayIndex = targetDate.getDay(); // 0-6
       const weekdayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-      const weekdayName = weekdayNames[targetDate.getDay()];
+      const weekdayName = weekdayNames[targetDayIndex];
 
-      const dayConfig = dbBusinessHours.find(h => h.weekday && h.weekday.toLowerCase() === weekdayName.toLowerCase());
+      const hoursToUse = dbBusinessHours.length > 0 ? dbBusinessHours : [
+        { id: "sunday", day: "Sunday", weekday: 0, is_open: true, start_time: "12:00", end_time: "22:00" },
+        { id: "monday", day: "Monday", weekday: 1, is_open: true, start_time: "12:00", end_time: "22:00" },
+        { id: "tuesday", day: "Tuesday", weekday: 2, is_open: true, start_time: "12:00", end_time: "22:00" },
+        { id: "wednesday", day: "Wednesday", weekday: 3, is_open: true, start_time: "12:00", end_time: "22:00" },
+        { id: "thursday", day: "Thursday", weekday: 4, is_open: true, start_time: "12:00", end_time: "23:00" },
+        { id: "friday", day: "Friday", weekday: 5, is_open: true, start_time: "12:00", end_time: "23:00" },
+        { id: "saturday", day: "Saturday", weekday: 6, is_open: true, start_time: "12:00", end_time: "22:00" }
+      ];
+
+      const dayConfig = hoursToUse.find(h => {
+        if (h.weekday === undefined || h.weekday === null) return false;
+        const wkStr = String(h.weekday).trim().toLowerCase();
+        // Check if numeric matching (0-6)
+        if (wkStr === String(targetDayIndex)) return true;
+        // Check if day name matching
+        if (wkStr === weekdayName.toLowerCase()) return true;
+        // Fallback checks
+        if (h.day && String(h.day).toLowerCase() === weekdayName.toLowerCase()) return true;
+        return false;
+      });
+
       if (!dayConfig || !dayConfig.is_open) {
         console.log(`[Slot Calculation] Restaurant is closed on ${weekdayName}.`);
         return [];
@@ -305,9 +327,18 @@ export default function App() {
       const slotInterval = Number(dbSettings?.slot_interval_minutes || 30);
       const duration = Number(dbSettings?.default_reservation_duration_minutes || 90);
 
+      const tablesToUse = dbTables.length > 0 ? dbTables : [
+        { id: "t1", table_name: "Table 1 (Window)", capacity: 2, area: "Main Hall", is_active: true },
+        { id: "t2", table_name: "Table 2 (Cozy Corner)", capacity: 2, area: "Main Hall", is_active: true },
+        { id: "t3", table_name: "Table 3 (Family)", capacity: 6, area: "Sutra Lounge Room", is_active: true },
+        { id: "t4", table_name: "Table 4 (Cabin A)", capacity: 4, area: "Private VIP Cabin", is_active: true },
+        { id: "t5", table_name: "Table 5 (Cabin B)", capacity: 4, area: "Private VIP Cabin", is_active: true },
+        { id: "t6", table_name: "Table 6 (Executive Banner)", capacity: 8, area: "Private VIP Cabin", is_active: true }
+      ];
+
       // Check active tables matching capacity: active restaurant_tables row has capacity >= party_size
-      const activeTables = dbTables.filter(t => {
-        const isActive = t.is_active === true || t.is_active === 'true';
+      const activeTables = tablesToUse.filter(t => {
+        const isActive = t.is_active === true || t.is_active === 'true' || t.is_active === undefined;
         const capacity = Number(t.capacity);
         return isActive && capacity >= partySize;
       });
@@ -715,17 +746,113 @@ export default function App() {
     return () => clearInterval(timer);
   }, []);
 
+  // Local date-formatting helper to handle timezone safely
+  const getTodayDateString = () => {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const dayVal = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${dayVal}`;
+  };
+
+  const isTimeInPast = (timeStr: string, dateStr: string) => {
+    if (!timeStr || !dateStr) return false;
+    const today = getTodayDateString();
+    if (dateStr < today) return true;
+    if (dateStr > today) return false;
+    
+    // Hour and minute comparison with current local hours/minutes
+    const parts = timeStr.split(':');
+    if (parts.length < 2) return false;
+    const h = Number(parts[0]);
+    const m = Number(parts[1]);
+    if (isNaN(h) || isNaN(m)) return false;
+
+    const d = new Date();
+    const currentHour = d.getHours();
+    const currentMin = d.getMinutes();
+    
+    if (h < currentHour) return true;
+    if (h === currentHour && m < currentMin) return true;
+    return false;
+  };
+
+  const timeOptions = [
+    { value: "08:00", label: "8:00 AM / बिहान ८:००" },
+    { value: "08:30", label: "8:30 AM / बिहान ८:३०" },
+    { value: "09:00", label: "9:00 AM / बिहान ९:००" },
+    { value: "09:30", label: "9:30 AM / बिहान ९:३०" },
+    { value: "10:00", label: "10:00 AM / बिहान १०:००" },
+    { value: "10:30", label: "10:30 AM / बिहान १०:३०" },
+    { value: "11:00", label: "11:00 AM / बिहान ११:००" },
+    { value: "11:30", label: "11:30 AM / बिहान ११:३०" },
+    { value: "12:00", label: "12:00 PM / दिउँसो १२:००" },
+    { value: "12:30", label: "12:30 PM / दिउँसो १२:३०" },
+    { value: "13:00", label: "1:00 PM / दिउँसो १:००" },
+    { value: "13:30", label: "1:30 PM / दिउँसो १:३०" },
+    { value: "14:00", label: "2:00 PM / दिउँसो २:००" },
+    { value: "14:30", label: "2:30 PM / दिउँसो २:३०" },
+    { value: "15:00", label: "3:00 PM / दिउँसो ३:००" },
+    { value: "15:30", label: "3:30 PM / दिउँसो ३:३०" },
+    { value: "16:00", label: "4:00 PM / दिउँसो ४:००" },
+    { value: "16:30", label: "4:30 PM / दिउँसो ४:३०" },
+    { value: "17:00", label: "5:00 PM / बेलुका ५:००" },
+    { value: "17:30", label: "5:30 PM / बेलुका ५:३०" },
+    { value: "18:00", label: "6:00 PM / बेलुका ६:००" },
+    { value: "18:30", label: "6:30 PM / बेलुका ६:३०" },
+    { value: "19:00", label: "7:00 PM / बेलुका ७:००" },
+    { value: "19:30", label: "7:30 PM / बेलुका ७:३०" },
+    { value: "20:00", label: "8:00 PM / बेलुका ८:००" },
+    { value: "20:30", label: "8:30 PM / बेलुका ८:३०" },
+    { value: "21:00", label: "9:00 PM / बेलुका ९:००" }
+  ];
+
+  const getInitialTime = () => {
+    const todayStr = getTodayDateString();
+    const defaultVal = '18:00';
+    if (!isTimeInPast(defaultVal, todayStr)) {
+      return defaultVal;
+    }
+    const firstOption = timeOptions.find(opt => !isTimeInPast(opt.value, todayStr));
+    return firstOption ? firstOption.value : '18:00';
+  };
+
+  const getInitialDateAndTime = () => {
+    const todayStr = getTodayDateString();
+    const firstOption = timeOptions.find(opt => !isTimeInPast(opt.value, todayStr));
+    if (firstOption) {
+      return {
+        date: todayStr,
+        time: firstOption.value
+      };
+    } else {
+      const d = new Date();
+      d.setDate(d.getDate() + 1);
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const dayVal = String(d.getDate()).padStart(2, '0');
+      const tomorrowStr = `${y}-${m}-${dayVal}`;
+      return {
+        date: tomorrowStr,
+        time: '12:00'
+      };
+    }
+  };
+
   // Form persistence in current browser session
-  const [form, setForm] = useState<InquiryForm>({
-    name: '',
-    phone: '',
-    email: '',
-    date: new Date().toISOString().split('T')[0],
-    time: '18:00',
-    serviceType: 'Dine-In',
-    guests: 2,
-    message: '',
-    subscribe: true
+  const [form, setForm] = useState<InquiryForm>(() => {
+    const initData = getInitialDateAndTime();
+    return {
+      name: '',
+      phone: '',
+      email: '',
+      date: initData.date,
+      time: initData.time,
+      serviceType: 'Dine-In',
+      guests: 2,
+      message: '',
+      subscribe: true
+    };
   });
 
   const [submittedReservations, setSubmittedReservations] = useState<InquiryForm[]>([]);
@@ -739,15 +866,29 @@ export default function App() {
   const locationSectionRef = useRef<HTMLDivElement>(null);
 
   const scrollToSection = (ref: React.RefObject<HTMLDivElement | null>) => {
-    if (ref.current) {
-      ref.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (mobileMenuOpen) {
+      setMobileMenuOpen(false);
+      setTimeout(() => {
+        if (ref.current) {
+          ref.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 200);
+    } else {
+      if (ref.current) {
+        ref.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
     }
-    setMobileMenuOpen(false);
   };
 
   const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    setMobileMenuOpen(false);
+    if (mobileMenuOpen) {
+      setMobileMenuOpen(false);
+      setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 200);
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
   const handleCopyAddress = () => {
@@ -765,6 +906,65 @@ export default function App() {
       setSelectedSlot(null);
     }
 
+    if (name === 'date') {
+      const today = getTodayDateString();
+      if (value < today) {
+        setForm(prev => {
+          const initData = getInitialDateAndTime();
+          return {
+            ...prev,
+            date: initData.date,
+            time: initData.time
+          };
+        });
+        setFormError(lang === 'en' 
+          ? "Choosing past dates is not allowed. Date has been set to the next available date." 
+          : "गएको मिति चयन गर्न अनुमति छैन। मिति उपलब्ध अर्को मितिमा सेट गरिएको छ।");
+        return;
+      } else {
+        const firstOption = timeOptions.find(opt => !isTimeInPast(opt.value, value));
+        if (!firstOption) {
+          setFormError(lang === 'en'
+            ? "All reservation times for today have already passed. Please select a future date."
+            : "आजको सबै बुकिङ समय बितिसकेको छ। कृपया भविष्यको अर्को मिति छनोट गर्नुहोस्।");
+          
+          const d = new Date();
+          d.setDate(d.getDate() + 1);
+          const y = d.getFullYear();
+          const m = String(d.getMonth() + 1).padStart(2, '0');
+          const dayVal = String(d.getDate()).padStart(2, '0');
+          const tomorrowStr = `${y}-${m}-${dayVal}`;
+          
+          setForm(prev => ({
+            ...prev,
+            date: tomorrowStr,
+            time: '12:00'
+          }));
+          return;
+        }
+
+        const nextTime = isTimeInPast(form.time, value) 
+          ? firstOption.value 
+          : form.time;
+
+        setForm(prev => ({
+          ...prev,
+          date: value,
+          time: nextTime
+        }));
+        return;
+      }
+    }
+
+    if (name === 'time') {
+      if (isTimeInPast(value, form.date)) {
+        setFormError(lang === 'en'
+          ? "The selected time is in the past. Please choose a future time."
+          : "चयन गरिएको समय बितिसकेको छ। कृपया भविष्यको समय छनोट गर्नुहोस्।");
+        return;
+      }
+    }
+
     if (type === 'checkbox') {
       const checked = (e.target as HTMLInputElement).checked;
       setForm(prev => ({ ...prev, [name]: checked }));
@@ -775,6 +975,22 @@ export default function App() {
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    const today = getTodayDateString();
+    if (form.date < today) {
+      setFormError(lang === 'en'
+        ? "Reservations on past dates are not permitted."
+        : "गएको मितिको बुकिङ गर्न अनुमति छैन।");
+      return;
+    }
+
+    if (form.serviceType !== 'Dine-In' && isTimeInPast(form.time, form.date)) {
+      setFormError(lang === 'en'
+        ? "The requested time is in the past."
+        : "चयन गरिएको समय बितिसकेको छ।");
+      return;
+    }
+
     if (!form.name.trim() || !form.phone.trim()) {
       setFormError(lang === 'en'
         ? "Please fill in your name and a valid phone number to request booking!"
@@ -864,12 +1080,14 @@ export default function App() {
   };
 
   const resetFormAfterSubmission = () => {
+    const todayStr = getTodayDateString();
+    const initTime = getInitialTime();
     setForm({
       name: '',
       phone: '',
       email: '',
-      date: new Date().toISOString().split('T')[0],
-      time: '18:00',
+      date: todayStr,
+      time: initTime,
       serviceType: 'Dine-In',
       guests: 2,
       message: '',
@@ -914,7 +1132,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
     : MENU_HIGHLIGHTS.filter(item => item.category === selectedCategory).map(translateMenuItem);
 
   return (
-    <div className="min-h-screen flex flex-col font-sans text-charcoal bg-cream-soft relative antialiased">
+    <div className="min-h-screen w-full overflow-x-hidden flex flex-col font-sans text-charcoal bg-cream-soft relative antialiased">
       
       {/* TOP PROMOTIONAL ANNOUNCEMENT BAR */}
       <div id="promo-bar" className="bg-charcoal text-cream-soft py-2 px-4 border-b border-gold/15 flex justify-center items-center gap-2 relative overflow-hidden text-center text-[11px] sm:text-xs font-semibold z-50">
@@ -1045,9 +1263,9 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
               className="px-3 py-1.5 rounded-full border border-gold/40 hover:border-gold hover:bg-gold/5 flex items-center gap-1 mt-[2px] text-[11px] font-bold tracking-wider text-charcoal cursor-pointer uppercase transition-all duration-300"
               title="Change Language / भाषा परिवर्तन"
             >
-              <span className={`transition-opacity duration-200 ${lang === 'en' ? 'text-gold' : 'text-charcoal-muted/60'}`}>EN</span>
+              <span className={`transition-opacity duration-200 ${lang === 'en' ? 'text-gold' : 'text-charcoal-muted/65'}`}>EN</span>
               <span className="text-gold/30 font-light">|</span>
-              <span className={`transition-opacity duration-200 ${lang === 'ne' ? 'text-gold' : 'text-charcoal-muted/60'}`}>NEP</span>
+              <span className={`transition-opacity duration-200 ${lang === 'ne' ? 'text-gold' : 'text-charcoal-muted/65'}`}>NEP</span>
             </button>
 
             <a 
@@ -1119,42 +1337,42 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
                 </div>
 
                 <button 
-                  onClick={scrollToTop} 
+                  onClick={() => { scrollToTop(); setMobileMenuOpen(false); }} 
                   className="block w-full text-left text-sm font-bold uppercase tracking-wider text-charcoal py-2 border-b border-cream-deep cursor-pointer focus:outline-none bg-transparent border-none p-0"
                 >
                   {t('nav_home')}
                 </button>
                 <button 
-                  onClick={() => scrollToSection(menuSectionRef)}
+                  onClick={() => { scrollToSection(menuSectionRef); setMobileMenuOpen(false); }}
                   className="block w-full text-left text-sm font-bold uppercase tracking-wider text-charcoal py-2 border-b border-cream-deep cursor-pointer focus:outline-none bg-transparent border-none p-0"
                 >
                   {t('nav_menu')}
                 </button>
                 <button 
-                  onClick={() => scrollToSection(servicesSectionRef)}
+                  onClick={() => { scrollToSection(servicesSectionRef); setMobileMenuOpen(false); }}
                   className="block w-full text-left text-sm font-bold uppercase tracking-wider text-charcoal py-2 border-b border-cream-deep cursor-pointer focus:outline-none bg-transparent border-none p-0"
                 >
                   {t('nav_services')}
                 </button>
                 <button 
-                  onClick={() => scrollToSection(storySectionRef)}
+                  onClick={() => { scrollToSection(storySectionRef); setMobileMenuOpen(false); }}
                   className="block w-full text-left text-sm font-bold uppercase tracking-wider text-charcoal py-2 border-b border-cream-deep cursor-pointer focus:outline-none bg-transparent border-none p-0"
                 >
                   {t('nav_story')}
                 </button>
                 <button 
-                  onClick={() => scrollToSection(reviewsSectionRef)}
+                  onClick={() => { scrollToSection(reviewsSectionRef); setMobileMenuOpen(false); }}
                   className="block w-full text-left text-sm font-bold uppercase tracking-wider text-charcoal py-2 border-b border-cream-deep cursor-pointer focus:outline-none bg-transparent border-none p-0"
                 >
                   {t('nav_reviews')}
                 </button>
                 <button 
-                  onClick={() => scrollToSection(contactSectionRef)}
+                  onClick={() => { scrollToSection(contactSectionRef); setMobileMenuOpen(false); }}
                   className="block w-full text-left text-sm font-bold uppercase tracking-wider text-gold py-2 cursor-pointer focus:outline-none bg-transparent border-none p-0"
                 >
                   {t('nav_visit_reserve')}
                 </button>
- 
+
                 <div className="pt-4 flex flex-col gap-3">
                   <a 
                     href={getCleanPhoneUrl(BUSINESS_DETAILS.phone)}
@@ -2470,6 +2688,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
                         type="date" 
                         name="date" 
                         value={form.date}
+                        min={getTodayDateString()}
                         onChange={handleFormChange}
                         className="w-full bg-cream-soft px-4 py-3.5 rounded-xl border border-cream-deep focus:outline-none focus:border-gold text-sm transition-colors font-mono font-light gap-2"
                       />
@@ -2492,33 +2711,17 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
                           onChange={handleFormChange}
                           className="w-full bg-cream-soft px-4 py-3.5 rounded-xl border border-cream-deep focus:outline-none focus:border-gold text-sm transition-colors font-mono font-light cursor-pointer"
                         >
-                          <option value="08:00">8:00 AM / बिहान ८:००</option>
-                          <option value="08:30">8:30 AM / बिहान ८:३०</option>
-                          <option value="09:00">9:00 AM / बिहान ९:००</option>
-                          <option value="09:30">9:30 AM / बिहान ९:३०</option>
-                          <option value="10:00">10:00 AM / बिहान १०:००</option>
-                          <option value="10:30">10:30 AM / बिहान १०:३०</option>
-                          <option value="11:00">11:00 AM / बिहान ११:००</option>
-                          <option value="11:30">11:30 AM / बिहान ११:३०</option>
-                          <option value="12:00">12:00 PM / दिउँसो १२:००</option>
-                          <option value="12:30">12:30 PM / दिउँसो १२:३०</option>
-                          <option value="13:00">1:00 PM / दिउँसो १:००</option>
-                          <option value="13:30">1:30 PM / दिउँसो १:३०</option>
-                          <option value="14:00">2:00 PM / दिउँसो २:००</option>
-                          <option value="14:30">2:30 PM / दिउँसो २:३०</option>
-                          <option value="15:00">3:00 PM / दिउँसो ३:००</option>
-                          <option value="15:30">3:30 PM / दिउँसो ३:३०</option>
-                          <option value="16:00">4:00 PM / दिउँसो ४:००</option>
-                          <option value="16:30">4:30 PM / दिउँसो ४:३०</option>
-                          <option value="17:00">5:00 PM / बेलुका ५:००</option>
-                          <option value="17:30">5:30 PM / बेलुका ५:३०</option>
-                          <option value="18:00">6:00 PM / बेलुका ६:००</option>
-                          <option value="18:30">6:30 PM / बेलुका ६:३०</option>
-                          <option value="19:00">7:00 PM / बेलुका ७:००</option>
-                          <option value="19:30">7:30 PM / बेलुका ७:३०</option>
-                          <option value="20:00">8:00 PM / बेलुका ८:००</option>
-                          <option value="20:30">8:30 PM / बेलुका ८:३०</option>
-                          <option value="21:00">9:00 PM / बेलुका ९:००</option>
+                          {(() => {
+                            const isToday = form.date === getTodayDateString();
+                            return timeOptions.map(opt => {
+                              const isPast = isTimeInPast(opt.value, form.date);
+                              return (
+                                <option key={opt.value} value={opt.value} disabled={isPast}>
+                                  {opt.label} {isPast ? (lang === 'en' ? ' (Blocked)' : ' (ब्लक)') : ''}
+                                </option>
+                              );
+                            });
+                          })()}
                         </select>
                       )}
                     </div>
@@ -2569,24 +2772,38 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
                             );
                           }
                           return (
-                            <div id="slots-grid-wrapper" className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2">
-                              {slots.map((slot, index) => {
-                                const isSelected = selectedSlot && selectedSlot.start.getTime() === slot.start.getTime();
-                                return (
-                                  <button
-                                    id={`slot-button-${index}`}
-                                    key={index}
-                                    type="button"
-                                    onClick={() => setSelectedSlot(slot)}
-                                    className={`py-2 px-3 text-xs font-mono rounded-lg border text-center transition-all cursor-pointer scale-100 active:scale-95
-                                      ${isSelected 
-                                        ? 'bg-gold text-cream-soft border-gold font-bold shadow-sm' 
-                                        : 'bg-white hover:bg-cream-soft/60 text-charcoal border-cream-deep hover:border-gold/30'}`}
-                                  >
-                                    {slot.label}
-                                  </button>
-                                );
-                              })}
+                            <div className="space-y-2">
+                              <div id="slots-grid-wrapper" className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2">
+                                {slots.map((slot, index) => {
+                                  const isSelected = selectedSlot && selectedSlot.start.getTime() === slot.start.getTime();
+                                  return (
+                                    <button
+                                      id={`slot-button-${index}`}
+                                      key={index}
+                                      type="button"
+                                      onClick={() => {
+                                        setSelectedSlot(slot);
+                                        const hStr = slot.start.getHours().toString().padStart(2, '0');
+                                        const mStr = slot.start.getMinutes().toString().padStart(2, '0');
+                                        setForm(prev => ({ ...prev, time: `${hStr}:${mStr}` }));
+                                      }}
+                                      className={`py-2 px-3 text-xs font-mono rounded-lg border text-center transition-all cursor-pointer scale-100 active:scale-95
+                                        ${isSelected 
+                                          ? 'bg-gold text-cream-soft border-gold font-bold shadow-sm' 
+                                          : 'bg-white hover:bg-cream-soft/60 text-charcoal border-cream-deep hover:border-gold/30'}`}
+                                    >
+                                      {slot.label}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                              {form.date === getTodayDateString() && (
+                                <p className="text-[10px] text-charcoal/60 font-light mt-1 text-left italic">
+                                  {lang === 'en' 
+                                    ? `* Note: Today's slots starting within the next ${dbSettings?.booking_notice_hours || 2} hours are hidden for operational prep. Change date for more options.` 
+                                    : `* नोट: तयारी समयका कारण आजका आगामी ${dbSettings?.booking_notice_hours || 2} घण्टा भित्रका समयहरू देखिने छैनन्। थप समय रोज्न अर्को मिति चयन गर्नुहोस्।`}
+                                </p>
+                              )}
                             </div>
                           );
                         })()
