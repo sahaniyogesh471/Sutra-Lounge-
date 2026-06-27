@@ -1,0 +1,71 @@
+{
+  "name": "Sutra Lounge Hetauda",
+  "short_name": "Sutra Lounge",
+  "description": "Hetauda's premier restaurant and lounge. Authentic momos, Indian mains, gourmet sandwiches, specialty coffee, hookah, and online table booking.",
+  "start_url": "/?source=pwa",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#1a0a00",
+  "theme_color": "#c9922a",
+  "scope": "/",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["food", "lifestyle", "entertainment"],
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon-32.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "apple touch icon"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Book a Table",
+      "short_name": "Book Table",
+      "description": "Reserve your table online at Sutra Lounge",
+      "url": "/#book",
+      "icons": [{ "src": "/favicon.svg", "sizes": "any" }]
+    },
+    {
+      "name": "View Menu",
+      "short_name": "Menu",
+      "description": "Browse the full Sutra Lounge menu",
+      "url": "/#menu",
+      "icons": [{ "src": "/favicon.svg", "sizes": "any" }]
+    },
+    {
+      "name": "Call Us",
+      "short_name": "Call",
+      "description": "Call Sutra Lounge directly",
+      "url": "tel:+97757522111",
+      "icons": [{ "src": "/favicon.svg", "sizes": "any" }]
+    }
+  ],
+  "related_applications": [
+    {
+      "platform": "webapp",
+      "url": "https://sutralounge.com.np/manifest.webmanifest"
+    }
+  ],
+  "prefer_related_applications": false,
+  "screenshots": [
+    {
+      "src": "/og-image.jpg",
+      "type": "image/jpeg",
+      "sizes": "1200x630",
+      "label": "Sutra Lounge — Premium Dining in Hetauda, Nepal"
+    }
+  ]
+}

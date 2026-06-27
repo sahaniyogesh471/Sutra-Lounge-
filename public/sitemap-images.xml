@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+
+  <url>
+    <loc>https://sutralounge.com.np/</loc>
+
+    <image:image>
+      <image:loc>https://sutralounge.com.np/og-image.jpg</image:loc>
+      <image:title>Sutra Lounge — Premium ambient dining restaurant in Hetauda, Nepal</image:title>
+      <image:caption>Interior of Sutra Lounge, the premier restaurant and lounge in Hetauda, Nepal</image:caption>
+      <image:geo_location>Hetauda, Makwanpur, Nepal</image:geo_location>
+      <image:license>https://sutralounge.com.np/</image:license>
+    </image:image>
+
+    <image:image>
+      <image:loc>https://sutralounge.com.np/src/assets/images/sutra_pancakes_1781234540304.jpg</image:loc>
+      <image:title>Fresh Pancakes Breakfast — NPR 490 | Sutra Lounge Hetauda</image:title>
+      <image:caption>Fluffy golden-brown pancakes with honey syrup and Himalayan coffee at Sutra Lounge</image:caption>
+    </image:image>
+
+    <image:image>
+      <image:loc>https://sutralounge.com.np/src/assets/images/crispy_chicken_wings_1781234556579.jpg</image:loc>
+      <image:title>Crispy Chicken Wings — NPR 450 | Sutra Lounge Hetauda</image:title>
+      <image:caption>Chef-seasoned crispy chicken wings glazed in sweet and spicy house reduction</image:caption>
+    </image:image>
+
+    <image:image>
+      <image:loc>https://sutralounge.com.np/src/assets/images/chilly_pork_1781234602061.jpg</image:loc>
+      <image:title>Chilly Pork — NPR 550 | Sutra Lounge Hetauda</image:title>
+      <image:caption>Wok-tossed tender pork with chilies, bell peppers, and spring greens</image:caption>
+    </image:image>
+
+    <image:image>
+      <image:loc>https://sutralounge.com.np/src/assets/images/veg_momo_1781234616913.jpg</image:loc>
+      <image:title>Veg-Chilly Momo — NPR 380 | Sutra Lounge Hetauda</image:title>
+      <image:caption>Deep-fried vegetable momo dumplings tossed in garlic chili sauce — authentic Nepali momo in Hetauda</image:caption>
+    </image:image>
+
+    <image:image>
+      <image:loc>https://sutralounge.com.np/src/assets/images/butter_naan_curry_1781264474282.jpg</image:loc>
+      <image:title>Butter Naan and Chicken Curry — NPR 650 | Sutra Lounge Hetauda</image:title>
+      <image:caption>Clay-oven baked butter garlic naan with creamy tomato-cashew chicken curry</image:caption>
+    </image:image>
+
+    <image:image>
+      <image:loc>https://sutralounge.com.np/src/assets/images/chicken_biryani_1781264491983.jpg</image:loc>
+      <image:title>Aromatic Chicken Biryani — NPR 750 | Sutra Lounge Hetauda</image:title>
+      <image:caption>Classic dum-cooked basmati rice chicken biryani served with yogurt raita</image:caption>
+    </image:image>
+
+    <image:image>
+      <image:loc>https://sutralounge.com.np/src/assets/images/sizzling_tandoori_1781234571439.jpg</image:loc>
+      <image:title>Sizzling Chicken Tandoori Platter — NPR 1,150 | Sutra Lounge Hetauda</image:title>
+      <image:caption>Clay-oven roasted tandoori chicken marinated in ginger-garlic and mountain herbs</image:caption>
+    </image:image>
+
+    <image:image>
+      <image:loc>https://sutralounge.com.np/src/assets/images/chicken_sandwich_1781234586059.jpg</image:loc>
+      <image:title>Signature Toast Chicken Sandwich — NPR 550 | Sutra Lounge Hetauda</image:title>
+      <image:caption>Hetauda's favorite — butter-grilled sandwich with chicken, Swiss cheese, and secret lounge dressing</image:caption>
+    </image:image>
+
+    <image:image>
+      <image:loc>https://sutralounge.com.np/src/assets/images/mint_mojito_1781234642673.jpg</image:loc>
+      <image:title>Classic Mint Virgin Mojito — NPR 280 | Sutra Lounge Hetauda</image:title>
+      <image:caption>Refreshing fresh mint mojito mocktail with organic lime and brown sugar syrup</image:caption>
+    </image:image>
+
+    <image:image>
+      <image:loc>https://sutralounge.com.np/src/assets/images/latte_macchiato_1781264507039.jpg</image:loc>
+      <image:title>Specialty Latte Macchiato — NPR 240 | Sutra Lounge Hetauda</image:title>
+      <image:caption>Premium Arabica espresso latte macchiato with velvety steamed milk froth</image:caption>
+    </image:image>
+
+  </url>
+</urlset>
