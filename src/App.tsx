@@ -508,6 +508,15 @@ export default function App() {
     }
   });
 
+  // Dynamic SEO Document Title update based on current language
+  useEffect(() => {
+    if (lang === 'ne') {
+      document.title = "सुत्र लाउन्ज - हेटौंडाको उत्कृष्ट रेस्टुरेन्ट र लाउन्ज | Sutra Lounge";
+    } else {
+      document.title = "Sutra Lounge - Best Restaurant & Lounge in Hetauda, Nepal";
+    }
+  }, [lang]);
+
   const toggleLanguage = () => {
     const newLang = lang === 'en' ? 'ne' : 'en';
     setLang(newLang);
@@ -923,27 +932,7 @@ export default function App() {
         return;
       } else {
         const firstOption = timeOptions.find(opt => !isTimeInPast(opt.value, value));
-        if (!firstOption) {
-          setFormError(lang === 'en'
-            ? "All reservation times for today have already passed. Please select a future date."
-            : "आजको सबै बुकिङ समय बितिसकेको छ। कृपया भविष्यको अर्को मिति छनोट गर्नुहोस्।");
-          
-          const d = new Date();
-          d.setDate(d.getDate() + 1);
-          const y = d.getFullYear();
-          const m = String(d.getMonth() + 1).padStart(2, '0');
-          const dayVal = String(d.getDate()).padStart(2, '0');
-          const tomorrowStr = `${y}-${m}-${dayVal}`;
-          
-          setForm(prev => ({
-            ...prev,
-            date: tomorrowStr,
-            time: '12:00'
-          }));
-          return;
-        }
-
-        const nextTime = isTimeInPast(form.time, value) 
+        const nextTime = (firstOption && isTimeInPast(form.time, value)) 
           ? firstOption.value 
           : form.time;
 
@@ -952,17 +941,21 @@ export default function App() {
           date: value,
           time: nextTime
         }));
+        setFormError(null);
         return;
       }
     }
 
     if (name === 'time') {
+      setForm(prev => ({ ...prev, time: value }));
       if (isTimeInPast(value, form.date)) {
         setFormError(lang === 'en'
           ? "The selected time is in the past. Please choose a future time."
           : "चयन गरिएको समय बितिसकेको छ। कृपया भविष्यको समय छनोट गर्नुहोस्।");
-        return;
+      } else {
+        setFormError(null);
       }
+      return;
     }
 
     if (type === 'checkbox') {

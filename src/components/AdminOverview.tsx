@@ -3,14 +3,9 @@ import {
   ShoppingBag, 
   Clock, 
   DollarSign, 
-  Star, 
-  TrendingUp, 
-  Bell, 
-  Settings, 
   Calendar, 
   Download,
   CheckCircle,
-  Clock as TimerIcon,
   XCircle,
   User,
   Coffee,
@@ -35,6 +30,7 @@ interface AdminOverviewProps {
   metricTotalOrders: number;
   metricPendingOrders: number;
   metricPendingReservations: number;
+  triggerToast?: (m: string) => void;
 }
 
 export const AdminOverview: React.FC<AdminOverviewProps> = ({
@@ -44,8 +40,135 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
   metricTodayOrders,
   metricTotalOrders,
   metricPendingOrders,
-  metricPendingReservations
+  metricPendingReservations,
+  triggerToast
 }) => {
+  // Real time and date filter states: 'all' | 'today' | '7days' | 'this_month'
+  const [filterRange, setFilterRange] = React.useState<'all' | 'today' | '7days' | 'this_month'>('all');
+
+  // Helper to get filtered items based on selected date range
+  const getFilteredData = () => {
+    const todayStr = new Date().toISOString().substring(0, 10);
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const sevenDaysAgoStr = sevenDaysAgo.toISOString().substring(0, 10);
+    const thisMonthStr = new Date().toISOString().substring(0, 7);
+
+    let filteredOrders = [...orders];
+    let filteredReservations = [...reservations];
+
+    if (filterRange === 'today') {
+      filteredOrders = orders.filter(o => o.created_at && o.created_at.substring(0, 10) === todayStr);
+      filteredReservations = reservations.filter(r => r.reservation_date === todayStr);
+    } else if (filterRange === '7days') {
+      filteredOrders = orders.filter(o => o.created_at && o.created_at.substring(0, 10) >= sevenDaysAgoStr);
+      filteredReservations = reservations.filter(r => r.reservation_date && r.reservation_date >= sevenDaysAgoStr);
+    } else if (filterRange === 'this_month') {
+      filteredOrders = orders.filter(o => o.created_at && o.created_at.substring(0, 7) === thisMonthStr);
+      filteredReservations = reservations.filter(r => r.reservation_date && r.reservation_date.substring(0, 7) === thisMonthStr);
+    }
+
+    return { filteredOrders, filteredReservations };
+  };
+
+  const { filteredOrders, filteredReservations } = getFilteredData();
+
+  // Dynamic calculations of metrics for the chosen time block
+  const dynamicTotalOrders = filteredOrders.length;
+  
+  const dynamicTodayOrders = orders.filter(o => {
+    if (!o.created_at) return false;
+    return o.created_at.substring(0, 10) === new Date().toISOString().substring(0, 10);
+  }).length;
+
+  const dynamicRevenue = filteredOrders
+    .filter(o => o.payment_status === 'paid' && o.status !== 'cancelled')
+    .reduce((sum, o) => sum + (Number(o.total_amount) || 0), 0);
+
+  const dynamicPendingOrders = filteredOrders.filter(o => o.status === 'new' || o.status === 'preparing').length;
+  const dynamicPendingReservations = filteredReservations.filter(r => r.status === 'pending').length;
+
+  // Fully functional CSV exporter
+  const handleExportReport = () => {
+    try {
+      let csvContent = "\uFEFF"; // Unicode BOM signature to support special chars like currency or nepali symbols in Excel
+      
+      // Header Info
+      csvContent += "SUTRA LOUNGE & RESTAURANT - OPERATIONAL TELEMETRY REPORT\n";
+      csvContent += `Selected Date Filter: ${filterRange.toUpperCase()}\n`;
+      csvContent += `Generated Timestamp: ${new Date().toLocaleString()}\n\n`;
+      
+      // Reservations Table Section
+      csvContent += "--- RESERVATIONS SCHEDULES ---\n";
+      csvContent += "ID,Guest Full Name,Email,Phone Contact,Reservation Date,Start Time,End Time,Party Size,Status,Special Requests,Created At\n";
+      filteredReservations.forEach(r => {
+        const row = [
+          r.id || "N/A",
+          `"${(r.full_name || "").replace(/"/g, '""')}"`,
+          r.email || "N/A",
+          `"${r.phone || ""}"`,
+          r.reservation_date || "N/A",
+          r.start_time || "N/A",
+          r.end_time || "N/A",
+          `${r.party_size || 2} Pax`,
+          r.status || "pending",
+          `"${(r.special_requests || "").replace(/"/g, '""')}"`,
+          r.created_at || "N/A"
+        ].join(",");
+        csvContent += row + "\n";
+      });
+      
+      csvContent += "\n--- ONLINE ORDERS DETAILS ---\n";
+      csvContent += "ID,Customer Name,Email Contact,Phone Number,Total Cost (NPR),Cooking Status,Billing Status,Delivery/Service Address,Ordered Items,Placed At\n";
+      filteredOrders.forEach(o => {
+        const itemsList = (o.items || []).map((it: any) => `${it.quantity}x ${it.name}`).join(" | ");
+        const row = [
+          o.id || "N/A",
+          `"${(o.customer_name || "").replace(/"/g, '""')}"`,
+          o.customer_email || "N/A",
+          `"${o.customer_phone || ""}"`,
+          o.total_amount || 0,
+          o.status || "new",
+          o.payment_status || "pending",
+          `"${(o.delivery_address || "").replace(/"/g, '""')}"`,
+          `"${itemsList.replace(/"/g, '""')}"`,
+          o.created_at || "N/A"
+        ].join(",");
+        csvContent += row + "\n";
+      });
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const tempLink = document.createElement("a");
+      tempLink.setAttribute("href", url);
+      tempLink.setAttribute("download", `SutraLounge_Report_${filterRange}_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(tempLink);
+      tempLink.click();
+      document.body.removeChild(tempLink);
+      URL.revokeObjectURL(url);
+
+      if (triggerToast) {
+        triggerToast(`Operational report for "${filterRange}" exported successfully!`);
+      } else {
+        alert(`Operational report for "${filterRange}" exported successfully!`);
+      }
+    } catch (err: any) {
+      if (triggerToast) triggerToast(`Export failed: ${err.message}`);
+    }
+  };
+
+  // Dynamically scale chart revenues relative to current filtered revenue
+  const baseChartMultiplier = dynamicRevenue > 0 ? dynamicRevenue / Math.max(1, metricTotalRevenue) : 1;
+  const areaChartData = [
+    { day: 'Mon', revenue: Math.round(Math.max(1200, (metricTotalRevenue * 0.12) * baseChartMultiplier)), orders: 4 },
+    { day: 'Tue', revenue: Math.round(Math.max(1800, (metricTotalRevenue * 0.14) * baseChartMultiplier)), orders: 6 },
+    { day: 'Wed', revenue: Math.round(Math.max(1100, (metricTotalRevenue * 0.10) * baseChartMultiplier)), orders: 3 },
+    { day: 'Thu', revenue: Math.round(Math.max(2200, (metricTotalRevenue * 0.16) * baseChartMultiplier)), orders: 8 },
+    { day: 'Fri', revenue: Math.round(Math.max(3900, (metricTotalRevenue * 0.23) * baseChartMultiplier)), orders: 14 },
+    { day: 'Sat', revenue: Math.round(Math.max(4900, (metricTotalRevenue * 0.28) * baseChartMultiplier)), orders: 19 },
+    { day: 'Sun', revenue: Math.round(Math.max(3200, (metricTotalRevenue * 0.17) * baseChartMultiplier)), orders: 11 },
+  ];
+
   return (
     <div className="space-y-6 text-left animate-in fade-in duration-200">
       {/* Welcome Header */}
@@ -54,12 +177,29 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
           <h2 className="text-2xl font-bold tracking-tight text-gray-900 leading-tight">Morning, Admin</h2>
           <p className="text-sm text-gray-500">Here's what's happening at Sutra Lounge today.</p>
         </div>
-        <div className="flex gap-3">
-          <button type="button" className="px-4 py-2 bg-white border border-gray-250 rounded-lg text-xs font-semibold flex items-center gap-2 hover:bg-gray-50 transition-colors">
-            <Calendar className="w-3.5 h-3.5 text-gray-500" />
-            Last 7 Days
-          </button>
-          <button type="button" className="px-4 py-2 bg-[#0a1422] text-white rounded-lg text-xs font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity">
+        
+        {/* Real Dynamic Date & Range Controls */}
+        <div className="flex gap-2">
+          <div className="relative">
+            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500 pointer-events-none" />
+            <select
+              value={filterRange}
+              onChange={(e) => setFilterRange(e.target.value as any)}
+              className="pl-9 pr-8 py-2 bg-white border border-gray-200 rounded-lg text-xs font-semibold hover:bg-gray-50 transition-colors appearance-none focus:outline-none focus:border-[#fd761a] cursor-pointer"
+              title="Select Dashboard Filter Window"
+            >
+              <option value="all">All Time Logs</option>
+              <option value="today">Today Only</option>
+              <option value="7days">Last 7 Days</option>
+              <option value="this_month">This Month</option>
+            </select>
+          </div>
+          
+          <button 
+            type="button" 
+            onClick={handleExportReport}
+            className="px-4 py-2 bg-[#0a1422] text-white rounded-lg text-xs font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity cursor-pointer"
+          >
             <Download className="w-3.5 h-3.5 text-white" />
             Export Report
           </button>
@@ -77,7 +217,7 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
             <span className="text-green-600 text-xs font-bold font-mono flex items-center">+12%</span>
           </div>
           <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">Total Orders</p>
-          <h3 className="text-2xl font-black text-gray-900">{metricTotalOrders}</h3>
+          <h3 className="text-2xl font-black text-gray-900">{dynamicTotalOrders}</h3>
         </div>
 
         {/* Today's Orders */}
@@ -89,7 +229,7 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
             <span className="text-green-600 text-xs font-bold font-mono flex items-center">+5%</span>
           </div>
           <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">Today's Orders</p>
-          <h3 className="text-2xl font-black text-gray-900">{metricTodayOrders}</h3>
+          <h3 className="text-2xl font-black text-gray-900">{dynamicTodayOrders}</h3>
         </div>
 
         {/* Revenue */}
@@ -102,7 +242,7 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
           </div>
           <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">Revenue (NPR)</p>
           <h3 className="text-2xl font-black text-gray-900">
-            रू {metricTotalRevenue ? metricTotalRevenue.toLocaleString('en-NP') : '0'}
+            रू {dynamicRevenue ? dynamicRevenue.toLocaleString('en-NP') : '0'}
           </h3>
         </div>
 
@@ -115,7 +255,7 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
             <span className="text-amber-600 text-xs font-bold font-mono flex items-center">Active</span>
           </div>
           <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">Pending Orders</p>
-          <h3 className="text-2xl font-black text-gray-900">{metricPendingOrders}</h3>
+          <h3 className="text-2xl font-black text-gray-900">{dynamicPendingOrders}</h3>
         </div>
 
         {/* Reservations */}
@@ -127,7 +267,7 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
             <span className="text-gray-400 text-xs font-bold font-mono flex items-center">Bookages</span>
           </div>
           <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">Reservations</p>
-          <h3 className="text-2xl font-black text-gray-900">{reservations.length}</h3>
+          <h3 className="text-2xl font-black text-gray-900">{filteredReservations.length}</h3>
         </div>
       </div>
 
@@ -138,7 +278,7 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
           <div className="flex justify-between items-center mb-6">
             <div>
               <h4 className="text-sm font-bold text-[#0a1422] uppercase tracking-wider">Order Trends</h4>
-              <p className="text-xs text-gray-400">Weekly performance overview</p>
+              <p className="text-xs text-gray-400">Weekly performance overview (Scaled for {filterRange})</p>
             </div>
             <div className="flex items-center gap-4 text-xs font-semibold">
               <div className="flex items-center gap-2">
@@ -155,15 +295,7 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
           <div className="flex-1 w-full h-64 relative mt-2">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart
-                data={[
-                  { day: 'Mon', revenue: Math.max(1200, metricTotalRevenue * 0.12), orders: 4 },
-                  { day: 'Tue', revenue: Math.max(1800, metricTotalRevenue * 0.14), orders: 6 },
-                  { day: 'Wed', revenue: Math.max(1100, metricTotalRevenue * 0.10), orders: 3 },
-                  { day: 'Thu', revenue: Math.max(2200, metricTotalRevenue * 0.16), orders: 8 },
-                  { day: 'Fri', revenue: Math.max(3900, metricTotalRevenue * 0.23), orders: 14 },
-                  { day: 'Sat', revenue: Math.max(4900, metricTotalRevenue * 0.28), orders: 19 },
-                  { day: 'Sun', revenue: Math.max(3200, metricTotalRevenue * 0.17), orders: 11 },
-                ]}
+                data={areaChartData}
                 margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
               >
                 <defs>
@@ -190,7 +322,7 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
           </div>
           <div className="flex-1 overflow-y-auto max-h-[300px] divide-y divide-gray-100">
             {[
-              ...reservations.map(r => ({
+              ...filteredReservations.map(r => ({
                 id: r.id,
                 type: 'booking',
                 heading: `Reservation: ${r.full_name}`,
@@ -199,7 +331,7 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
                 tagBg: 'bg-orange-50 text-[#fd761a]',
                 time: r.created_at || new Date().toISOString()
               })),
-              ...orders.map(o => ({
+              ...filteredOrders.map(o => ({
                 id: o.id,
                 type: 'order',
                 heading: `Placed: ${o.customer_name}`,
@@ -230,9 +362,9 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
                 </div>
               ))}
 
-            {reservations.length === 0 && orders.length === 0 && (
+            {filteredReservations.length === 0 && filteredOrders.length === 0 && (
               <div className="py-12 text-center text-xs text-gray-400 italic">
-                No active operational telemetry logs in database yet.
+                No active operational logs inside the selected date range.
               </div>
             )}
           </div>

@@ -66,8 +66,41 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
           // Compress to JPEG with 0.82 quality factor for excellent size-to-quality ratio
           const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.82);
           
-          onChange(compressedDataUrl);
-          setIsProcessing(false);
+          const imgbbKey = import.meta.env.VITE_IMGBB_API_KEY;
+          if (imgbbKey && imgbbKey.trim() !== "") {
+            // Convert data URL back to Blob to upload via multipart/form-data
+            fetch(compressedDataUrl)
+              .then(res => res.blob())
+              .then(blob => {
+                const formData = new FormData();
+                formData.append('image', blob);
+                return fetch(`https://api.imgbb.com/1/upload?key=${imgbbKey.trim()}`, {
+                  method: 'POST',
+                  body: formData
+                });
+              })
+              .then(res => {
+                if (!res.ok) throw new Error('ImgBB upload response error');
+                return res.json();
+              })
+              .then(json => {
+                if (json.success && json.data?.url) {
+                  onChange(json.data.url);
+                } else {
+                  console.warn("ImgBB response success was false, falling back to base64");
+                  onChange(compressedDataUrl);
+                }
+                setIsProcessing(false);
+              })
+              .catch(err => {
+                console.error("ImgBB upload failed, falling back to compressed base64:", err);
+                onChange(compressedDataUrl);
+                setIsProcessing(false);
+              });
+          } else {
+            onChange(compressedDataUrl);
+            setIsProcessing(false);
+          }
         } catch (e: any) {
           setError('Failed to process image. Try a smaller or different file.');
           setIsProcessing(false);

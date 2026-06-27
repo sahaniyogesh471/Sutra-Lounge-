@@ -169,52 +169,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
     // 3. Online Orders
     const unsubOrders = onSnapshot(collection(db, 'online_orders'), (snapshot) => {
       const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
-      if (list.length === 0) {
-        // Pre-populate if empty to have data out of the box
-        const initialMockOrders = [
-          {
-            customer_name: "Dipesh K. Shrestha",
-            customer_email: "dipesh@gmail.com",
-            customer_phone: "+977 9855012345",
-            items: [{ name: "Signature Toast Chicken Sandwich", quantity: 2, price: 550 }],
-            total_amount: 1100,
-            status: "delivered",
-            payment_status: "paid",
-            delivery_address: "Siddhartha Chowk, Hetauda",
-            created_at: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString()
-          },
-          {
-            customer_name: "Aakash Rai",
-            customer_email: "aakash@yahoo.com",
-            customer_phone: "+977 9845098765",
-            items: [{ name: "Sizing Chicken Tandoori", quantity: 1, price: 1150 }],
-            total_amount: 1150,
-            status: "ready",
-            payment_status: "paid",
-            delivery_address: "Nagar Bikash Samiti Marg, Hetauda",
-            created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
-          },
-          {
-            customer_name: "Kritisha Giri",
-            customer_email: "kritisha@gmail.com",
-            customer_phone: "+977 9801234567",
-            items: [
-              { name: "Steamed Chicken Momos", quantity: 2, price: 320 },
-              { name: "Classic Mint Virgin Mojito", quantity: 2, price: 280 }
-            ],
-            total_amount: 1200,
-            status: "new",
-            payment_status: "pending",
-            delivery_address: "Huprachaur, Hetauda",
-            created_at: new Date(Date.now() - 30 * 60 * 1000).toISOString()
+      const mockNames = ["Dipesh K. Shrestha", "Aakash Rai", "Kritisha Giri"];
+      const realOrders = list.filter(ord => !mockNames.includes(ord.customer_name));
+      
+      realOrders.sort((a,b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+      setOrders(realOrders);
+
+      // Clean up existing dummy orders in database background
+      const dummyDocs = list.filter(ord => mockNames.includes(ord.customer_name));
+      if (dummyDocs.length > 0) {
+        dummyDocs.forEach(async (docObj) => {
+          try {
+            await deleteDoc(doc(db, 'online_orders', docObj.id));
+          } catch (e) {
+            console.warn("Error purging mock doc:", e);
           }
-        ];
-        initialMockOrders.forEach(async (ord) => {
-          await addDoc(collection(db, 'online_orders'), ord);
         });
-      } else {
-        list.sort((a,b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || a.gradient_offset || 0).getTime());
-        setOrders(list);
       }
     }, (error) => {
       console.warn("Could not load orders: ", error);
@@ -813,6 +783,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
                 metricTotalOrders={metricTotalOrders}
                 metricPendingOrders={metricPendingOrders}
                 metricPendingReservations={metricPendingReservations}
+                triggerToast={triggerToast}
               />
             )}
 
@@ -837,6 +808,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
                 setFilterReservationStatus={setFilterReservationStatus}
                 handleUpdateReservationStatus={handleUpdateReservationStatus}
                 handleDeleteReservation={handleDeleteReservation}
+                triggerToast={triggerToast}
               />
             )}
 
@@ -1154,12 +1126,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
 
       {/* Custom Confirmation Modal */}
       {confirmDialog && confirmDialog.isOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-[9999] animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl border border-gray-250 max-w-sm w-full p-6 space-y-4 shadow-2xl relative text-left animate-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[9999] animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl border border-gray-200 max-w-sm w-full p-6 space-y-4 shadow-2xl relative text-left animate-in zoom-in-95 duration-150">
             <h4 className="font-bold text-gray-950 text-sm uppercase tracking-wider">
               {confirmDialog.title}
             </h4>
-            <p className="text-xs text-gray-650 leading-relaxed font-semibold">
+            <p className="text-xs text-gray-600 leading-relaxed font-semibold">
               {confirmDialog.message}
             </p>
             <div className="flex gap-2.5 pt-2">
