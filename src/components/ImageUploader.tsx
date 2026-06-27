@@ -65,48 +65,59 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
 
           // Compress to JPEG with 0.82 quality factor for excellent size-to-quality ratio
           const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.82);
-          
-          const imgbbKey = import.meta.env.VITE_IMGBB_API_KEY;
-          const imgbbAlbum = import.meta.env.VITE_IMGBB_ALBUM_ID || localStorage.getItem('vite_imgbb_album_id');
-          if (imgbbKey && imgbbKey.trim() !== "") {
+
+          // Read the API key from localStorage first (admin-entered at runtime),
+          // then fall back to the build-time env var as secondary.
+          const imgbbKey = (
+            localStorage.getItem('vite_imgbb_api_key') ||
+            import.meta.env.VITE_IMGBB_API_KEY ||
+            ''
+          ).trim();
+
+          const imgbbAlbum = (
+            localStorage.getItem('vite_imgbb_album_id') ||
+            import.meta.env.VITE_IMGBB_ALBUM_ID ||
+            ''
+          ).trim();
+
+          if (imgbbKey !== '') {
             // Convert data URL back to Blob to upload via multipart/form-data
             fetch(compressedDataUrl)
               .then(res => res.blob())
               .then(blob => {
                 const formData = new FormData();
                 formData.append('image', blob);
-                
-                if (imgbbAlbum && imgbbAlbum.trim() !== "") {
-                  // Append album parameter as well as album_id for broad API support
-                  formData.append('album', imgbbAlbum.trim());
-                  formData.append('album_id', imgbbAlbum.trim());
+
+                if (imgbbAlbum !== '') {
+                  formData.append('album', imgbbAlbum);
+                  formData.append('album_id', imgbbAlbum);
                 }
 
-                const url = `https://api.imgbb.com/1/upload?key=${imgbbKey.trim()}`;
-                return fetch(url, {
+                return fetch(`https://api.imgbb.com/1/upload?key=${imgbbKey}`, {
                   method: 'POST',
                   body: formData
                 });
               })
               .then(res => {
-                if (!res.ok) throw new Error('ImgBB upload response error');
+                if (!res.ok) throw new Error(`ImgBB HTTP ${res.status}`);
                 return res.json();
               })
               .then(json => {
                 if (json.success && json.data?.url) {
                   onChange(json.data.url);
                 } else {
-                  console.warn("ImgBB response success was false, falling back to base64");
+                  console.warn('[ImageUploader] ImgBB success=false, falling back to base64:', json.error?.message);
                   onChange(compressedDataUrl);
                 }
                 setIsProcessing(false);
               })
               .catch(err => {
-                console.error("ImgBB upload failed, falling back to compressed base64:", err);
+                console.error('[ImageUploader] ImgBB upload failed, falling back to base64:', err);
                 onChange(compressedDataUrl);
                 setIsProcessing(false);
               });
           } else {
+            // No API key configured — store as compressed base64
             onChange(compressedDataUrl);
             setIsProcessing(false);
           }
@@ -234,8 +245,16 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
             <div className="space-y-2.5 flex flex-col items-center">
               <Loader2 className="w-8 h-8 text-[#fd761a] animate-spin" />
               <div>
-                <p className="text-xs font-bold text-gray-700">Compressing & optimizing image...</p>
-                <p className="text-[10px] text-gray-400 font-mono">Ensuring maximum local storage speed</p>
+                <p className="text-xs font-bold text-gray-700">
+                  {(localStorage.getItem('vite_imgbb_api_key') || import.meta.env.VITE_IMGBB_API_KEY || '').trim() !== ''
+                    ? 'Uploading to ImgBB cloud...'
+                    : 'Compressing & optimizing image...'}
+                </p>
+                <p className="text-[10px] text-gray-400 font-mono">
+                  {(localStorage.getItem('vite_imgbb_api_key') || import.meta.env.VITE_IMGBB_API_KEY || '').trim() !== ''
+                    ? 'Storing on ImgBB CDN for fast delivery'
+                    : 'No ImgBB key set — saving as base64'}
+                </p>
               </div>
             </div>
           ) : (
