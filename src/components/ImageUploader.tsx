@@ -67,6 +67,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
           const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.82);
           
           const imgbbKey = import.meta.env.VITE_IMGBB_API_KEY;
+          const imgbbAlbum = import.meta.env.VITE_IMGBB_ALBUM_ID || localStorage.getItem('vite_imgbb_album_id');
           if (imgbbKey && imgbbKey.trim() !== "") {
             // Convert data URL back to Blob to upload via multipart/form-data
             fetch(compressedDataUrl)
@@ -74,7 +75,15 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
               .then(blob => {
                 const formData = new FormData();
                 formData.append('image', blob);
-                return fetch(`https://api.imgbb.com/1/upload?key=${imgbbKey.trim()}`, {
+                
+                if (imgbbAlbum && imgbbAlbum.trim() !== "") {
+                  // Append album parameter as well as album_id for broad API support
+                  formData.append('album', imgbbAlbum.trim());
+                  formData.append('album_id', imgbbAlbum.trim());
+                }
+
+                const url = `https://api.imgbb.com/1/upload?key=${imgbbKey.trim()}`;
+                return fetch(url, {
                   method: 'POST',
                   body: formData
                 });
