@@ -732,7 +732,7 @@ export default function App() {
   const getTranslatedAnnouncement = (ann: string) => {
     if (lang === 'en') return ann;
     if (ann.includes('Anniversary')) return '🎉 हाम्रो ५ औं वार्षिकोत्सव मनाउँदै! हेटौंडालाई प्रिमियम स्वादका साथ सेवा गर्दैछौं। ❤️';
-    if (ann.includes('Breakfast')) return '🍳 दैनिक बिहान ७:०० देखि ११:०० सम्म ब्रेकफास्ट कम्बो सक्रिय — कफी, प्यानकेक र थप!';
+    if (ann.includes('Breakfast')) return '🍳 दैनिक बिहान ७:०० दे���ि ११:०० सम्म ब्रेकफास्ट कम्बो सक्रिय — कफी, प्यानकेक र थप!';
     if (ann.includes('Hookah')) return '💨 हुक्का स्पेशल: प्रिमियम शिसा सेटअप मात्र रु. ३४५ मा हरेक दिन दिउँसो २:०० बजेसम्म!';
     if (ann.includes('Friday')) return '🔥 विशेष शुक्रबार: इन्डियन र तन्दुरी परिकारहरूमा ५०% छुट र प्रत्यक्ष संगीत साँझ! 🎸';
     return ann;
@@ -1064,6 +1064,35 @@ export default function App() {
         handleFirestoreError(err, OperationType.CREATE, 'reservations');
       }
       setSubmitSuccess(true);
+
+      // Build pre-filled WhatsApp message with full booking details
+      const formattedStartTime = formatTimeTo12Hour(start_time);
+      const formattedEndTime = formatTimeTo12Hour(end_time);
+      const serviceTypeLabel = resData.table_id !== 'unassigned'
+        ? `Dine-In (Table: ${resData.table_id})`
+        : form.serviceType;
+
+      const waMessage = `🍽️ *New Table Booking - Sutra Lounge*
+
+👤 *Name:* ${resData.full_name}
+📞 *Phone:* ${resData.phone}${resData.email ? `\n📧 *Email:* ${resData.email}` : ''}
+🛎️ *Service:* ${serviceTypeLabel}
+📅 *Date:* ${resData.reservation_date}
+⏰ *Time:* ${formattedStartTime} – ${formattedEndTime}
+👥 *Guests:* ${resData.party_size} Pax
+${resData.special_requests ? `📝 *Special Requests:* ${resData.special_requests}` : ''}
+📌 *Status:* Pending Confirmation
+
+Please confirm or contact the guest. Thank you! 🙏`;
+
+      const cleanAdminNum = getCleanWhatsAppNumber(BUSINESS_DETAILS.whatsapp);
+      const waUrl = `https://wa.me/${cleanAdminNum}?text=${encodeURIComponent(waMessage)}`;
+
+      // Short delay so success state renders before redirect
+      setTimeout(() => {
+        window.open(waUrl, '_blank', 'noopener,noreferrer');
+      }, 500);
+
     } catch (err: any) {
       console.error("Firestore Save Error:", err);
       setFormError(lang === 'en' 
@@ -1106,14 +1135,18 @@ export default function App() {
   const getWhatsAppMessageUrl = () => {
     const formattedTime = formatTimeTo12Hour(form.time);
 
-    const text = `Hello Sutra Lounge! I would like to make an inquiry via your landing page:
-• Customer: ${form.name}
-• Contact: ${form.phone}
-• Order/Service: ${form.serviceType}
-• Date: ${form.date}
-• Time: ${formattedTime}
-• Party Size: ${form.guests} Guests
-${form.message ? `• Additional Request: ${form.message}` : ''}`;
+    const text = `🍽️ *New Table Booking - Sutra Lounge*
+
+👤 *Name:* ${form.name}
+📞 *Phone:* ${form.phone}${form.email ? `\n📧 *Email:* ${form.email}` : ''}
+🛎️ *Service:* ${form.serviceType}
+📅 *Date:* ${form.date}
+⏰ *Time:* ${formattedTime}
+👥 *Guests:* ${form.guests} Pax
+${form.message ? `📝 *Special Requests:* ${form.message}` : ''}
+📌 *Status:* Pending Confirmation
+
+Please confirm or contact the guest. Thank you! 🙏`;
     const cleanNum = getCleanWhatsAppNumber(BUSINESS_DETAILS.whatsapp);
     return `https://wa.me/${cleanNum}?text=${encodeURIComponent(text)}`;
   };
@@ -2907,10 +2940,19 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
                     </p>
                   </div>
 
+                  <div className="flex items-center justify-center gap-2 bg-green-50 border border-green-200 rounded-xl px-4 py-2.5 max-w-sm mx-auto">
+                    <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse shrink-0" />
+                    <p className="text-xs text-green-700 font-semibold">
+                      {lang === 'en'
+                        ? 'WhatsApp opened automatically with your booking details!'
+                        : 'व्हाट्सएप स्वतः खुलेको छ — बुकिङ विवरणसहित!'}
+                    </p>
+                  </div>
+
                   <p className="text-xs text-charcoal-muted max-w-sm mx-auto font-light leading-relaxed">
                     {lang === 'en' 
-                      ? 'Tap the button below to immediately forward these details over to our live desk on WhatsApp to confirm instantly!'
-                      : 'हाम्रो आधिकारिक व्हाट्सएपमा तुरुन्त यी बुकिङ विवरणहरू पठाउन र सोझै बुकिङ पक्का गर्न तलको बटन थिच्नुहोस्!'
+                      ? "If WhatsApp didn't open, tap the button below to resend your booking details directly to our desk."
+                      : 'यदि व्हाट्सएप नखुलेको भए, तलको बटन थिचेर बुकिङ विवरण पठाउनुहोस्।'
                     }
                   </p>
 
@@ -2922,7 +2964,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
                       className="bg-green-600 hover:bg-green-700 text-white font-bold rounded-full px-8 py-3.5 text-xs uppercase tracking-wide transition-all shadow-md flex items-center justify-center gap-2"
                     >
                       <MessageSquare className="w-4 h-4" />
-                      {lang === 'en' ? 'Forward Draft to WhatsApp' : 'व्हाट्सएपमा पठाउनुहोस्'}
+                      {lang === 'en' ? 'Re-open WhatsApp' : 'व्हाट्सएप पुनः खोल्नुहोस्'}
                     </a>
                     
                     <button 
@@ -3285,7 +3327,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
 
           <div className="space-y-4">
             <h4 className="text-xs uppercase tracking-wider font-bold text-gold">
-              {lang === 'en' ? 'Explore' : 'अन्वेषण गर्नुहोस्'}
+              {lang === 'en' ? 'Explore' : 'अन्वेषण गर्���ुहोस्'}
             </h4>
             <ul className="space-y-2 text-xs font-light text-cream-soft/75">
               <li>
