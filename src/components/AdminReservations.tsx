@@ -1,4 +1,5 @@
 import React from 'react';
+import { formatTimeTo12Hour } from '../utils';
 import { 
   Calendar, 
   MapPin, 
@@ -175,7 +176,7 @@ export const AdminReservations: React.FC<AdminReservationsProps> = ({
             <tbody>
               ${todaysRes.map(r => `
                 <tr>
-                  <td><strong>${r.start_time} - ${r.end_time || '90m'}</strong></td>
+                  <td><strong>${formatTimeTo12Hour(r.start_time)} - ${r.end_time ? formatTimeTo12Hour(r.end_time) : '90m'}</strong></td>
                   <td>${r.full_name}</td>
                   <td>${r.party_size} Pax</td>
                   <td>${r.phone}</td>
@@ -359,7 +360,7 @@ export const AdminReservations: React.FC<AdminReservationsProps> = ({
                   </td>
                   <td className="px-6 py-4">
                     <p className="font-bold text-gray-900">{res.reservation_date || 'YYYY-MM-DD'}</p>
-                    <p className="text-gray-500 font-mono">{res.start_time || 'HH:MM'} - {res.end_time || '90m'}</p>
+                    <p className="text-gray-500 font-mono">{res.start_time ? formatTimeTo12Hour(res.start_time) : '--:--'} - {res.end_time ? formatTimeTo12Hour(res.end_time) : '90m'}</p>
                   </td>
                   <td className="px-6 py-4 text-center">
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-800 text-[11px] font-bold font-mono">

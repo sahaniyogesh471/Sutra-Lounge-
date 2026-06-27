@@ -1,4 +1,5 @@
 import React from 'react';
+import { formatTimeTo12Hour } from '../utils';
 import { 
   ShoppingBag, 
   Clock, 
@@ -326,7 +327,7 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
                 id: r.id,
                 type: 'booking',
                 heading: `Reservation: ${r.full_name}`,
-                meta: `${r.party_size} Pax · ${r.reservation_date} at ${r.start_time}`,
+                meta: `${r.party_size} Pax · ${r.reservation_date} at ${formatTimeTo12Hour(r.start_time)}`,
                 tag: 'Booking',
                 tagBg: 'bg-orange-50 text-[#fd761a]',
                 time: r.created_at || new Date().toISOString()
