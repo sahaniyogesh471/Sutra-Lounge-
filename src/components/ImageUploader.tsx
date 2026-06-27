@@ -1,5 +1,12 @@
 import React, { useState, useRef } from 'react';
-import { Upload, X, Image as ImageIcon, Camera, Loader2, Sparkles } from 'lucide-react';
+import { Upload, X, Image as ImageIcon, Camera, Loader2, Sparkles, AlertTriangle } from 'lucide-react';
+
+// Helper: returns true if an ImgBB API key is available from any source
+const hasImgBBKey = (): boolean => {
+  const fromStorage = (localStorage.getItem('vite_imgbb_api_key') || '').trim();
+  const fromEnv = (import.meta.env.VITE_IMGBB_API_KEY || '').trim();
+  return fromStorage !== '' || fromEnv !== '';
+};
 
 interface ImageUploaderProps {
   value: string;
@@ -66,8 +73,8 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
           // Compress to JPEG with 0.82 quality factor for excellent size-to-quality ratio
           const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.82);
 
-          // Read the API key from localStorage first (admin-entered at runtime),
-          // then fall back to the build-time env var as secondary.
+          // Read the API key: localStorage (runtime, admin-entered) takes priority
+          // over the build-time VITE_IMGBB_API_KEY env var.
           const imgbbKey = (
             localStorage.getItem('vite_imgbb_api_key') ||
             import.meta.env.VITE_IMGBB_API_KEY ||
@@ -81,6 +88,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
           ).trim();
 
           if (imgbbKey !== '') {
+            console.log('[ImageUploader] Uploading to ImgBB...');
             // Convert data URL back to Blob to upload via multipart/form-data
             fetch(compressedDataUrl)
               .then(res => res.blob())
@@ -104,9 +112,10 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
               })
               .then(json => {
                 if (json.success && json.data?.url) {
+                  console.log('[ImageUploader] ImgBB upload success:', json.data.url);
                   onChange(json.data.url);
                 } else {
-                  console.warn('[ImageUploader] ImgBB success=false, falling back to base64:', json.error?.message);
+                  console.warn('[ImageUploader] ImgBB returned success=false, falling back to base64. Error:', json.error?.message);
                   onChange(compressedDataUrl);
                 }
                 setIsProcessing(false);
@@ -118,6 +127,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
               });
           } else {
             // No API key configured — store as compressed base64
+            console.warn('[ImageUploader] No ImgBB API key found. Saving as base64. Set VITE_IMGBB_API_KEY or add via Admin Settings.');
             onChange(compressedDataUrl);
             setIsProcessing(false);
           }
@@ -244,25 +254,34 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
           {isProcessing ? (
             <div className="space-y-2.5 flex flex-col items-center">
               <Loader2 className="w-8 h-8 text-[#fd761a] animate-spin" />
-              <div>
+              <div className="text-center">
                 <p className="text-xs font-bold text-gray-700">
-                  {(localStorage.getItem('vite_imgbb_api_key') || import.meta.env.VITE_IMGBB_API_KEY || '').trim() !== ''
-                    ? 'Uploading to ImgBB cloud...'
-                    : 'Compressing & optimizing image...'}
+                  {hasImgBBKey() ? 'Uploading to ImgBB cloud...' : 'Compressing image...'}
                 </p>
                 <p className="text-[10px] text-gray-400 font-mono">
-                  {(localStorage.getItem('vite_imgbb_api_key') || import.meta.env.VITE_IMGBB_API_KEY || '').trim() !== ''
-                    ? 'Storing on ImgBB CDN for fast delivery'
-                    : 'No ImgBB key set — saving as base64'}
+                  {hasImgBBKey() ? 'Storing on ImgBB CDN' : 'Saving as base64 (no API key set)'}
                 </p>
               </div>
             </div>
           ) : (
-            <div className="space-y-2.5 flex flex-col items-center max-w-[280px]">
+            <div className="space-y-2.5 flex flex-col items-center w-full max-w-[320px]">
+              {/* Warning banner shown when no ImgBB key is configured */}
+              {!hasImgBBKey() && (
+                <div
+                  className="w-full flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-left"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
+                  <p className="text-[10px] font-semibold text-amber-700 leading-snug">
+                    No ImgBB API key set. Images will save as base64.{' '}
+                    <span className="font-bold underline">Add your key in Settings → ImgBB.</span>
+                  </p>
+                </div>
+              )}
               <div className="p-3 bg-white border border-gray-150 rounded-2xl shadow-xs text-[#fd761a]">
                 <Upload className="w-5 h-5" />
               </div>
-              <div className="space-y-1">
+              <div className="space-y-1 text-center">
                 <p className="text-xs font-bold text-gray-800">
                   Upload directly from files or phone
                 </p>
