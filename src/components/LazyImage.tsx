@@ -39,8 +39,8 @@ export const LazyImage: React.FC<LazyImageProps> = ({
         }
       },
       {
-        // Positive rootMargin pre-loads the image 300px BEFORE it enters the viewport
-        rootMargin: '300px 0px',
+        // Pre-load images 600px before they enter viewport for instant visual appearance
+        rootMargin: '600px 0px',
         threshold: 0,
       }
     );
@@ -60,7 +60,7 @@ export const LazyImage: React.FC<LazyImageProps> = ({
     <div
       ref={containerRef}
       className={`relative overflow-hidden ${wrapperClassName}`}
-      style={{ backgroundColor: 'rgba(245,238,223,0.6)' }}
+      style={{ backgroundColor: 'rgba(245,238,223,0.6)', contain: 'layout paint', willChange: 'transform' }}
     >
       {/* Shimmer skeleton shown while loading */}
       {!isLoaded && !hasError && (

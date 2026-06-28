@@ -11,7 +11,11 @@ import {
   User,
   Coffee,
   Sparkles,
-  Inbox
+  Inbox,
+  Store,
+  ToggleLeft,
+  ToggleRight,
+  Save
 } from 'lucide-react';
 import { 
   ResponsiveContainer, 
@@ -32,6 +36,9 @@ interface AdminOverviewProps {
   metricPendingOrders: number;
   metricPendingReservations: number;
   triggerToast?: (m: string) => void;
+  businessHours?: any[];
+  onToggleDayOpen?: (dayId: string, currentValue: boolean) => void;
+  onSaveHours?: () => void;
 }
 
 export const AdminOverview: React.FC<AdminOverviewProps> = ({
@@ -42,10 +49,29 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
   metricTotalOrders,
   metricPendingOrders,
   metricPendingReservations,
-  triggerToast
+  triggerToast,
+  businessHours = [],
+  onToggleDayOpen,
+  onSaveHours,
 }) => {
   // Real time and date filter states: 'all' | 'today' | '7days' | 'this_month'
   const [filterRange, setFilterRange] = React.useState<'all' | 'today' | '7days' | 'this_month'>('all');
+  const [isSaving, setIsSaving] = React.useState(false);
+
+  // Today's day name in lowercase for matching business_hours id
+  const todayDayId = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'][new Date().getDay()];
+  const todayHours = businessHours.find(h => h.id === todayDayId || h.weekday?.toLowerCase() === todayDayId);
+
+  const handleQuickToggle = async (dayId: string, currentVal: boolean) => {
+    if (!onToggleDayOpen) return;
+    onToggleDayOpen(dayId, currentVal);
+    // Save immediately after toggle
+    setIsSaving(true);
+    await new Promise(r => setTimeout(r, 120)); // let state propagate
+    onSaveHours?.();
+    setTimeout(() => setIsSaving(false), 800);
+    if (triggerToast) triggerToast(`Restaurant marked as ${!currentVal ? 'OPEN' : 'CLOSED'} for today`);
+  };
 
   // Dynamic greeting based on current Nepal time (UTC+5:45)
   const getGreeting = (): string => {
@@ -282,6 +308,77 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
           </div>
           <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">Reservations</p>
           <h3 className="text-2xl font-black text-gray-900">{filteredReservations.length}</h3>
+        </div>
+      </div>
+
+      {/* ── Restaurant Open / Closed Quick Control ──────────────────────── */}
+      <div className="bg-white rounded-xl border border-gray-150 shadow-xs p-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+
+          {/* Left: label + today info */}
+          <div className="flex items-center gap-4">
+            <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${todayHours?.is_open ? 'bg-emerald-50' : 'bg-red-50'}`}>
+              <Store className={`w-5 h-5 ${todayHours?.is_open ? 'text-emerald-600' : 'text-red-500'}`} />
+            </div>
+            <div>
+              <p className="text-[10px] font-mono font-bold text-gray-400 uppercase tracking-widest mb-0.5">Restaurant Status — Today</p>
+              <div className="flex items-center gap-2.5">
+                <span className={`text-base font-extrabold tracking-tight ${todayHours?.is_open ? 'text-emerald-700' : 'text-red-600'}`}>
+                  {todayHours?.is_open ? 'OPEN' : 'CLOSED'}
+                </span>
+                <span className="text-xs text-gray-400 font-medium capitalize">
+                  {todayDayId.charAt(0).toUpperCase() + todayDayId.slice(1)}
+                  {todayHours?.is_open && todayHours.start_time && todayHours.end_time
+                    ? ` · ${formatTimeTo12Hour(todayHours.start_time)} – ${formatTimeTo12Hour(todayHours.end_time)}`
+                    : ''}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Right: per-day toggles */}
+          <div className="flex flex-wrap gap-2 items-center">
+            {businessHours.map(day => {
+              const label = (day.id || day.weekday || '').slice(0, 3).toUpperCase();
+              const isToday = day.id === todayDayId || day.weekday?.toLowerCase() === todayDayId;
+              return (
+                <button
+                  key={day.id}
+                  type="button"
+                  title={`${day.is_open ? 'Close' : 'Open'} ${day.id || day.weekday}`}
+                  onClick={() => handleQuickToggle(day.id, day.is_open)}
+                  className={`flex flex-col items-center gap-1 px-2.5 py-2 rounded-xl border text-[9px] font-black font-mono uppercase tracking-wider transition-all cursor-pointer select-none min-w-[44px]
+                    ${isToday ? 'ring-2 ring-[#fd761a] ring-offset-1' : ''}
+                    ${day.is_open
+                      ? 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100'
+                      : 'bg-red-50 border-red-200 text-red-600 hover:bg-red-100'
+                    }`}
+                >
+                  {day.is_open
+                    ? <ToggleRight className="w-4 h-4" />
+                    : <ToggleLeft className="w-4 h-4" />
+                  }
+                  {label}
+                </button>
+              );
+            })}
+
+            {/* Save button */}
+            <button
+              type="button"
+              onClick={async () => {
+                setIsSaving(true);
+                onSaveHours?.();
+                setTimeout(() => setIsSaving(false), 1000);
+                if (triggerToast) triggerToast('Restaurant hours saved successfully');
+              }}
+              disabled={isSaving}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#0a1422] text-white text-[10px] font-bold uppercase tracking-wider hover:bg-[#1a2a3a] transition-colors cursor-pointer disabled:opacity-60 select-none"
+            >
+              <Save className="w-3.5 h-3.5" />
+              {isSaving ? 'Saving…' : 'Save'}
+            </button>
+          </div>
         </div>
       </div>
 
