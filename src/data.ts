@@ -37,7 +37,7 @@ export const PROMO_ANNOUNCEMENTS = [
 // Owner's verified announcement (Feb 12, 2026)
 export const OWNER_UPDATE = {
   date: 'February 12, 2026',
-  content: 'Crispy on the outside, juicy on the inside 🍗🔥 Our signature Chicken Sandwich at Sutra Lounge, Hetauda is stacked with bold flavors, fresh ingredients, and that perfect golden crunch. One bite and you’ll keep coming back for more 😋🥪 Join us for the best food experience in town!',
+  content: 'Crispy on the outside, juicy on the inside 🍗🔥 Our signature Chicken Sandwich at Sutra Lounge, Hetauda is stacked with bold flavors, fresh ingredients, and that perfect golden crunch. One bite and you\'ll keep coming back for more 😋🥪 Join us for the best food experience in town!',
   tags: ['SutraLounge', 'ChickenSandwich', 'BestFoodHetauda', 'HetaudaEats']
 };
 
@@ -48,7 +48,7 @@ export const MENU_HIGHLIGHTS: MenuItem[] = [
     price: 'NPR 490',
     description: 'Fluffy golden-brown pancakes served with honey syrup, your choice of freshly brewed Himalayan coffee, and an exclusive complimentary morning welcome drink.',
     category: 'Breakfast Combo',
-    image: '/images/sutra_pancakes_1781234540304.webp',
+    image: 'https://i.ibb.co/QjMZ1Tfj/sutra-pancakes.png',
     isPopular: true,
     socialLink: 'https://www.instagram.com/sutraloungehetauda/'
   },
@@ -59,7 +59,7 @@ export const MENU_HIGHLIGHTS: MenuItem[] = [
     price: 'NPR 450',
     description: 'Crispy chef-seasoned giant wings deep fried to robust perfection and glazed in our sweet, hot, and spicy house local reduction.',
     category: 'Appetizers & Quick Bites',
-    image: '/images/crispy_chicken_wings_1781234556579.webp',
+    image: 'https://i.ibb.co/WpcwM408/sutra-chicken-wings.png',
     isPopular: true,
     socialLink: 'https://www.facebook.com/SutraLounge/'
   },
@@ -68,7 +68,7 @@ export const MENU_HIGHLIGHTS: MenuItem[] = [
     price: 'NPR 550',
     description: 'Seared tender country pork chunks wok-tossed on high flame with fiery hot chilies, onions, sweet bell peppers, and fresh local spring greens.',
     category: 'Appetizers & Quick Bites',
-    image: '/images/chilly_pork_1781234602061.webp',
+    image: 'https://i.ibb.co/5hXDYkQH/sutra-chilly-pork.png',
     socialLink: 'https://www.instagram.com/sutraloungehetauda/'
   },
   {
@@ -76,7 +76,7 @@ export const MENU_HIGHLIGHTS: MenuItem[] = [
     price: 'NPR 380',
     description: 'Finely stuffed fresh vegetable momo dumplings deep fried and pan-tossed in our hot, aromatic garlic chili sauce and spring scallions.',
     category: 'Appetizers & Quick Bites',
-    image: '/images/veg_momo_1781234616913.webp',
+    image: 'https://i.ibb.co/VWmNydWn/sutra-veg-momo.png',
     socialLink: 'https://www.facebook.com/SutraLounge/'
   },
   {
@@ -84,7 +84,7 @@ export const MENU_HIGHLIGHTS: MenuItem[] = [
     price: 'NPR 390',
     description: 'Crumbled cottage cheese skewers charred in a clay tandoor oven, wrapped in a hot golden paratha flatbread with mint chutney and crisp onions.',
     category: 'Appetizers & Quick Bites',
-    image: '/images/paneer_roll_1781234630290.webp',
+    image: 'https://i.ibb.co/JjLvgFyw/sutra-paneer-roll.png',
     socialLink: 'https://www.instagram.com/sutraloungehetauda/'
   },
 
@@ -94,7 +94,7 @@ export const MENU_HIGHLIGHTS: MenuItem[] = [
     price: 'NPR 650',
     description: 'Clay-oven baked butter garlic naan matched perfectly with our luscious, creamy local tomato-cashew chicken curry cooked in raw butter.',
     category: 'Mains (Indian Specialty)',
-    image: '/images/butter_naan_curry_1781264474282.webp',
+    image: 'https://i.ibb.co/HcWrs0k/sutra-butter-naan-curry.png',
     isPopular: true,
     socialLink: 'https://www.instagram.com/sutraloungehetauda/'
   },
@@ -103,7 +103,7 @@ export const MENU_HIGHLIGHTS: MenuItem[] = [
     price: 'NPR 750',
     description: 'Classic dum-cooked layers of premium aged basmati rice, tender chicken, saffron, and exotic spices. Served steaming hot with spiced cold yogurt raita.',
     category: 'Mains (Indian Specialty)',
-    image: '/images/chicken_biryani_1781264491983.webp',
+    image: 'https://i.ibb.co/BKZ20xt7/sutra-chicken-biryani.png',
     socialLink: 'https://www.facebook.com/SutraLounge/'
   },
   {
@@ -111,7 +111,7 @@ export const MENU_HIGHLIGHTS: MenuItem[] = [
     price: 'NPR 1,150',
     description: 'Traditional bone-in chicken thighs marinaded overnight in fresh ginger-garlic-paste and spicy local mountain herbs, clay-oven roasted.',
     category: 'Mains (Indian Specialty)',
-    image: '/images/sizzling_tandoori_1781234571439.webp',
+    image: 'https://i.ibb.co/S4mZt4v1/sutra-tandoori.png',
     socialLink: 'https://www.facebook.com/SutraLounge/'
   },
 
@@ -121,7 +121,7 @@ export const MENU_HIGHLIGHTS: MenuItem[] = [
     price: 'NPR 550',
     description: 'The definitive town favorite. Soft, hand-sliced sandwich bread grilled until butter-crispy, stacked double with chicken, Swiss cheese, lettuce, tomatoes, and secret signature lounge dressing.',
     category: 'Cafe & Sandwiches',
-    image: '/images/chicken_sandwich_1781234586059.webp',
+    image: 'https://i.ibb.co/V0pPPSFR/sutra-chicken-sandwich.png',
     isPopular: true,
     socialLink: 'https://www.instagram.com/sutraloungehetauda/'
   },
@@ -132,7 +132,7 @@ export const MENU_HIGHLIGHTS: MenuItem[] = [
     price: 'NPR 280',
     description: 'An incredibly invigorating soda cooler centered on muddled fresh garden-plucked mint sprigs, organic key limes, brown sugar syrup, and crushed ice.',
     category: 'Mocktails & Beverages',
-    image: '/images/mint_mojito_1781234642673.webp',
+    image: 'https://i.ibb.co/FbPRRd4g/sutra-mint-mojito.png',
     socialLink: 'https://www.instagram.com/sutraloungehetauda/'
   },
   {
@@ -140,7 +140,7 @@ export const MENU_HIGHLIGHTS: MenuItem[] = [
     price: 'NPR 240',
     description: 'Freshly ground barista-standard premium Arabica espresso blend, layered elegantly through dense hot steam milk and velvety froth.',
     category: 'Mocktails & Beverages',
-    image: '/images/latte_macchiato_1781264507039.webp',
+    image: 'https://i.ibb.co/5Xp213wm/sutra-latte-macchiato.png',
     socialLink: 'https://www.instagram.com/sutraloungehetauda/'
   }
 ];
@@ -289,14 +289,13 @@ export const REASSURANCE_POINTS = [
   },
   {
     title: 'Comfortable Chill Zone',
-    desc: 'Engineered with premium wooden accents, cozy soft beige and gold furnishings making it Hetauda’s premier hangout spot.'
+    desc: 'Engineered with premium wooden accents, cozy soft beige and gold furnishings making it Hetauda\'s premier hangout spot.'
   }
 ];
 
-
 export const MAPS_GALLERY_PHOTOS: GalleryPhoto[] = [
   {
-    url: '/images/lounge_interior_1781264521294.webp',
+    url: 'https://i.ibb.co/gLVq6bMf/sutra-lounge-interior.png',
     caption: 'Cozy luxurious lounge seating with golden ambient lighting and elegant wooden pillars',
     author: 'Pujan Shrestha (Local Guide)',
     category: 'Interior',
@@ -304,7 +303,7 @@ export const MAPS_GALLERY_PHOTOS: GalleryPhoto[] = [
     socialLink: 'https://www.instagram.com/sutraloungehetauda/'
   },
   {
-    url: '/images/bar_counter_1781264533823.webp',
+    url: 'https://i.ibb.co/LDjLWsd1/sutra-bar-counter.png',
     caption: 'Main dining counter area featuring premium wood decor and welcoming hospitality structure',
     author: 'Aarav Devkota (Verified Reviewer)',
     category: 'Interior',
@@ -312,7 +311,7 @@ export const MAPS_GALLERY_PHOTOS: GalleryPhoto[] = [
     socialLink: 'https://www.instagram.com/sutraloungehetauda/'
   },
   {
-    url: '/images/chicken_pizza_1781264551782.webp',
+    url: 'https://i.ibb.co/Kc0C6CM7/sutra-chicken-pizza.png',
     caption: 'Satisfying gourmet Stone-Baked Chicken Pizza served hot with melting cheese pulls',
     author: 'Sneha Shrestha (Business Guide)',
     category: 'Food',
@@ -320,7 +319,7 @@ export const MAPS_GALLERY_PHOTOS: GalleryPhoto[] = [
     socialLink: 'https://www.facebook.com/SutraLounge/'
   },
   {
-    url: '/images/latte_macchiato_1781264507039.webp',
+    url: 'https://i.ibb.co/5Xp213wm/sutra-latte-macchiato.png',
     caption: 'Barista cappuccino with robust flavor profile and perfect milk frothing art',
     author: 'Barsha Thapa (Local Guide)',
     category: 'Drinks',
@@ -328,7 +327,7 @@ export const MAPS_GALLERY_PHOTOS: GalleryPhoto[] = [
     socialLink: 'https://www.instagram.com/sutraloungehetauda/'
   },
   {
-    url: '/images/fried_momo_1781264566590.webp',
+    url: 'https://i.ibb.co/Q7k9VLYR/sutra-fried-momo.png',
     caption: 'Crisp Fried Chicken Momos plated alongside traditional spiced Nepalese pickling chutney',
     author: 'Sanjay Chaudhari (Verified Patron)',
     category: 'Food',
@@ -336,7 +335,7 @@ export const MAPS_GALLERY_PHOTOS: GalleryPhoto[] = [
     socialLink: 'https://www.facebook.com/SutraLounge/'
   },
   {
-    url: '/images/rooftop_patio_1781264582785.webp',
+    url: 'https://i.ibb.co/mFtTsJp6/sutra-rooftop-patio.png',
     caption: 'Sutra Lounge premium cozy lighting & gourmet hospitality details',
     author: 'Rabin Lama (Local Guide)',
     category: 'Exterior',

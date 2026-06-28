@@ -64,9 +64,9 @@ export const TikTokIcon = ({ className = "w-4 h-4" }: { className?: string }) =>
   </svg>
 );
 
-// Hero images served from public/images as optimised WebP
-const heroImage = '/images/sutra_lounge_hero_1781183015871.webp';
-const dishImage = '/images/sutra_lounge_dish_1781183032907.webp';
+// Hero images hosted on ImgBB CDN for fast global delivery
+const heroImage = 'https://i.ibb.co/wNNbMTxY/sutra-hero-bg.png';
+const dishImage = 'https://i.ibb.co/Xxd8hkQb/sutra-hero-dish.png';
 
 // Premium Cinematic Animation Presets
 // NOTE: keep transitions short — long staggered delays cause content to appear "hidden"
@@ -131,28 +131,28 @@ const SIGNATURE_DISHES = [
     price: 'NPR 1,150',
     description: 'Traditional bone-in chicken thighs marinated overnight in hand-ground ginger-garlic paste and spicy local mountain herbs, clay-oven roasted to succulent smoky perfection. Served sizzling with glazed onions.',
     badge: 'Chef Specialty',
-    image: '/src/assets/images/sizzling_tandoori_1781234571439.jpg'
+    image: 'https://i.ibb.co/S4mZt4v1/sutra-tandoori.png'
   },
   {
     title: 'Signature Toast Chicken Sandwich',
     price: 'NPR 550',
     description: 'The definitive town favorite. Hand-sliced bread grilled butter-crisp, stacked double with seasoned pan-grilled chicken, Swiss cheese, fresh lettuce, tomatoes, and secret signature lounge dressing.',
     badge: 'Town Favorite',
-    image: '/src/assets/images/chicken_sandwich_1781234586059.jpg'
+    image: 'https://i.ibb.co/V0pPPSFR/sutra-chicken-sandwich.png'
   },
   {
     title: 'Fresh Pancakes Breakfast Combo',
     price: 'NPR 490',
     description: 'Fluffy golden-brown handcrafted pancakes served sweet with organic honey syrup, complete with your choice of premium brewed Himalayan coffee or high-altitude green tea.',
     badge: 'Breakfast Sensation',
-    image: '/src/assets/images/sutra_pancakes_1781234540304.jpg'
+    image: 'https://i.ibb.co/QjMZ1Tfj/sutra-pancakes.png'
   },
   {
     title: 'Classic Mint Virgin Mojito',
     price: 'NPR 280',
     description: 'An invigorating specialty cooler blending muddled fresh garden-plucked mint sprigs, organic key limes, pure cane sugar syrup, and premium carbonated mountain soda over crushed ice.',
     badge: 'Mixology Craft',
-    image: '/src/assets/images/mint_mojito_1781234642673.jpg'
+    image: 'https://i.ibb.co/FbPRRd4g/sutra-mint-mojito.png'
   }
 ];
 
@@ -554,7 +554,7 @@ export default function App() {
       'Kritisha Giri': {
         role: 'प्रमाणित ग्राहक',
         timeAgo: '४ महिना अगाडि',
-        content: 'सुत्रमा मेरो अनुभव उत्कृष्ट रह्यो। मेनुमा परिकारहरूको राम्रो विविधता छ र मैले अर्डर गरेका मःमः तथा पेय पदार्थहरू ताजा र स्वादिष्ट थिए। रेस्टुरेन्टको आन्तरिक सज्जा निकै मनमोहक छ।',
+        content: 'सुत्रमा ���ेरो अनुभव उत्कृष्ट रह्यो। मेनुमा परिकारहरूको राम्रो विविधता छ र मैले अर्डर गरेका मःमः तथा पेय पदार्थहरू ताजा र स्वादिष्ट थिए। रेस्टुरेन्टको आन्तरिक सज्जा निकै मनमोहक छ।',
         highlights: ['ताजा र स्वादिलो', 'सुन्दर आन्तरिक सज्जा', 'राम्रो विविधता']
       },
       'Niranjan Adhikari': {
@@ -1704,7 +1704,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
             <p className="text-xs text-charcoal-muted max-w-xl mx-auto font-light leading-relaxed">
               {lang === 'en' 
                 ? "Curated masterly pairings representing the heart, heat, and soul of Sutra Lounge. Expertly prepared with exquisite local spice reductions and freshly sourced ingredients." 
-                : "सुत्र लाउन्जको मुख्य स्वाद र आत्मा प्रतिनिधित्व गर्ने विशेष परिकारहरू। रैथाने नेपाली मसला र ताजा स्थानीय सामग्रीहरूद्वारा विशेषज्ञताका साथ तयार गरिएको।"}
+                : "सुत्र लाउन्जको मुख्य स्वाद र आत्मा प्रतिनिधित्व गर्ने विशेष परिकारहरू। रैथाने नेपाली म��ला र ताजा स्थानीय सामग्रीहरूद्वारा विशेषज्ञताका साथ तयार गरिएको।"}
             </p>
           </motion.div>
 
@@ -2265,7 +2265,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
             <p className="text-sm text-charcoal-muted pt-2 font-light">
               {lang === 'en'
                 ? `We cherish every voice. Sourced transparently from our active ${BUSINESS_DETAILS.reviewCount} Google Maps reviewers.`
-                : `हामी प्रत्येक प्रतिक्रियाको कदर गर्दछौं। गुगल म्याप्सका ${BUSINESS_DETAILS.reviewCount}+ सक्रिय समीक्षकहरूबाट पारदर्शी रूपमा प्राप्त।`
+                : `हामी प्रत्येक प्रतिक्रियाको कदर गर्दछौं। गुगल म्य��प्सका ${BUSINESS_DETAILS.reviewCount}+ सक्रिय समीक्षकहरूबाट पारदर्शी रूपमा प्राप्त।`
               }
             </p>
           </motion.div>
@@ -2838,7 +2838,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
                         <p id="slots-help-text" className="text-xs text-charcoal-muted font-light leading-relaxed">
                           {lang === 'en' 
                             ? 'Select requested date and party size to compute real available table slots dynamically.' 
-                            : 'वास्तविक उपलब्ध समयहरू गणना गर्न कृपया मिति र पाहुना संख्या भर्नुहोस्।'}
+                            : 'वास्तविक उपलब्ध समयहरू ��णना गर्न कृपया मिति र पाहुना संख्या भर्नुहोस्।'}
                         </p>
                       )}
                     </div>
