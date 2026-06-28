@@ -64,43 +64,46 @@ export const TikTokIcon = ({ className = "w-4 h-4" }: { className?: string }) =>
   </svg>
 );
 
-// Importing the generated fine-dining images for premium ambient design
-import heroImage from './assets/images/sutra_lounge_hero_1781183015871.png';
-import dishImage from './assets/images/sutra_lounge_dish_1781183032907.png';
+// Hero images hosted on ImgBB CDN for fast global delivery
+const heroImage = 'https://i.ibb.co/wNNbMTxY/sutra-hero-bg.png';
+const dishImage = 'https://i.ibb.co/Xxd8hkQb/sutra-hero-dish.png';
 
-// Premium Cinematic Animation Presets
+// Animation variants — hidden state is IDENTICAL to visible to ensure
+// content is always rendered. The motion elements animate in immediately
+// using animate="visible" instead of whileInView to avoid IntersectionObserver
+// race conditions that leave content stuck at opacity:0.
 const fadeInUp = {
-  hidden: { opacity: 0, y: 30 },
-  visible: { 
-    opacity: 1, 
-    y: 0, 
-    transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1] } 
+  hidden: { opacity: 1, y: 0 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] }
   }
 };
 
 const staggerContainer = {
-  hidden: { opacity: 0 },
+  hidden: { opacity: 1 },
   visible: {
     opacity: 1,
-    transition: { staggerChildren: 0.1 }
+    transition: { staggerChildren: 0.06, delayChildren: 0 }
   }
 };
 
 const slideInLeft = {
-  hidden: { opacity: 0, x: -40 },
+  hidden: { opacity: 1, x: 0 },
   visible: {
     opacity: 1,
     x: 0,
-    transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] }
+    transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] }
   }
 };
 
 const slideInRight = {
-  hidden: { opacity: 0, x: 40 },
+  hidden: { opacity: 1, x: 0 },
   visible: {
     opacity: 1,
     x: 0,
-    transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] }
+    transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] }
   }
 };
 
@@ -130,28 +133,28 @@ const SIGNATURE_DISHES = [
     price: 'NPR 1,150',
     description: 'Traditional bone-in chicken thighs marinated overnight in hand-ground ginger-garlic paste and spicy local mountain herbs, clay-oven roasted to succulent smoky perfection. Served sizzling with glazed onions.',
     badge: 'Chef Specialty',
-    image: '/src/assets/images/sizzling_tandoori_1781234571439.jpg'
+    image: 'https://i.ibb.co/S4mZt4v1/sutra-tandoori.png'
   },
   {
     title: 'Signature Toast Chicken Sandwich',
     price: 'NPR 550',
     description: 'The definitive town favorite. Hand-sliced bread grilled butter-crisp, stacked double with seasoned pan-grilled chicken, Swiss cheese, fresh lettuce, tomatoes, and secret signature lounge dressing.',
     badge: 'Town Favorite',
-    image: '/src/assets/images/chicken_sandwich_1781234586059.jpg'
+    image: 'https://i.ibb.co/V0pPPSFR/sutra-chicken-sandwich.png'
   },
   {
     title: 'Fresh Pancakes Breakfast Combo',
     price: 'NPR 490',
     description: 'Fluffy golden-brown handcrafted pancakes served sweet with organic honey syrup, complete with your choice of premium brewed Himalayan coffee or high-altitude green tea.',
     badge: 'Breakfast Sensation',
-    image: '/src/assets/images/sutra_pancakes_1781234540304.jpg'
+    image: 'https://i.ibb.co/QjMZ1Tfj/sutra-pancakes.png'
   },
   {
     title: 'Classic Mint Virgin Mojito',
     price: 'NPR 280',
     description: 'An invigorating specialty cooler blending muddled fresh garden-plucked mint sprigs, organic key limes, pure cane sugar syrup, and premium carbonated mountain soda over crushed ice.',
     badge: 'Mixology Craft',
-    image: '/src/assets/images/mint_mojito_1781234642673.jpg'
+    image: 'https://i.ibb.co/FbPRRd4g/sutra-mint-mojito.png'
   }
 ];
 
@@ -477,9 +480,17 @@ export default function App() {
     phone: dbSettings?.restaurant_phone || businessDetails.phone,
     address: dbSettings?.restaurant_address || businessDetails.address,
     hours: dbBusinessHours?.length > 0 
-      ? dbBusinessHours.map(h => ({ day: h.weekday, time: h.is_open ? `${h.start_time} - ${h.end_time}` : 'Closed' }))
+      ? dbBusinessHours.map(h => ({ day: h.weekday, time: h.is_open ? `${formatTimeTo12Hour(h.start_time)} - ${formatTimeTo12Hour(h.end_time)}` : 'Closed' }))
       : businessDetails.hours
   };
+  // Build a lookup map from dish title -> image URL so DB items without
+  // an image_url get the correct matching image instead of a random fallback.
+  const staticImageByTitle: Record<string, string> = {};
+  [...INITIAL_MENU_HIGHLIGHTS, ...SIGNATURE_DISHES].forEach(item => {
+    if ('title' in item && item.image) staticImageByTitle[item.title] = item.image;
+    if ('title' in item && (item as any).name) staticImageByTitle[(item as any).name] = item.image;
+  });
+
   const MENU_HIGHLIGHTS = dbMenuItems?.length > 0 
     ? dbMenuItems.filter(i => i.is_active).map(i => ({
         id: i.id,
@@ -488,7 +499,9 @@ export default function App() {
         description: i.description,
         category: i.category,
         isPopular: i.is_featured,
-        image: i.image_url || i.image || SIGNATURE_DISHES[0].image,
+        // Look up by name first, then fall back to stored URL — never use a hardcoded fallback
+        image: i.image_url || i.image || staticImageByTitle[i.name] || '',
+        socialLink: i.social_link || '',
       }))
     : menuHighlights;
   const SERVICES_LIST = servicesList;
@@ -547,13 +560,13 @@ export default function App() {
       'Aakash Rai': {
         role: 'प्रमाणित ग्राहक',
         timeAgo: '३ महिना अगाडि',
-        content: 'यहाँको अनुभव असाध्यै रमाइलो रह्यो। भेटघाट र आरामसँग खाना खानको लागि निकै उपयुक्त र स्वागतयोग्य ठाउँ छ। कर्मचारीहरूको व्यवहार निकै मित्रवत र सेवामुखी थियो।',
+        content: 'यहाँको अनुभ��� असाध्यै रमाइलो रह्यो। भेटघाट र आरामसँग खाना खानको लागि निकै उपयुक्त र स्वागतयोग्य ठाउँ छ। कर्मचारीहरूको व्यवहार निकै मित्रवत र सेवामुखी थियो।',
         highlights: ['स्वागतयोग्य वातावरण', 'मित्रवत स्टाफ', 'उत्कृष्ट सेवा']
       },
       'Kritisha Giri': {
         role: 'प्रमाणित ग्राहक',
         timeAgo: '४ महिना अगाडि',
-        content: 'सुत्रमा मेरो अनुभव उत्कृष्ट रह्यो। मेनुमा परिकारहरूको राम्रो विविधता छ र मैले अर्डर गरेका मःमः तथा पेय पदार्थहरू ताजा र स्वादिष्ट थिए। रेस्टुरेन्टको आन्तरिक सज्जा निकै मनमोहक छ।',
+        content: 'सुत्रमा ���ेरो अनुभव उत्कृष्ट रह्यो। मेनुमा परिकारहरूको राम्रो विविधता छ र मैले अर्डर गरेका मःमः तथा पेय पदार्थहरू ताजा र स्वादिष्ट थिए। रेस्टुरेन्टको आन्तरिक सज्जा निकै मनमोहक छ।',
         highlights: ['ताजा र स्वादिलो', 'सुन्दर आन्तरिक सज्जा', 'राम्रो विविधता']
       },
       'Niranjan Adhikari': {
@@ -731,8 +744,8 @@ export default function App() {
 
   const getTranslatedAnnouncement = (ann: string) => {
     if (lang === 'en') return ann;
-    if (ann.includes('Anniversary')) return '🎉 हाम्रो ५ औं वार्षिकोत्सव मनाउँदै! हेटौंडालाई प्रिमियम स्वादका साथ सेवा गर्दैछौं। ❤️';
-    if (ann.includes('Breakfast')) return '🍳 दैनिक बिहान ७:०० देखि ११:०० सम्म ब्रेकफास्ट कम्बो सक्रिय — कफी, प्यानकेक र थप!';
+    if (ann.includes('Anniversary')) return '🎉 हाम्रो ५ औं वार्षिकोत्सव मनाउँदै! हेटौंडा���ाई प्रिमियम स्वादका साथ सेवा गर्दैछौं। ❤️';
+    if (ann.includes('Breakfast')) return '🍳 दैनिक बिहान ७:०० दे�����ि ११:०० सम्म ब्रेकफास्ट कम्बो सक्रिय — कफी, प्यानकेक र थप!';
     if (ann.includes('Hookah')) return '💨 हुक्का स्पेशल: प्रिमियम शिसा सेटअप मात्र रु. ३४५ मा हरेक दिन दिउँसो २:०० बजेसम्म!';
     if (ann.includes('Friday')) return '🔥 विशेष शुक्रबार: इन्डियन र तन्दुरी परिकारहरूमा ५०% छुट र प्रत्यक्ष संगीत साँझ! 🎸';
     return ann;
@@ -1064,6 +1077,35 @@ export default function App() {
         handleFirestoreError(err, OperationType.CREATE, 'reservations');
       }
       setSubmitSuccess(true);
+
+      // Build pre-filled WhatsApp message with full booking details
+      const formattedStartTime = formatTimeTo12Hour(start_time);
+      const formattedEndTime = formatTimeTo12Hour(end_time);
+      const serviceTypeLabel = resData.table_id !== 'unassigned'
+        ? `Dine-In (Table: ${resData.table_id})`
+        : form.serviceType;
+
+      const waMessage = `🍽️ *New Table Booking - Sutra Lounge*
+
+👤 *Name:* ${resData.full_name}
+📞 *Phone:* ${resData.phone}${resData.email ? `\n📧 *Email:* ${resData.email}` : ''}
+🛎️ *Service:* ${serviceTypeLabel}
+📅 *Date:* ${resData.reservation_date}
+⏰ *Time:* ${formattedStartTime} – ${formattedEndTime}
+👥 *Guests:* ${resData.party_size} Pax
+${resData.special_requests ? `📝 *Special Requests:* ${resData.special_requests}` : ''}
+📌 *Status:* Pending Confirmation
+
+Please confirm or contact the guest. Thank you! 🙏`;
+
+      const cleanAdminNum = getCleanWhatsAppNumber(BUSINESS_DETAILS.whatsapp);
+      const waUrl = `https://wa.me/${cleanAdminNum}?text=${encodeURIComponent(waMessage)}`;
+
+      // Short delay so success state renders before redirect
+      setTimeout(() => {
+        window.open(waUrl, '_blank', 'noopener,noreferrer');
+      }, 500);
+
     } catch (err: any) {
       console.error("Firestore Save Error:", err);
       setFormError(lang === 'en' 
@@ -1106,14 +1148,18 @@ export default function App() {
   const getWhatsAppMessageUrl = () => {
     const formattedTime = formatTimeTo12Hour(form.time);
 
-    const text = `Hello Sutra Lounge! I would like to make an inquiry via your landing page:
-• Customer: ${form.name}
-• Contact: ${form.phone}
-• Order/Service: ${form.serviceType}
-• Date: ${form.date}
-• Time: ${formattedTime}
-• Party Size: ${form.guests} Guests
-${form.message ? `• Additional Request: ${form.message}` : ''}`;
+    const text = `🍽️ *New Table Booking - Sutra Lounge*
+
+👤 *Name:* ${form.name}
+📞 *Phone:* ${form.phone}${form.email ? `\n📧 *Email:* ${form.email}` : ''}
+🛎️ *Service:* ${form.serviceType}
+📅 *Date:* ${form.date}
+⏰ *Time:* ${formattedTime}
+👥 *Guests:* ${form.guests} Pax
+${form.message ? `📝 *Special Requests:* ${form.message}` : ''}
+📌 *Status:* Pending Confirmation
+
+Please confirm or contact the guest. Thank you! 🙏`;
     const cleanNum = getCleanWhatsAppNumber(BUSINESS_DETAILS.whatsapp);
     return `https://wa.me/${cleanNum}?text=${encodeURIComponent(text)}`;
   };
@@ -1431,7 +1477,6 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
       <motion.section 
         initial="hidden"
         animate="visible"
-        viewport={{ once: true }}
         className="relative py-12 md:py-20 lg:py-28 px-4 sm:px-6 lg:px-8"
       >
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
@@ -1457,7 +1502,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
             </motion.div>
 
             <motion.div variants={fadeInUp} className="space-y-4">
-              <h1 className="font-serif text-4xl sm:text-5xl md:text-6.5xl tracking-tight text-charcoal leading-none">
+              <h1 className="font-serif text-4xl sm:text-5xl md:text-6xl tracking-tight text-charcoal leading-none">
                 {lang === 'en' ? 'Sutra Lounge' : t('hero_title')} <br />
                 <span className="text-gold font-light italic">
                   {lang === 'en' ? 'Your Trusted Local Culinary Oasis' : t('hero_badge')}
@@ -1509,7 +1554,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
             <motion.div variants={fadeInUp} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-4">
               <button
                 onClick={() => scrollToSection(contactSectionRef)}
-                className="bg-gold hover:bg-gold-hover text-cream-soft py-4 px-8 rounded-full text-xs font-bold tracking-wider uppercase transition-all duration-300 shadow-md hover:shadow-lg flex items-center justify-center gap-2 cursor-pointer scale-100 hover:scale-102 active:scale-98"
+                className="bg-gold hover:bg-gold-hover text-cream-soft py-4 px-8 rounded-full text-xs font-bold tracking-wider uppercase transition-all duration-300 shadow-md hover:shadow-lg flex items-center justify-center gap-2 cursor-pointer hover:scale-105 active:scale-95"
                 id="hero-book-now"
               >
                 <span>{lang === 'en' ? 'Visit Us (Secure Table)' : 'हामीलाई भेट्नुहोस् / टेबल बुकिङ'}</span>
@@ -1518,7 +1563,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
               
               <button
                 onClick={() => scrollToSection(menuSectionRef)}
-                className="bg-transparent border border-gold hover:bg-gold-light text-gold py-4 px-8 rounded-full text-xs font-bold tracking-wider uppercase transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer scale-100 hover:scale-102 active:scale-98"
+                className="bg-transparent border border-gold hover:bg-gold-light text-gold py-4 px-8 rounded-full text-xs font-bold tracking-wider uppercase transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer hover:scale-105 active:scale-95"
                 id="hero-explore-menu"
               >
                 <span>{lang === 'en' ? 'Explore Highlights' : t('hero_cta_menu')}</span>
@@ -1574,8 +1619,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
       {/* SPECIAL ANNOUNCEMENT SECTION (FROM OWNER) */}
       <motion.section 
         initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, margin: "-80px" }}
+        animate="visible"
         variants={fadeInUp}
         className="py-12 bg-cream-deep/40 border-y border-cream-deep px-4 sm:px-6 lg:px-8"
       >
@@ -1633,13 +1677,12 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
         {/* Header */}
         <motion.div 
           initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-80px" }}
+          animate="visible"
           variants={fadeInUp}
           className="text-center max-w-2xl mx-auto mb-12 space-y-3"
         >
           <span className="font-mono text-xs tracking-widest text-gold uppercase font-bold block">
-            {lang === 'en' ? "Bespoke Culinary Sensation" : "विशेष स्वाद कला र शैली"}
+            {lang === 'en' ? "Bespoke Culinary Sensation" : "विशेष स्वाद कल�� र शैली"}
           </span>
           <h2 className="font-serif text-3xl sm:text-4xl text-charcoal tracking-tight font-extrabold">
             {t('menu_title')}
@@ -1654,8 +1697,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
         <div className="mb-24 mt-4">
           <motion.div 
             initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-80px" }}
+            animate="visible"
             variants={fadeInUp}
             className="text-center mb-12 space-y-2 relative"
           >
@@ -1670,14 +1712,13 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
             <p className="text-xs text-charcoal-muted max-w-xl mx-auto font-light leading-relaxed">
               {lang === 'en' 
                 ? "Curated masterly pairings representing the heart, heat, and soul of Sutra Lounge. Expertly prepared with exquisite local spice reductions and freshly sourced ingredients." 
-                : "सुत्र लाउन्जको मुख्य स्वाद र आत्मा प्रतिनिधित्व गर्ने विशेष परिकारहरू। रैथाने नेपाली मसला र ताजा स्थानीय सामग्रीहरूद्वारा विशेषज्ञताका साथ तयार गरिएको।"}
+                : "सुत्र लाउन्जको मुख्य स्वाद र आत्मा प्रतिनिधित्व गर्ने विशेष परिकारहरू। रैथाने नेपाली म��ला र ताजा स्थानीय सामग्रीहरूद्वारा विशेषज्ञताका साथ तयार गरिएको।"}
             </p>
           </motion.div>
 
           <motion.div 
             initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-100px" }}
+            animate="visible"
             variants={staggerContainer}
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
           >
@@ -1752,8 +1793,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
           {/* Quick guidance / CTA panel to incentivize exploring or visiting */}
           <motion.div 
             initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-80px" }}
+            animate="visible"
             variants={fadeInUp}
             className="mt-12 bg-cream-deep/30 rounded-2xl p-6 sm:p-8 border border-cream-deep flex flex-col md:flex-row items-center justify-between gap-6 text-left relative overflow-hidden"
           >
@@ -1805,8 +1845,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
         {/* Filter categories - interactive scale hover */}
         <motion.div 
           initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-80px" }}
+          animate="visible"
           variants={fadeInUp}
           className="flex flex-wrap justify-center gap-2 mb-10"
         >
@@ -1814,7 +1853,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
             <button
               key={category}
               onClick={() => setSelectedCategory(category)}
-              className={`px-4 py-2 rounded-full text-xs font-bold tracking-wider uppercase transition-all duration-300 cursor-pointer scale-100 active:scale-95 ${
+              className={`px-4 py-2 rounded-full text-xs font-bold tracking-wider uppercase transition-all duration-300 cursor-pointer active:scale-95 ${
                 selectedCategory === category
                   ? 'bg-gold text-cream-soft shadow-sm'
                   : 'bg-cream-deep/50 hover:bg-cream-deep text-charcoal-muted'
@@ -1828,8 +1867,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
         {/* Menu Items Grid - Staggered entrance */}
         <motion.div 
           initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-100px" }}
+          animate="visible"
           variants={staggerContainer}
           layout
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
@@ -1913,7 +1951,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
                         ...prev,
                         message: lang === 'en'
                           ? `Interested in ordering the ${item.title}.`
-                          : `म सुत्र लाउन्जको ${item.title} परिकार अर्डर गर्न इच्छुक छु।`
+                          : `म स��त्र लाउन्जको ${item.title} परिकार अर्डर गर्न इच्छुक छु।`
                       }));
                       scrollToSection(contactSectionRef);
                     }}
@@ -1932,8 +1970,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
         <div className="mt-16 bg-cream-soft rounded-3xl overflow-hidden border border-cream-deep grid grid-cols-1 lg:grid-cols-12 items-center">
           <motion.div 
             initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-80px" }}
+            animate="visible"
             variants={slideInLeft}
             className="lg:col-span-5 aspect-[4/3] lg:aspect-auto lg:h-full min-h-[300px]"
           >
@@ -1946,16 +1983,15 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
           </motion.div>
           <motion.div 
             initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-80px" }}
+            animate="visible"
             variants={slideInRight}
             className="lg:col-span-7 p-8 sm:p-12 text-left space-y-6"
           >
             <span className="font-mono text-xs tracking-widest text-gold uppercase font-bold block">
               {lang === 'en' ? 'Gourmet Precision' : 'उत्कृष्ट स्वाद कला र सुदृढता'}
             </span>
-            <h3 className="font-serif text-2xl sm:text-3.5xl text-charcoal leading-tight font-extrabold">
-              {lang === 'en' ? 'Exceptional Food Experience' : 'विशेष र उत्कृष्ट भोजन अनुभव'}
+            <h3 className="font-serif text-2xl sm:text-4xl text-charcoal leading-tight font-extrabold">
+              {lang === 'en' ? 'Exceptional Food Experience' : 'विशेष र उत्कृष्ट भोज�� अनुभव'}
             </h3>
             <p className="text-sm sm:text-base text-charcoal-muted leading-relaxed font-light">
               {lang === 'en'
@@ -1993,7 +2029,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
             <div className="pt-2">
               <button
                 onClick={() => scrollToSection(contactSectionRef)}
-                className="bg-gold hover:bg-gold-hover text-cream-soft text-xs font-bold uppercase tracking-wider px-6 py-3.5 rounded-full transition-all duration-300 scale-100 active:scale-95 cursor-pointer shadow-sm hover:shadow"
+                className="bg-gold hover:bg-gold-hover text-cream-soft text-xs font-bold uppercase tracking-wider px-6 py-3.5 rounded-full transition-all duration-300 active:scale-95 cursor-pointer shadow-sm hover:shadow"
               >
                 {lang === 'en' ? 'Inquire or Order Now' : 'अर्डर वा सोधपुछ गर्नुहोस्'}
               </button>
@@ -2014,8 +2050,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
           {/* Title */}
           <motion.div 
             initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-80px" }}
+            animate="visible"
             variants={fadeInUp}
             className="text-center max-w-2xl mx-auto mb-16 space-y-3"
           >
@@ -2034,8 +2069,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
           {/* Cards with stagger on roll-in */}
           <motion.div 
             initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-100px" }}
+            animate="visible"
             variants={staggerContainer}
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
           >
@@ -2108,8 +2142,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
           
           <motion.div 
             initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-80px" }}
+            animate="visible"
             variants={slideInLeft}
             className="lg:col-span-5 text-left space-y-4"
           >
@@ -2130,8 +2163,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
 
           <motion.div 
             initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-80px" }}
+            animate="visible"
             variants={slideInRight}
             className="lg:col-span-7 border-l-0 lg:border-l border-cream-deep pl-0 lg:pl-10 text-left space-y-6"
           >
@@ -2165,15 +2197,14 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
           {/* Header */}
           <motion.div 
             initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
+            animate="visible"
             variants={fadeInUp}
             className="text-center max-w-2xl mx-auto mb-12 space-y-3"
           >
             <span className="font-mono text-xs tracking-widest text-gold uppercase block">
               {lang === 'en' ? 'Core Principles' : 'मुख्य सिद्धान्तहरू'}
             </span>
-            <h2 className="font-serif text-2.5xl sm:text-3.5xl text-cream-soft font-extrabold tracking-tight">
+            <h2 className="font-serif text-3xl sm:text-4xl text-cream-soft font-extrabold tracking-tight">
               {lang === 'en' ? 'Why Hetauda Trusts Us' : 'हेटौंडाबासीले हामीलाई किन विश्वास गर्नुहुन्छ'}
             </h2>
             <div className="w-12 h-1 bg-gold mx-auto" />
@@ -2181,8 +2212,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
 
           <motion.div 
             initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
+            animate="visible"
             variants={staggerContainer}
             className="grid grid-cols-1 md:grid-cols-3 gap-8"
           >
@@ -2216,8 +2246,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
           {/* Header */}
           <motion.div 
             initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
+            animate="visible"
             variants={fadeInUp}
             className="text-center max-w-2xl mx-auto mb-12 space-y-3"
           >
@@ -2231,7 +2260,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
             <p className="text-sm text-charcoal-muted pt-2 font-light">
               {lang === 'en'
                 ? `We cherish every voice. Sourced transparently from our active ${BUSINESS_DETAILS.reviewCount} Google Maps reviewers.`
-                : `हामी प्रत्येक प्रतिक्रियाको कदर गर्दछौं। गुगल म्याप्सका ${BUSINESS_DETAILS.reviewCount}+ सक्रिय समीक्षकहरूबाट पारदर्शी रूपमा प्राप्त।`
+                : `हामी प्रत्येक प्रतिक्रियाको कदर गर्दछौं। गुगल म्य��प��सका ${BUSINESS_DETAILS.reviewCount}+ सक्रिय समीक्षकहरूबाट पारदर्श�� रूपमा प्राप्त।`
               }
             </p>
           </motion.div>
@@ -2239,8 +2268,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
           {/* GOOGLE REVIEWS ANALYTICS DASHBOARD CARD */}
           <motion.div 
             initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-50px" }}
+            animate="visible"
             variants={fadeInUp}
             className="bg-cream-soft border border-cream-deep rounded-3xl p-6 sm:p-10 mb-12 shadow-sm grid grid-cols-1 md:grid-cols-12 gap-8 text-left items-center"
           >
@@ -2285,7 +2313,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
                   <div className="flex-1 h-2 bg-cream-deep rounded-full overflow-hidden">
                     <motion.div 
                       initial={{ width: 0 }}
-                      whileInView={{ width: `${row.pct}%` }}
+                      animate={{ width: `${row.pct}%` }}
                       transition={{ duration: 1, delay: 0.1 }}
                       className="h-full bg-gold rounded-full" 
                     />
@@ -2335,8 +2363,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
           {/* DYNAMIC RATINGS FILTER BUTTONS */}
           <motion.div 
             initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
+            animate="visible"
             variants={fadeInUp}
             className="flex flex-wrap justify-center items-center gap-2.5 mb-10 border-b border-cream-deep pb-6 max-w-xl mx-auto"
           >
@@ -2351,7 +2378,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
               <button
                 key={tab.id}
                 onClick={() => setSelectedReviewStar(tab.id as any)}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer scale-100 active:scale-95 ${
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer active:scale-95 ${
                   selectedReviewStar === tab.id
                     ? 'bg-charcoal text-cream-soft shadow-sm'
                     : 'bg-cream-soft hover:bg-cream-deep/60 text-charcoal-muted border border-cream-deep'
@@ -2365,8 +2392,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
           {/* Dynamic Reviews Grid */}
           <motion.div 
             initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-50px" }}
+            animate="visible"
             variants={staggerContainer}
             layout
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
@@ -2432,8 +2458,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
           {/* Header */}
           <motion.div 
             initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
+            animate="visible"
             variants={fadeInUp}
             className="text-center max-w-2xl mx-auto mb-10 space-y-3"
           >
@@ -2455,8 +2480,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
           {/* Filtering Categories */}
           <motion.div 
             initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
+            animate="visible"
             variants={fadeInUp}
             className="flex flex-wrap justify-center items-center gap-2 mb-10 max-w-xl mx-auto"
           >
@@ -2464,7 +2488,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
               <button
                 key={cat}
                 onClick={() => setSelectedGalleryCategory(cat)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 cursor-pointer scale-100 active:scale-95 ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 cursor-pointer active:scale-95 ${
                   selectedGalleryCategory === cat
                     ? 'bg-gold text-cream-soft shadow-xs'
                     : 'bg-cream-deep/30 hover:bg-cream-deep/60 text-charcoal-muted'
@@ -2478,8 +2502,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
           {/* Photos Grid */}
           <motion.div 
             initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-50px" }}
+            animate="visible"
             variants={staggerContainer}
             layout
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
@@ -2780,7 +2803,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
                                         const mStr = slot.start.getMinutes().toString().padStart(2, '0');
                                         setForm(prev => ({ ...prev, time: `${hStr}:${mStr}` }));
                                       }}
-                                      className={`py-2 px-3 text-xs font-mono rounded-lg border text-center transition-all cursor-pointer scale-100 active:scale-95
+                                      className={`py-2 px-3 text-xs font-mono rounded-lg border text-center transition-all cursor-pointer active:scale-95
                                         ${isSelected 
                                           ? 'bg-gold text-cream-soft border-gold font-bold shadow-sm' 
                                           : 'bg-white hover:bg-cream-soft/60 text-charcoal border-cream-deep hover:border-gold/30'}`}
@@ -2804,7 +2827,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
                         <p id="slots-help-text" className="text-xs text-charcoal-muted font-light leading-relaxed">
                           {lang === 'en' 
                             ? 'Select requested date and party size to compute real available table slots dynamically.' 
-                            : 'वास्तविक उपलब्ध समयहरू गणना गर्न कृपया मिति र पाहुना संख्या भर्नुहोस्।'}
+                            : 'वास्तविक उपलब्ध समयहरू ����ना गर्न कृपया मिति र पाहुना संख्या भर्नुहोस्।'}
                         </p>
                       )}
                     </div>
@@ -2907,10 +2930,19 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
                     </p>
                   </div>
 
+                  <div className="flex items-center justify-center gap-2 bg-green-50 border border-green-200 rounded-xl px-4 py-2.5 max-w-sm mx-auto">
+                    <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse shrink-0" />
+                    <p className="text-xs text-green-700 font-semibold">
+                      {lang === 'en'
+                        ? 'WhatsApp opened automatically with your booking details!'
+                        : 'व्हाट्सएप स्वतः खुलेको छ — बुकिङ विवरणसहित!'}
+                    </p>
+                  </div>
+
                   <p className="text-xs text-charcoal-muted max-w-sm mx-auto font-light leading-relaxed">
                     {lang === 'en' 
-                      ? 'Tap the button below to immediately forward these details over to our live desk on WhatsApp to confirm instantly!'
-                      : 'हाम्रो आधिकारिक व्हाट्सएपमा तुरुन्त यी बुकिङ विवरणहरू पठाउन र सोझै बुकिङ पक्का गर्न तलको बटन थिच्नुहोस्!'
+                      ? "If WhatsApp didn't open, tap the button below to resend your booking details directly to our desk."
+                      : 'यदि व्हाट्सएप नखुलेको भए, तलको बटन थिचेर बुकिङ विवरण पठाउनुहोस्।'
                     }
                   </p>
 
@@ -2922,7 +2954,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
                       className="bg-green-600 hover:bg-green-700 text-white font-bold rounded-full px-8 py-3.5 text-xs uppercase tracking-wide transition-all shadow-md flex items-center justify-center gap-2"
                     >
                       <MessageSquare className="w-4 h-4" />
-                      {lang === 'en' ? 'Forward Draft to WhatsApp' : 'व्हाट्सएपमा पठाउनुहोस्'}
+                      {lang === 'en' ? 'Re-open WhatsApp' : 'व्हाट्सएप पुनः खोल्नुहोस्'}
                     </a>
                     
                     <button 
@@ -2986,7 +3018,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
                 <p className="text-sm text-charcoal-muted leading-relaxed font-light">
                   {lang === 'en' 
                     ? 'Sutra Lounge operates from our central location in Nagar Bikash Samiti Marg, Hetauda. Stop by to take in the serene vibe daily!' 
-                    : 'सुत्र लाउन्ज हेटौंडाको नगर विकास समिति मार्गको मध्य भागमा अवस्थित छ। दैनिक शान्त र मनमोहक वातावरणको आनन्द लिन आउनुहोस्!'
+                    : 'सुत्र लाउन्ज हेटौंडाको नगर विकास समिति मार्���को मध्य भागमा अवस्थित छ। दैनिक शान्त र मनमोहक वातावरणको आनन्द लिन आउनुहोस्!'
                   }
                 </p>
 
@@ -3285,7 +3317,7 @@ ${form.message ? `• Additional Request: ${form.message}` : ''}`;
 
           <div className="space-y-4">
             <h4 className="text-xs uppercase tracking-wider font-bold text-gold">
-              {lang === 'en' ? 'Explore' : 'अन्वेषण गर्नुहोस्'}
+              {lang === 'en' ? 'Explore' : 'अन्वेषण गर्���ुहोस्'}
             </h4>
             <ul className="space-y-2 text-xs font-light text-cream-soft/75">
               <li>

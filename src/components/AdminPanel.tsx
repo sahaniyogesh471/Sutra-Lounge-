@@ -784,6 +784,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
                 metricPendingOrders={metricPendingOrders}
                 metricPendingReservations={metricPendingReservations}
                 triggerToast={triggerToast}
+                businessHours={businessHours}
+                onToggleDayOpen={(dayId, currentVal) => handleUpdateHourDayState(dayId, 'is_open', !currentVal)}
+                onSaveHours={async () => {
+                  try {
+                    for (const day of businessHours) {
+                      await setDoc(doc(db, 'business_hours', day.id), {
+                        weekday: day.weekday,
+                        is_open: day.is_open,
+                        start_time: day.start_time,
+                        end_time: day.end_time
+                      }, { merge: true });
+                    }
+                  } catch (e: any) {
+                    triggerToast(`Save error: ${e.message}`);
+                  }
+                }}
               />
             )}
 

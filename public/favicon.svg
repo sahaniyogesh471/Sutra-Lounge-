@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Background: deep dark brown brand colour -->
+  <rect width="512" height="512" rx="96" ry="96" fill="#1a0a00"/>
+
+  <!-- Logo image centred with padding so the white logo sits inside the dark tile -->
+  <!-- The actual logo PNG (white/black on white) is embedded and tinted via compositing -->
+  <image
+    href="/logo.png"
+    x="56"
+    y="120"
+    width="400"
+    height="272"
+    preserveAspectRatio="xMidYMid meet"
+    style="filter: brightness(0) invert(1);"
+  />
+</svg>

@@ -1,9 +1,126 @@
+# =============================================================================
+# robots.txt — Sutra Lounge (https://sutralounge.com.np)
+# Last updated: 2026-06-27
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# General crawlers — full access
+# ---------------------------------------------------------------------------
 User-agent: *
 Allow: /
+Disallow: /admin
+Disallow: /admin/
+Disallow: /_firebase/
+Crawl-delay: 2
 
-# Host
+# ---------------------------------------------------------------------------
+# Google — full access, including AI Overviews and Gemini
+# Google-Extended covers Gemini + AI Overview training
+# ---------------------------------------------------------------------------
+User-agent: Googlebot
+Allow: /
+Disallow: /admin
+Disallow: /admin/
+
+User-agent: Googlebot-Image
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+# ---------------------------------------------------------------------------
+# Bing / Microsoft Copilot
+# ---------------------------------------------------------------------------
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 3
+
+User-agent: msnbot
+Allow: /
+
+User-agent: BingPreview
+Allow: /
+
+# ---------------------------------------------------------------------------
+# OpenAI — ChatGPT search + web browsing
+# GPTBot = web indexing for ChatGPT search
+# ChatGPT-User = ChatGPT live browsing
+# OAI-SearchBot = ChatGPT search index
+# ---------------------------------------------------------------------------
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+# ---------------------------------------------------------------------------
+# Anthropic — Claude
+# ---------------------------------------------------------------------------
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+# ---------------------------------------------------------------------------
+# Perplexity
+# ---------------------------------------------------------------------------
+User-agent: PerplexityBot
+Allow: /
+
+# ---------------------------------------------------------------------------
+# Meta / Facebook / Instagram crawlers
+# ---------------------------------------------------------------------------
+User-agent: facebookexternalhit
+Allow: /
+
+User-agent: Facebot
+Allow: /
+
+User-agent: meta-externalagent
+Allow: /
+
+# ---------------------------------------------------------------------------
+# Apple / Siri
+# ---------------------------------------------------------------------------
+User-agent: Applebot
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+# ---------------------------------------------------------------------------
+# Block only training-scraper bots (not search/cite bots)
+# Common Crawl is used for LLM training datasets, not search indexing
+# ---------------------------------------------------------------------------
+User-agent: CCBot
+Disallow: /
+
+User-agent: DataForSeoBot
+Disallow: /
+
+User-agent: AhrefsBot
+Crawl-delay: 10
+
+User-agent: SemrushBot
+Crawl-delay: 10
+
+User-agent: MJ12bot
+Disallow: /
+
+# ---------------------------------------------------------------------------
+# Host directive
+# ---------------------------------------------------------------------------
 Host: https://sutralounge.com.np
 
+# ---------------------------------------------------------------------------
 # Sitemaps
+# ---------------------------------------------------------------------------
 Sitemap: https://sutralounge.com.np/sitemap.xml
-Sitemap: https://ais-pre-mj74mrcorwg7tcbmw34fdr-534237607704.asia-southeast1.run.app/sitemap.xml
+Sitemap: https://sutralounge.com.np/sitemap-images.xml
