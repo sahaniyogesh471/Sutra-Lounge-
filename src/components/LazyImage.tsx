@@ -5,6 +5,8 @@ interface LazyImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   alt: string;
   className?: string;
   wrapperClassName?: string;
+  /** When true, skips IntersectionObserver and loads immediately (use for above-the-fold images) */
+  eager?: boolean;
 }
 
 export const LazyImage: React.FC<LazyImageProps> = ({
@@ -12,14 +14,18 @@ export const LazyImage: React.FC<LazyImageProps> = ({
   alt,
   className = '',
   wrapperClassName = '',
+  eager = false,
   ...props
 }) => {
-  const [isIntersected, setIsIntersected] = useState(false);
+  const [isIntersected, setIsIntersected] = useState(eager);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [hasError, setHasError] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // If Intersection Observer is not supported, load immediately
+    if (eager) return;
+
+    // IntersectionObserver not available (SSR / old browser) — load immediately
     if (typeof window === 'undefined' || !('IntersectionObserver' in window)) {
       setIsIntersected(true);
       return;
@@ -27,64 +33,77 @@ export const LazyImage: React.FC<LazyImageProps> = ({
 
     const observer = new IntersectionObserver(
       (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            setIsIntersected(true);
-            observer.unobserve(entry.target);
-          }
-        });
+        if (entries[0].isIntersecting) {
+          setIsIntersected(true);
+          observer.disconnect();
+        }
       },
       {
-        rootMargin: '150px', // Start loading 150px before entering viewport
-        threshold: 0.01,
+        // Positive rootMargin pre-loads the image 300px BEFORE it enters the viewport
+        rootMargin: '300px 0px',
+        threshold: 0,
       }
     );
 
-    const currentRef = containerRef.current;
-    if (currentRef) {
-      observer.observe(currentRef);
-    }
+    const el = containerRef.current;
+    if (el) observer.observe(el);
+    return () => observer.disconnect();
+  }, [eager]);
 
-    return () => {
-      if (currentRef) {
-        observer.unobserve(currentRef);
-      }
-    };
-  }, []);
+  // Reset loaded state when src changes
+  useEffect(() => {
+    setIsLoaded(false);
+    setHasError(false);
+  }, [src]);
 
   return (
     <div
       ref={containerRef}
-      className={`relative overflow-hidden bg-cream-deep/60 ${wrapperClassName}`}
-      id={`lazy-wrapper-${alt.toLowerCase().replace(/[^a-z0-9]/g, '-')}`}
+      className={`relative overflow-hidden ${wrapperClassName}`}
+      style={{ backgroundColor: 'rgba(245,238,223,0.6)' }}
     >
-      {/* Premium Shimmer and Blur Background */}
-      {!isLoaded && (
-        <div 
-          className="absolute inset-0 z-0 flex items-center justify-center animate-pulse"
+      {/* Shimmer skeleton shown while loading */}
+      {!isLoaded && !hasError && (
+        <div
+          className="absolute inset-0 z-0"
           style={{
-            background: 'linear-gradient(110deg, #f5eedf 8%, #fbf7ef 18%, #f5eedf 33%)',
+            background:
+              'linear-gradient(90deg, #f5eedf 25%, #fdf8f0 50%, #f5eedf 75%)',
             backgroundSize: '200% 100%',
+            animation: 'shimmer 1.4s ease-in-out infinite',
           }}
-        >
-          {/* Subtle gold center glowing element */}
-          <div className="w-12 h-12 rounded-full bg-gold/5 blur-md" />
+        />
+      )}
+
+      {/* Error state */}
+      {hasError && (
+        <div className="absolute inset-0 flex items-center justify-center bg-cream-deep/80">
+          <span className="text-[10px] text-charcoal-muted/50 font-medium">Image unavailable</span>
         </div>
       )}
 
-      {/* Actual image with lazy-load animation */}
-      {isIntersected && (
+      {/* Actual image — only rendered once in viewport */}
+      {isIntersected && !hasError && (
         <img
           src={src}
           alt={alt}
+          loading={eager ? 'eager' : 'lazy'}
+          decoding="async"
           onLoad={() => setIsLoaded(true)}
-          loading="lazy"
-          className={`transition-all duration-700 ease-out select-none
-            ${isLoaded ? 'opacity-100 blur-0 scale-100' : 'opacity-0 blur-md scale-[1.02]'}
-            ${className}`}
+          onError={() => { setHasError(true); setIsLoaded(true); }}
+          className={`transition-opacity duration-500 ease-out select-none ${
+            isLoaded ? 'opacity-100' : 'opacity-0'
+          } ${className}`}
           {...props}
         />
       )}
+
+      <style>{`
+        @keyframes shimmer {
+          0%   { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
+        }
+      `}</style>
     </div>
   );
 };

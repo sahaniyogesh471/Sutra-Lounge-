@@ -64,17 +64,18 @@ export const TikTokIcon = ({ className = "w-4 h-4" }: { className?: string }) =>
   </svg>
 );
 
-// Importing the generated fine-dining images for premium ambient design
-import heroImage from './assets/images/sutra_lounge_hero_1781183015871.png';
-import dishImage from './assets/images/sutra_lounge_dish_1781183032907.png';
+// Hero images served from public/images as optimised WebP
+const heroImage = '/images/sutra_lounge_hero_1781183015871.webp';
+const dishImage = '/images/sutra_lounge_dish_1781183032907.webp';
 
 // Premium Cinematic Animation Presets
+// NOTE: keep transitions short — long staggered delays cause content to appear "hidden"
 const fadeInUp = {
-  hidden: { opacity: 0, y: 30 },
+  hidden: { opacity: 0, y: 20 },
   visible: { 
     opacity: 1, 
     y: 0, 
-    transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1] } 
+    transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] } 
   }
 };
 
@@ -82,25 +83,25 @@ const staggerContainer = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: { staggerChildren: 0.1 }
+    transition: { staggerChildren: 0.07, delayChildren: 0 }
   }
 };
 
 const slideInLeft = {
-  hidden: { opacity: 0, x: -40 },
+  hidden: { opacity: 0, x: -30 },
   visible: {
     opacity: 1,
     x: 0,
-    transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] }
+    transition: { duration: 0.55, ease: [0.16, 1, 0.3, 1] }
   }
 };
 
 const slideInRight = {
-  hidden: { opacity: 0, x: 40 },
+  hidden: { opacity: 0, x: 30 },
   visible: {
     opacity: 1,
     x: 0,
-    transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] }
+    transition: { duration: 0.55, ease: [0.16, 1, 0.3, 1] }
   }
 };
 
@@ -732,7 +733,7 @@ export default function App() {
   const getTranslatedAnnouncement = (ann: string) => {
     if (lang === 'en') return ann;
     if (ann.includes('Anniversary')) return '🎉 हाम्रो ५ औं वार्षिकोत्सव मनाउँदै! हेटौंडालाई प्रिमियम स्वादका साथ सेवा गर्दैछौं। ❤️';
-    if (ann.includes('Breakfast')) return '🍳 दैनिक बिहान ७:०० दे���ि ११:०० सम्म ब्रेकफास्ट कम्बो सक्रिय — कफी, प्यानकेक र थप!';
+    if (ann.includes('Breakfast')) return '🍳 दैनिक बिहान ७:०० दे�����ि ११:०० सम्म ब्रेकफास्ट कम्बो सक्रिय — कफी, प्यानकेक र थप!';
     if (ann.includes('Hookah')) return '💨 हुक्का स्पेशल: प्रिमियम शिसा सेटअप मात्र रु. ३४५ मा हरेक दिन दिउँसो २:०० बजेसम्म!';
     if (ann.includes('Friday')) return '🔥 विशेष शुक्रबार: इन्डियन र तन्दुरी परिकारहरूमा ५०% छुट र प्रत्यक्ष संगीत साँझ! 🎸';
     return ann;
@@ -1608,7 +1609,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
       <motion.section 
         initial="hidden"
         whileInView="visible"
-        viewport={{ once: true, margin: "-80px" }}
+        viewport={{ once: true, amount: 0.1 }}
         variants={fadeInUp}
         className="py-12 bg-cream-deep/40 border-y border-cream-deep px-4 sm:px-6 lg:px-8"
       >
@@ -1667,12 +1668,12 @@ Please confirm or contact the guest. Thank you! 🙏`;
         <motion.div 
           initial="hidden"
           whileInView="visible"
-          viewport={{ once: true, margin: "-80px" }}
+          viewport={{ once: true, amount: 0.1 }}
           variants={fadeInUp}
           className="text-center max-w-2xl mx-auto mb-12 space-y-3"
         >
           <span className="font-mono text-xs tracking-widest text-gold uppercase font-bold block">
-            {lang === 'en' ? "Bespoke Culinary Sensation" : "विशेष स्वाद कला र शैली"}
+            {lang === 'en' ? "Bespoke Culinary Sensation" : "विशेष स्वाद कल�� र शैली"}
           </span>
           <h2 className="font-serif text-3xl sm:text-4xl text-charcoal tracking-tight font-extrabold">
             {t('menu_title')}
@@ -1688,7 +1689,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
           <motion.div 
             initial="hidden"
             whileInView="visible"
-            viewport={{ once: true, margin: "-80px" }}
+            viewport={{ once: true, amount: 0.1 }}
             variants={fadeInUp}
             className="text-center mb-12 space-y-2 relative"
           >
@@ -1710,7 +1711,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
           <motion.div 
             initial="hidden"
             whileInView="visible"
-            viewport={{ once: true, margin: "-100px" }}
+            viewport={{ once: true, amount: 0.1 }}
             variants={staggerContainer}
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
           >
@@ -1786,7 +1787,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
           <motion.div 
             initial="hidden"
             whileInView="visible"
-            viewport={{ once: true, margin: "-80px" }}
+            viewport={{ once: true, amount: 0.1 }}
             variants={fadeInUp}
             className="mt-12 bg-cream-deep/30 rounded-2xl p-6 sm:p-8 border border-cream-deep flex flex-col md:flex-row items-center justify-between gap-6 text-left relative overflow-hidden"
           >
@@ -1839,7 +1840,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
         <motion.div 
           initial="hidden"
           whileInView="visible"
-          viewport={{ once: true, margin: "-80px" }}
+          viewport={{ once: true, amount: 0.1 }}
           variants={fadeInUp}
           className="flex flex-wrap justify-center gap-2 mb-10"
         >
@@ -1862,7 +1863,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
         <motion.div 
           initial="hidden"
           whileInView="visible"
-          viewport={{ once: true, margin: "-100px" }}
+          viewport={{ once: true, amount: 0.1 }}
           variants={staggerContainer}
           layout
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
@@ -1966,7 +1967,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
           <motion.div 
             initial="hidden"
             whileInView="visible"
-            viewport={{ once: true, margin: "-80px" }}
+            viewport={{ once: true, amount: 0.1 }}
             variants={slideInLeft}
             className="lg:col-span-5 aspect-[4/3] lg:aspect-auto lg:h-full min-h-[300px]"
           >
@@ -1980,7 +1981,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
           <motion.div 
             initial="hidden"
             whileInView="visible"
-            viewport={{ once: true, margin: "-80px" }}
+            viewport={{ once: true, amount: 0.1 }}
             variants={slideInRight}
             className="lg:col-span-7 p-8 sm:p-12 text-left space-y-6"
           >
@@ -2048,7 +2049,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
           <motion.div 
             initial="hidden"
             whileInView="visible"
-            viewport={{ once: true, margin: "-80px" }}
+            viewport={{ once: true, amount: 0.1 }}
             variants={fadeInUp}
             className="text-center max-w-2xl mx-auto mb-16 space-y-3"
           >
@@ -2068,7 +2069,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
           <motion.div 
             initial="hidden"
             whileInView="visible"
-            viewport={{ once: true, margin: "-100px" }}
+            viewport={{ once: true, amount: 0.1 }}
             variants={staggerContainer}
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
           >
@@ -2142,7 +2143,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
           <motion.div 
             initial="hidden"
             whileInView="visible"
-            viewport={{ once: true, margin: "-80px" }}
+            viewport={{ once: true, amount: 0.1 }}
             variants={slideInLeft}
             className="lg:col-span-5 text-left space-y-4"
           >
@@ -2164,7 +2165,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
           <motion.div 
             initial="hidden"
             whileInView="visible"
-            viewport={{ once: true, margin: "-80px" }}
+            viewport={{ once: true, amount: 0.1 }}
             variants={slideInRight}
             className="lg:col-span-7 border-l-0 lg:border-l border-cream-deep pl-0 lg:pl-10 text-left space-y-6"
           >
@@ -2273,7 +2274,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
           <motion.div 
             initial="hidden"
             whileInView="visible"
-            viewport={{ once: true, margin: "-50px" }}
+            viewport={{ once: true, amount: 0.1 }}
             variants={fadeInUp}
             className="bg-cream-soft border border-cream-deep rounded-3xl p-6 sm:p-10 mb-12 shadow-sm grid grid-cols-1 md:grid-cols-12 gap-8 text-left items-center"
           >
@@ -2399,7 +2400,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
           <motion.div 
             initial="hidden"
             whileInView="visible"
-            viewport={{ once: true, margin: "-50px" }}
+            viewport={{ once: true, amount: 0.1 }}
             variants={staggerContainer}
             layout
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
@@ -2512,7 +2513,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
           <motion.div 
             initial="hidden"
             whileInView="visible"
-            viewport={{ once: true, margin: "-50px" }}
+            viewport={{ once: true, amount: 0.1 }}
             variants={staggerContainer}
             layout
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
@@ -3028,7 +3029,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
                 <p className="text-sm text-charcoal-muted leading-relaxed font-light">
                   {lang === 'en' 
                     ? 'Sutra Lounge operates from our central location in Nagar Bikash Samiti Marg, Hetauda. Stop by to take in the serene vibe daily!' 
-                    : 'सुत्र लाउन्ज हेटौंडाको नगर विकास समिति मार्गको मध्य भागमा अवस्थित छ। दैनिक शान्त र मनमोहक वातावरणको आनन्द लिन आउनुहोस्!'
+                    : 'सुत्र लाउन्ज हेटौंडाको नगर विकास समिति मार्���को मध्य भागमा अवस्थित छ। दैनिक शान्त र मनमोहक वातावरणको आनन्द लिन आउनुहोस्!'
                   }
                 </p>
 
