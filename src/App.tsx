@@ -68,40 +68,42 @@ export const TikTokIcon = ({ className = "w-4 h-4" }: { className?: string }) =>
 const heroImage = 'https://i.ibb.co/wNNbMTxY/sutra-hero-bg.png';
 const dishImage = 'https://i.ibb.co/Xxd8hkQb/sutra-hero-dish.png';
 
-// Premium Cinematic Animation Presets
-// NOTE: keep transitions short — long staggered delays cause content to appear "hidden"
+// Animation variants — hidden state is IDENTICAL to visible to ensure
+// content is always rendered. The motion elements animate in immediately
+// using animate="visible" instead of whileInView to avoid IntersectionObserver
+// race conditions that leave content stuck at opacity:0.
 const fadeInUp = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { 
-    opacity: 1, 
-    y: 0, 
-    transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] } 
+  hidden: { opacity: 1, y: 0 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] }
   }
 };
 
 const staggerContainer = {
-  hidden: { opacity: 0 },
+  hidden: { opacity: 1 },
   visible: {
     opacity: 1,
-    transition: { staggerChildren: 0.07, delayChildren: 0 }
+    transition: { staggerChildren: 0.06, delayChildren: 0 }
   }
 };
 
 const slideInLeft = {
-  hidden: { opacity: 0, x: -30 },
+  hidden: { opacity: 1, x: 0 },
   visible: {
     opacity: 1,
     x: 0,
-    transition: { duration: 0.55, ease: [0.16, 1, 0.3, 1] }
+    transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] }
   }
 };
 
 const slideInRight = {
-  hidden: { opacity: 0, x: 30 },
+  hidden: { opacity: 1, x: 0 },
   visible: {
     opacity: 1,
     x: 0,
-    transition: { duration: 0.55, ease: [0.16, 1, 0.3, 1] }
+    transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] }
   }
 };
 
@@ -732,7 +734,7 @@ export default function App() {
 
   const getTranslatedAnnouncement = (ann: string) => {
     if (lang === 'en') return ann;
-    if (ann.includes('Anniversary')) return '🎉 हाम्रो ५ औं वार्षिकोत्सव मनाउँदै! हेटौंडालाई प्रिमियम स्वादका साथ सेवा गर्दैछौं। ❤️';
+    if (ann.includes('Anniversary')) return '🎉 हाम्रो ५ औं वार्षिकोत्सव मनाउँदै! हेटौंडा��ाई प्रिमियम स्वादका साथ सेवा गर्दैछौं। ❤️';
     if (ann.includes('Breakfast')) return '🍳 दैनिक बिहान ७:०० दे�����ि ११:०० सम्म ब्रेकफास्ट कम्बो सक्रिय — कफी, प्यानकेक र थप!';
     if (ann.includes('Hookah')) return '💨 हुक्का स्पेशल: प्रिमियम शिसा सेटअप मात्र रु. ३४५ मा हरेक दिन दिउँसो २:०० बजेसम्म!';
     if (ann.includes('Friday')) return '🔥 विशेष शुक्रबार: इन्डियन र तन्दुरी परिकारहरूमा ५०% छुट र प्रत्यक्ष संगीत साँझ! 🎸';
@@ -1465,7 +1467,6 @@ Please confirm or contact the guest. Thank you! 🙏`;
       <motion.section 
         initial="hidden"
         animate="visible"
-        viewport={{ once: true }}
         className="relative py-12 md:py-20 lg:py-28 px-4 sm:px-6 lg:px-8"
       >
         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
@@ -1608,8 +1609,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
       {/* SPECIAL ANNOUNCEMENT SECTION (FROM OWNER) */}
       <motion.section 
         initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, amount: 0.1 }}
+        animate="visible"
         variants={fadeInUp}
         className="py-12 bg-cream-deep/40 border-y border-cream-deep px-4 sm:px-6 lg:px-8"
       >
@@ -1667,8 +1667,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
         {/* Header */}
         <motion.div 
           initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, amount: 0.1 }}
+          animate="visible"
           variants={fadeInUp}
           className="text-center max-w-2xl mx-auto mb-12 space-y-3"
         >
@@ -1688,8 +1687,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
         <div className="mb-24 mt-4">
           <motion.div 
             initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.1 }}
+            animate="visible"
             variants={fadeInUp}
             className="text-center mb-12 space-y-2 relative"
           >
@@ -1710,8 +1708,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
 
           <motion.div 
             initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.1 }}
+            animate="visible"
             variants={staggerContainer}
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
           >
@@ -1786,8 +1783,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
           {/* Quick guidance / CTA panel to incentivize exploring or visiting */}
           <motion.div 
             initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.1 }}
+            animate="visible"
             variants={fadeInUp}
             className="mt-12 bg-cream-deep/30 rounded-2xl p-6 sm:p-8 border border-cream-deep flex flex-col md:flex-row items-center justify-between gap-6 text-left relative overflow-hidden"
           >
@@ -1839,8 +1835,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
         {/* Filter categories - interactive scale hover */}
         <motion.div 
           initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, amount: 0.1 }}
+          animate="visible"
           variants={fadeInUp}
           className="flex flex-wrap justify-center gap-2 mb-10"
         >
@@ -1862,8 +1857,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
         {/* Menu Items Grid - Staggered entrance */}
         <motion.div 
           initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, amount: 0.1 }}
+          animate="visible"
           variants={staggerContainer}
           layout
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
@@ -1966,8 +1960,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
         <div className="mt-16 bg-cream-soft rounded-3xl overflow-hidden border border-cream-deep grid grid-cols-1 lg:grid-cols-12 items-center">
           <motion.div 
             initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.1 }}
+            animate="visible"
             variants={slideInLeft}
             className="lg:col-span-5 aspect-[4/3] lg:aspect-auto lg:h-full min-h-[300px]"
           >
@@ -1980,8 +1973,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
           </motion.div>
           <motion.div 
             initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.1 }}
+            animate="visible"
             variants={slideInRight}
             className="lg:col-span-7 p-8 sm:p-12 text-left space-y-6"
           >
@@ -1989,7 +1981,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
               {lang === 'en' ? 'Gourmet Precision' : 'उत्कृष्ट स्वाद कला र सुदृढता'}
             </span>
             <h3 className="font-serif text-2xl sm:text-3.5xl text-charcoal leading-tight font-extrabold">
-              {lang === 'en' ? 'Exceptional Food Experience' : 'विशेष र उत्कृष्ट भोजन अनुभव'}
+              {lang === 'en' ? 'Exceptional Food Experience' : 'विशेष र उत्कृष्ट भोज�� अनुभव'}
             </h3>
             <p className="text-sm sm:text-base text-charcoal-muted leading-relaxed font-light">
               {lang === 'en'
@@ -2048,8 +2040,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
           {/* Title */}
           <motion.div 
             initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.1 }}
+            animate="visible"
             variants={fadeInUp}
             className="text-center max-w-2xl mx-auto mb-16 space-y-3"
           >
@@ -2068,8 +2059,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
           {/* Cards with stagger on roll-in */}
           <motion.div 
             initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.1 }}
+            animate="visible"
             variants={staggerContainer}
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
           >
@@ -2142,8 +2132,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
           
           <motion.div 
             initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.1 }}
+            animate="visible"
             variants={slideInLeft}
             className="lg:col-span-5 text-left space-y-4"
           >
@@ -2164,8 +2153,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
 
           <motion.div 
             initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.1 }}
+            animate="visible"
             variants={slideInRight}
             className="lg:col-span-7 border-l-0 lg:border-l border-cream-deep pl-0 lg:pl-10 text-left space-y-6"
           >
@@ -2199,8 +2187,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
           {/* Header */}
           <motion.div 
             initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
+            animate="visible"
             variants={fadeInUp}
             className="text-center max-w-2xl mx-auto mb-12 space-y-3"
           >
@@ -2215,8 +2202,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
 
           <motion.div 
             initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
+            animate="visible"
             variants={staggerContainer}
             className="grid grid-cols-1 md:grid-cols-3 gap-8"
           >
@@ -2250,8 +2236,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
           {/* Header */}
           <motion.div 
             initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
+            animate="visible"
             variants={fadeInUp}
             className="text-center max-w-2xl mx-auto mb-12 space-y-3"
           >
@@ -2265,7 +2250,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
             <p className="text-sm text-charcoal-muted pt-2 font-light">
               {lang === 'en'
                 ? `We cherish every voice. Sourced transparently from our active ${BUSINESS_DETAILS.reviewCount} Google Maps reviewers.`
-                : `हामी प्रत्येक प्रतिक्रियाको कदर गर्दछौं। गुगल म्य��प्सका ${BUSINESS_DETAILS.reviewCount}+ सक्रिय समीक्षकहरूबाट पारदर्शी रूपमा प्राप्त।`
+                : `हामी प्रत्येक प्रतिक्रियाको कदर गर्दछौं। गुगल म्य��प��सका ${BUSINESS_DETAILS.reviewCount}+ सक्रिय समीक्षकहरूबाट पारदर्शी रूपमा प्राप्त।`
               }
             </p>
           </motion.div>
@@ -2273,8 +2258,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
           {/* GOOGLE REVIEWS ANALYTICS DASHBOARD CARD */}
           <motion.div 
             initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.1 }}
+            animate="visible"
             variants={fadeInUp}
             className="bg-cream-soft border border-cream-deep rounded-3xl p-6 sm:p-10 mb-12 shadow-sm grid grid-cols-1 md:grid-cols-12 gap-8 text-left items-center"
           >
@@ -2319,7 +2303,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
                   <div className="flex-1 h-2 bg-cream-deep rounded-full overflow-hidden">
                     <motion.div 
                       initial={{ width: 0 }}
-                      whileInView={{ width: `${row.pct}%` }}
+                      animate={{ width: `${row.pct}%` }}
                       transition={{ duration: 1, delay: 0.1 }}
                       className="h-full bg-gold rounded-full" 
                     />
@@ -2369,8 +2353,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
           {/* DYNAMIC RATINGS FILTER BUTTONS */}
           <motion.div 
             initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
+            animate="visible"
             variants={fadeInUp}
             className="flex flex-wrap justify-center items-center gap-2.5 mb-10 border-b border-cream-deep pb-6 max-w-xl mx-auto"
           >
@@ -2399,8 +2382,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
           {/* Dynamic Reviews Grid */}
           <motion.div 
             initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.1 }}
+            animate="visible"
             variants={staggerContainer}
             layout
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
@@ -2466,8 +2448,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
           {/* Header */}
           <motion.div 
             initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
+            animate="visible"
             variants={fadeInUp}
             className="text-center max-w-2xl mx-auto mb-10 space-y-3"
           >
@@ -2489,8 +2470,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
           {/* Filtering Categories */}
           <motion.div 
             initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
+            animate="visible"
             variants={fadeInUp}
             className="flex flex-wrap justify-center items-center gap-2 mb-10 max-w-xl mx-auto"
           >
@@ -2512,8 +2492,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
           {/* Photos Grid */}
           <motion.div 
             initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.1 }}
+            animate="visible"
             variants={staggerContainer}
             layout
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
@@ -2838,7 +2817,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
                         <p id="slots-help-text" className="text-xs text-charcoal-muted font-light leading-relaxed">
                           {lang === 'en' 
                             ? 'Select requested date and party size to compute real available table slots dynamically.' 
-                            : 'वास्तविक उपलब्ध समयहरू ��णना गर्न कृपया मिति र पाहुना संख्या भर्नुहोस्।'}
+                            : 'वास्तविक उपलब्ध समयहरू ����ना गर्न कृपया मिति र पाहुना संख्या भर्नुहोस्।'}
                         </p>
                       )}
                     </div>
