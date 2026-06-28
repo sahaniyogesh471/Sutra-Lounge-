@@ -13,6 +13,7 @@ import {
   EyeOff
 } from 'lucide-react';
 import { ImageUploader } from './ImageUploader';
+import { formatTimeTo12Hour } from '../utils';
 
 interface AdminSettingsProps {
   settings: {
@@ -307,26 +308,34 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
                 </div>
 
                 {day.is_open && (
-                  <div className="flex items-center gap-2.5">
-                    <div className="flex items-center gap-1 font-mono">
-                      <span>Opens:</span>
-                      <input 
-                        type="text" 
-                        placeholder="HH:MM"
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1.5 font-mono text-xs">
+                      <span className="text-gray-500">Opens:</span>
+                      <input
+                        type="time"
                         value={day.start_time || ''}
                         onChange={(e) => handleUpdateHourDayState(day.id, 'start_time', e.target.value)}
-                        className="w-16 px-1.5 py-1 border border-gray-250 rounded-lg text-center font-bold text-gray-900"
+                        className="px-1.5 py-1 border border-gray-250 rounded-lg font-bold text-gray-900 focus:outline-none focus:border-[#fd761a]"
                       />
+                      {day.start_time && (
+                        <span className="text-[10px] text-[#fd761a] font-bold font-mono">
+                          {formatTimeTo12Hour(day.start_time)}
+                        </span>
+                      )}
                     </div>
-                    <div className="flex items-center gap-1 font-mono">
-                      <span>Closes:</span>
-                      <input 
-                        type="text" 
-                        placeholder="HH:MM"
+                    <div className="flex items-center gap-1.5 font-mono text-xs">
+                      <span className="text-gray-500">Closes:</span>
+                      <input
+                        type="time"
                         value={day.end_time || ''}
                         onChange={(e) => handleUpdateHourDayState(day.id, 'end_time', e.target.value)}
-                        className="w-16 px-1.5 py-1 border border-gray-250 rounded-lg text-center font-bold text-gray-900"
+                        className="px-1.5 py-1 border border-gray-250 rounded-lg font-bold text-gray-900 focus:outline-none focus:border-[#fd761a]"
                       />
+                      {day.end_time && (
+                        <span className="text-[10px] text-[#fd761a] font-bold font-mono">
+                          {formatTimeTo12Hour(day.end_time)}
+                        </span>
+                      )}
                     </div>
                   </div>
                 )}

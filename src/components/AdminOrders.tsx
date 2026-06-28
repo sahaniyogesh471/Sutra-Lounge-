@@ -186,7 +186,12 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
                         #{order.id ? order.id.slice(-6).toUpperCase() : 'LINE'}
                       </span>
                       <span className="text-[10px] text-gray-400 mt-0.5">
-                        {order.created_at ? new Date(order.created_at).toLocaleString() : 'Just now'}
+                        {order.created_at
+                          ? new Date(order.created_at).toLocaleString('en-US', {
+                              month: 'short', day: 'numeric',
+                              hour: 'numeric', minute: '2-digit', hour12: true
+                            })
+                          : 'Just now'}
                       </span>
                     </div>
                   </td>

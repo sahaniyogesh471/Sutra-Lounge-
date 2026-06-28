@@ -110,7 +110,7 @@ export const AdminReservations: React.FC<AdminReservationsProps> = ({
     // Find the specific reservation to extract booking details
     const res = reservations.find(r => r.id === resId);
     const date = res?.reservation_date || new Date().toISOString().split('T')[0];
-    const time = res?.start_time || '12:00';
+    const time = formatTimeTo12Hour(res?.start_time || '12:00');
     const party = res?.party_size || '2';
     
     // Construct an elegant, formatted confirmation text
@@ -161,7 +161,7 @@ export const AdminReservations: React.FC<AdminReservationsProps> = ({
         </head>
         <body>
           <h1>SUTRA LOUNGE</h1>
-          <div class="meta">Day Covers Reservation Checklist &bull; Date: ${todayStr} &bull; Generated: ${new Date().toLocaleTimeString()}</div>
+          <div class="meta">Day Covers Reservation Checklist &bull; Date: ${todayStr} &bull; Generated: ${new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}</div>
           <table>
             <thead>
               <tr>

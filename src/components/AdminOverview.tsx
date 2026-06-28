@@ -47,6 +47,19 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
   // Real time and date filter states: 'all' | 'today' | '7days' | 'this_month'
   const [filterRange, setFilterRange] = React.useState<'all' | 'today' | '7days' | 'this_month'>('all');
 
+  // Dynamic greeting based on current Nepal time (UTC+5:45)
+  const getGreeting = (): string => {
+    const now = new Date();
+    // Convert to Nepal Standard Time (UTC+5:45)
+    const utcMs = now.getTime() + now.getTimezoneOffset() * 60000;
+    const nstMs = utcMs + 5 * 3600000 + 45 * 60000;
+    const hour = new Date(nstMs).getHours();
+    if (hour >= 5 && hour < 12) return 'Good Morning';
+    if (hour >= 12 && hour < 17) return 'Good Afternoon';
+    if (hour >= 17 && hour < 21) return 'Good Evening';
+    return 'Good Night';
+  };
+
   // Helper to get filtered items based on selected date range
   const getFilteredData = () => {
     const todayStr = new Date().toISOString().substring(0, 10);
@@ -175,7 +188,7 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
       {/* Welcome Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight text-gray-900 leading-tight">Morning, Admin</h2>
+          <h2 className="text-2xl font-bold tracking-tight text-gray-900 leading-tight">{getGreeting()}, Admin</h2>
           <p className="text-sm text-gray-500">Here's what's happening at Sutra Lounge today.</p>
         </div>
         
@@ -355,7 +368,7 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
                     <div className="flex justify-between items-start gap-1">
                       <p className="font-semibold text-gray-900 truncate">{act.heading}</p>
                       <span className="shrink-0 text-[10px] text-gray-400 font-mono">
-                        {new Date(act.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {new Date(act.time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
                       </span>
                     </div>
                     <p className="text-gray-500 font-light truncate mt-0.5">{act.meta}</p>

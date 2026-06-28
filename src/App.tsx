@@ -480,7 +480,7 @@ export default function App() {
     phone: dbSettings?.restaurant_phone || businessDetails.phone,
     address: dbSettings?.restaurant_address || businessDetails.address,
     hours: dbBusinessHours?.length > 0 
-      ? dbBusinessHours.map(h => ({ day: h.weekday, time: h.is_open ? `${h.start_time} - ${h.end_time}` : 'Closed' }))
+      ? dbBusinessHours.map(h => ({ day: h.weekday, time: h.is_open ? `${formatTimeTo12Hour(h.start_time)} - ${formatTimeTo12Hour(h.end_time)}` : 'Closed' }))
       : businessDetails.hours
   };
   // Build a lookup map from dish title -> image URL so DB items without
@@ -560,7 +560,7 @@ export default function App() {
       'Aakash Rai': {
         role: 'प्रमाणित ग्राहक',
         timeAgo: '३ महिना अगाडि',
-        content: 'यहाँको अनुभव असाध्यै रमाइलो रह्यो। भेटघाट र आरामसँग खाना खानको लागि निकै उपयुक्त र स्वागतयोग्य ठाउँ छ। कर्मचारीहरूको व्यवहार निकै मित्रवत र सेवामुखी थियो।',
+        content: 'यहाँको अनुभ��� असाध्यै रमाइलो रह्यो। भेटघाट र आरामसँग खाना खानको लागि निकै उपयुक्त र स्वागतयोग्य ठाउँ छ। कर्मचारीहरूको व्यवहार निकै मित्रवत र सेवामुखी थियो।',
         highlights: ['स्वागतयोग्य वातावरण', 'मित्रवत स्टाफ', 'उत्कृष्ट सेवा']
       },
       'Kritisha Giri': {
@@ -1951,7 +1951,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
                         ...prev,
                         message: lang === 'en'
                           ? `Interested in ordering the ${item.title}.`
-                          : `म सुत्र लाउन्जको ${item.title} परिकार अर्डर गर्न इच्छुक छु।`
+                          : `म स��त्र लाउन्जको ${item.title} परिकार अर्डर गर्न इच्छुक छु।`
                       }));
                       scrollToSection(contactSectionRef);
                     }}
@@ -2260,7 +2260,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
             <p className="text-sm text-charcoal-muted pt-2 font-light">
               {lang === 'en'
                 ? `We cherish every voice. Sourced transparently from our active ${BUSINESS_DETAILS.reviewCount} Google Maps reviewers.`
-                : `हामी प्रत्येक प्रतिक्रियाको कदर गर्दछौं। गुगल म्य��प��सका ${BUSINESS_DETAILS.reviewCount}+ सक्रिय समीक्षकहरूबाट पारदर्शी रूपमा प्राप्त।`
+                : `हामी प्रत्येक प्रतिक्रियाको कदर गर्दछौं। गुगल म्य��प��सका ${BUSINESS_DETAILS.reviewCount}+ सक्रिय समीक्षकहरूबाट पारदर्श�� रूपमा प्राप्त।`
               }
             </p>
           </motion.div>
