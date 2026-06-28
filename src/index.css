@@ -28,11 +28,12 @@ body {
   scroll-behavior: smooth;
 }
 
-/* Safety net: ensure no Framer Motion element gets permanently stuck invisible.
-   Framer Motion applies inline styles; these selectors never override an active
-   animation — they only catch elements that never received their animate step. */
-[data-framer-appear-id],
-[style*="opacity: 0"] {
+/* Safety net: ensure no Framer Motion SECTION or article ever stays permanently invisible.
+   Scoped only to top-level section/div/article tags so it never overrides intentional
+   hidden states on interactive elements (tooltips, dropdowns, modals). */
+section[style*="opacity: 0"],
+article[style*="opacity: 0"],
+main[style*="opacity: 0"] {
   opacity: 1 !important;
 }
 

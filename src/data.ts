@@ -126,6 +126,25 @@ export const MENU_HIGHLIGHTS: MenuItem[] = [
     socialLink: 'https://www.instagram.com/sutraloungehetauda/'
   },
 
+  // Momo Specialties
+  {
+    title: 'Steamed Chicken Momos',
+    price: 'NPR 320',
+    description: 'Classic Nepali steamed dumplings filled with seasoned minced chicken, ginger, and fresh herbs. Served with fiery tomato-sesame achar.',
+    category: 'Momo Specialties',
+    image: 'https://i.ibb.co/p63B80Hm/sutra-steamed-chicken-momo.png',
+    isPopular: true,
+    socialLink: 'https://www.instagram.com/sutraloungehetauda/'
+  },
+  {
+    title: 'Fried Chicken Momos',
+    price: 'NPR 360',
+    description: 'Crispy deep-fried Nepali momos with a crunchy golden exterior and juicy chicken filling. Served with spicy red achar dipping sauce.',
+    category: 'Momo Specialties',
+    image: 'https://i.ibb.co/gFv5wCML/sutra-fried-chicken-momo.png',
+    socialLink: 'https://www.facebook.com/SutraLounge/'
+  },
+
   // Mocktails & Beverages
   {
     title: 'Classic Mint Virgin Mojito',
@@ -142,6 +161,23 @@ export const MENU_HIGHLIGHTS: MenuItem[] = [
     category: 'Mocktails & Beverages',
     image: 'https://i.ibb.co/5Xp213wm/sutra-latte-macchiato.png',
     socialLink: 'https://www.instagram.com/sutraloungehetauda/'
+  },
+  {
+    title: 'Lounge Barista Cappuccino',
+    price: 'NPR 220',
+    description: 'Rich double-shot espresso with perfectly steamed and textured microfoam, finished with a dusting of premium cocoa. The classic lounge coffee.',
+    category: 'Mocktails & Beverages',
+    image: 'https://i.ibb.co/zVC2JC9P/sutra-cappuccino.png',
+    isPopular: true,
+    socialLink: 'https://www.instagram.com/sutraloungehetauda/'
+  },
+  {
+    title: 'Premium Cold Brew',
+    price: 'NPR 260',
+    description: 'Slow-steeped 18-hour cold brew concentrate over crystal clear ice, topped with a silky cream float. Smooth, bold, and refreshing.',
+    category: 'Mocktails & Beverages',
+    image: 'https://i.ibb.co/prB62Mws/sutra-cold-brew.png',
+    socialLink: 'https://www.facebook.com/SutraLounge/'
   }
 ];
 

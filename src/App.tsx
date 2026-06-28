@@ -483,6 +483,14 @@ export default function App() {
       ? dbBusinessHours.map(h => ({ day: h.weekday, time: h.is_open ? `${h.start_time} - ${h.end_time}` : 'Closed' }))
       : businessDetails.hours
   };
+  // Build a lookup map from dish title -> image URL so DB items without
+  // an image_url get the correct matching image instead of a random fallback.
+  const staticImageByTitle: Record<string, string> = {};
+  [...INITIAL_MENU_HIGHLIGHTS, ...SIGNATURE_DISHES].forEach(item => {
+    if ('title' in item && item.image) staticImageByTitle[item.title] = item.image;
+    if ('title' in item && (item as any).name) staticImageByTitle[(item as any).name] = item.image;
+  });
+
   const MENU_HIGHLIGHTS = dbMenuItems?.length > 0 
     ? dbMenuItems.filter(i => i.is_active).map(i => ({
         id: i.id,
@@ -491,7 +499,9 @@ export default function App() {
         description: i.description,
         category: i.category,
         isPopular: i.is_featured,
-        image: i.image_url || i.image || SIGNATURE_DISHES[0].image,
+        // Look up by name first, then fall back to stored URL — never use a hardcoded fallback
+        image: i.image_url || i.image || staticImageByTitle[i.name] || '',
+        socialLink: i.social_link || '',
       }))
     : menuHighlights;
   const SERVICES_LIST = servicesList;
@@ -734,7 +744,7 @@ export default function App() {
 
   const getTranslatedAnnouncement = (ann: string) => {
     if (lang === 'en') return ann;
-    if (ann.includes('Anniversary')) return '🎉 हाम्रो ५ औं वार्षिकोत्सव मनाउँदै! हेटौंडा��ाई प्रिमियम स्वादका साथ सेवा गर्दैछौं। ❤️';
+    if (ann.includes('Anniversary')) return '🎉 हाम्रो ५ औं वार्षिकोत्सव मनाउँदै! हेटौंडा���ाई प्रिमियम स्वादका साथ सेवा गर्दैछौं। ❤️';
     if (ann.includes('Breakfast')) return '🍳 दैनिक बिहान ७:०० दे�����ि ११:०० सम्म ब्रेकफास्ट कम्बो सक्रिय — कफी, प्यानकेक र थप!';
     if (ann.includes('Hookah')) return '💨 हुक्का स्पेशल: प्रिमियम शिसा सेटअप मात्र रु. ३४५ मा हरेक दिन दिउँसो २:०० बजेसम्म!';
     if (ann.includes('Friday')) return '🔥 विशेष शुक्रबार: इन्डियन र तन्दुरी परिकारहरूमा ५०% छुट र प्रत्यक्ष संगीत साँझ! 🎸';
@@ -1492,7 +1502,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
             </motion.div>
 
             <motion.div variants={fadeInUp} className="space-y-4">
-              <h1 className="font-serif text-4xl sm:text-5xl md:text-6.5xl tracking-tight text-charcoal leading-none">
+              <h1 className="font-serif text-4xl sm:text-5xl md:text-6xl tracking-tight text-charcoal leading-none">
                 {lang === 'en' ? 'Sutra Lounge' : t('hero_title')} <br />
                 <span className="text-gold font-light italic">
                   {lang === 'en' ? 'Your Trusted Local Culinary Oasis' : t('hero_badge')}
@@ -1544,7 +1554,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
             <motion.div variants={fadeInUp} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-4">
               <button
                 onClick={() => scrollToSection(contactSectionRef)}
-                className="bg-gold hover:bg-gold-hover text-cream-soft py-4 px-8 rounded-full text-xs font-bold tracking-wider uppercase transition-all duration-300 shadow-md hover:shadow-lg flex items-center justify-center gap-2 cursor-pointer scale-100 hover:scale-102 active:scale-98"
+                className="bg-gold hover:bg-gold-hover text-cream-soft py-4 px-8 rounded-full text-xs font-bold tracking-wider uppercase transition-all duration-300 shadow-md hover:shadow-lg flex items-center justify-center gap-2 cursor-pointer hover:scale-105 active:scale-95"
                 id="hero-book-now"
               >
                 <span>{lang === 'en' ? 'Visit Us (Secure Table)' : 'हामीलाई भेट्नुहोस् / टेबल बुकिङ'}</span>
@@ -1553,7 +1563,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
               
               <button
                 onClick={() => scrollToSection(menuSectionRef)}
-                className="bg-transparent border border-gold hover:bg-gold-light text-gold py-4 px-8 rounded-full text-xs font-bold tracking-wider uppercase transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer scale-100 hover:scale-102 active:scale-98"
+                className="bg-transparent border border-gold hover:bg-gold-light text-gold py-4 px-8 rounded-full text-xs font-bold tracking-wider uppercase transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer hover:scale-105 active:scale-95"
                 id="hero-explore-menu"
               >
                 <span>{lang === 'en' ? 'Explore Highlights' : t('hero_cta_menu')}</span>
@@ -1843,7 +1853,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
             <button
               key={category}
               onClick={() => setSelectedCategory(category)}
-              className={`px-4 py-2 rounded-full text-xs font-bold tracking-wider uppercase transition-all duration-300 cursor-pointer scale-100 active:scale-95 ${
+              className={`px-4 py-2 rounded-full text-xs font-bold tracking-wider uppercase transition-all duration-300 cursor-pointer active:scale-95 ${
                 selectedCategory === category
                   ? 'bg-gold text-cream-soft shadow-sm'
                   : 'bg-cream-deep/50 hover:bg-cream-deep text-charcoal-muted'
@@ -1980,7 +1990,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
             <span className="font-mono text-xs tracking-widest text-gold uppercase font-bold block">
               {lang === 'en' ? 'Gourmet Precision' : 'उत्कृष्ट स्वाद कला र सुदृढता'}
             </span>
-            <h3 className="font-serif text-2xl sm:text-3.5xl text-charcoal leading-tight font-extrabold">
+            <h3 className="font-serif text-2xl sm:text-4xl text-charcoal leading-tight font-extrabold">
               {lang === 'en' ? 'Exceptional Food Experience' : 'विशेष र उत्कृष्ट भोज�� अनुभव'}
             </h3>
             <p className="text-sm sm:text-base text-charcoal-muted leading-relaxed font-light">
@@ -2019,7 +2029,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
             <div className="pt-2">
               <button
                 onClick={() => scrollToSection(contactSectionRef)}
-                className="bg-gold hover:bg-gold-hover text-cream-soft text-xs font-bold uppercase tracking-wider px-6 py-3.5 rounded-full transition-all duration-300 scale-100 active:scale-95 cursor-pointer shadow-sm hover:shadow"
+                className="bg-gold hover:bg-gold-hover text-cream-soft text-xs font-bold uppercase tracking-wider px-6 py-3.5 rounded-full transition-all duration-300 active:scale-95 cursor-pointer shadow-sm hover:shadow"
               >
                 {lang === 'en' ? 'Inquire or Order Now' : 'अर्डर वा सोधपुछ गर्नुहोस्'}
               </button>
@@ -2194,7 +2204,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
             <span className="font-mono text-xs tracking-widest text-gold uppercase block">
               {lang === 'en' ? 'Core Principles' : 'मुख्य सिद्धान्तहरू'}
             </span>
-            <h2 className="font-serif text-2.5xl sm:text-3.5xl text-cream-soft font-extrabold tracking-tight">
+            <h2 className="font-serif text-3xl sm:text-4xl text-cream-soft font-extrabold tracking-tight">
               {lang === 'en' ? 'Why Hetauda Trusts Us' : 'हेटौंडाबासीले हामीलाई किन विश्वास गर्नुहुन्छ'}
             </h2>
             <div className="w-12 h-1 bg-gold mx-auto" />
@@ -2368,7 +2378,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
               <button
                 key={tab.id}
                 onClick={() => setSelectedReviewStar(tab.id as any)}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer scale-100 active:scale-95 ${
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer active:scale-95 ${
                   selectedReviewStar === tab.id
                     ? 'bg-charcoal text-cream-soft shadow-sm'
                     : 'bg-cream-soft hover:bg-cream-deep/60 text-charcoal-muted border border-cream-deep'
@@ -2478,7 +2488,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
               <button
                 key={cat}
                 onClick={() => setSelectedGalleryCategory(cat)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 cursor-pointer scale-100 active:scale-95 ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 cursor-pointer active:scale-95 ${
                   selectedGalleryCategory === cat
                     ? 'bg-gold text-cream-soft shadow-xs'
                     : 'bg-cream-deep/30 hover:bg-cream-deep/60 text-charcoal-muted'
@@ -2793,7 +2803,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
                                         const mStr = slot.start.getMinutes().toString().padStart(2, '0');
                                         setForm(prev => ({ ...prev, time: `${hStr}:${mStr}` }));
                                       }}
-                                      className={`py-2 px-3 text-xs font-mono rounded-lg border text-center transition-all cursor-pointer scale-100 active:scale-95
+                                      className={`py-2 px-3 text-xs font-mono rounded-lg border text-center transition-all cursor-pointer active:scale-95
                                         ${isSelected 
                                           ? 'bg-gold text-cream-soft border-gold font-bold shadow-sm' 
                                           : 'bg-white hover:bg-cream-soft/60 text-charcoal border-cream-deep hover:border-gold/30'}`}

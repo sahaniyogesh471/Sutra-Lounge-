@@ -89,6 +89,8 @@ export const LazyImage: React.FC<LazyImageProps> = ({
           alt={alt}
           loading={eager ? 'eager' : 'lazy'}
           decoding="async"
+          referrerPolicy="no-referrer"
+          crossOrigin="anonymous"
           onLoad={() => setIsLoaded(true)}
           onError={() => { setHasError(true); setIsLoaded(true); }}
           className={`transition-opacity duration-500 ease-out select-none ${
