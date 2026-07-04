@@ -23,7 +23,6 @@ import {
 } from 'lucide-react';
 import * as supabaseService from '../supabaseService';
 import AdminPasswordManager from './AdminPasswordManager';
-import { logout } from '../services/adminAuthService';
 
 // Webpack/Vite Sub-components
 import { AdminOverview } from './AdminOverview';
@@ -744,8 +743,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, adminUs
               
               <button 
                 onClick={() => {
-                  if (adminUser && onLogout) {
-                    logout(adminUser.id);
+                  if (onLogout) {
                     onLogout();
                   }
                 }}

@@ -35,9 +35,9 @@ import { getImageUrl } from './utils';
 import { InquiryForm } from './types';
 import { LazyImage } from './components/LazyImage';
 import { AdminPanel } from './components/AdminPanel';
-import AdminAuthModal from './components/AdminAuthModal';
+// import AdminAuthModal from './components/AdminAuthModal';
 import * as supabaseService from './supabaseService';
-import { verifySession } from './services/adminAuthService';
+// import { verifySession } from './services/adminAuthService';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { 
   LanguageType, 
@@ -527,7 +527,7 @@ export default function App() {
   }, [lang]);
 
   // Check admin session on app load and set up session verification
-  useEffect(() => {
+  /* useEffect(() => {
     const checkAdminSession = async () => {
       try {
         const storedAdminId = sessionStorage.getItem('admin_id');
@@ -573,34 +573,18 @@ export default function App() {
     return () => {
       if (sessionCheckInterval.current) clearInterval(sessionCheckInterval.current);
     };
-  }, []);
+  }, []); */
 
   const handleAdminAuthSuccess = (user: any, token: string) => {
-    setAdminUser(user);
-    setAdminSessionToken(token);
-    sessionStorage.setItem('admin_id', user.id);
-    sessionStorage.setItem('admin_token', token);
-    setIsAdminAuthOpen(false);
-    setIsAdminOpen(true);
-    console.log('[v0] Admin authenticated successfully');
+    console.log('[v0] Auth would happen here');
   };
 
   const handleAdminLogout = () => {
-    setAdminUser(null);
-    setAdminSessionToken(null);
-    sessionStorage.removeItem('admin_id');
-    sessionStorage.removeItem('admin_token');
-    setIsAdminOpen(false);
-    setIsAdminAuthOpen(false);
-    console.log('[v0] Admin logged out');
+    console.log('[v0] Logout would happen here');
   };
 
   const handleAdminPanelOpen = () => {
-    if (!adminUser || !adminSessionToken) {
-      setIsAdminAuthOpen(true);
-    } else {
-      setIsAdminOpen(true);
-    }
+    setIsAdminOpen(true);
   };
 
   const toggleLanguage = () => {
@@ -1243,11 +1227,8 @@ Please confirm or contact the guest. Thank you! 🙏`;
     ? MENU_HIGHLIGHTS.map(translateMenuItem) 
     : MENU_HIGHLIGHTS.filter(item => item.category === selectedCategory).map(translateMenuItem);
 
-  const googleClientId = process.env.VITE_GOOGLE_CLIENT_ID || 'test-client-id';
-
   return (
-    <GoogleOAuthProvider clientId={googleClientId}>
-      <div className="min-h-screen w-full overflow-x-hidden flex flex-col font-sans text-charcoal bg-cream-soft relative antialiased">
+    <div className="min-h-screen w-full overflow-x-hidden flex flex-col font-sans text-charcoal bg-cream-soft relative antialiased">
       
       {/* TOP PROMOTIONAL ANNOUNCEMENT BAR */}
       <div id="promo-bar" className="bg-charcoal text-cream-soft py-2 px-4 border-b border-gold/15 flex justify-center items-center gap-2 relative overflow-hidden text-center text-[11px] sm:text-xs font-semibold z-50">
@@ -1713,7 +1694,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
               <p className="font-serif italic text-base sm:text-lg text-charcoal leading-relaxed font-light">
                 &ldquo;{lang === 'en' 
                   ? OWNER_UPDATE.content 
-                  : 'बाहिर कुरकुरा, भित्र रसिलो 🍗🔥 सुत्र लाउन्ज, हेटौंडाको हाम्रो विशेष चिकेन स्यान्डविच उत्कृष्ट स्वाद, ताजा सामग्री र एकदमै मीठो क्रन्चले भरिएको छ। एकचोटि चाखेपछि तपाईं बारम्बार खाइरहनुहुनेछ 😋🥪 सहरकै उत्कृष्ट खानाको अनुभव लिन हामीकहाँ पाल्नुहोस्!'
+                  : 'बाहिर कुरकुरा, भित्र रसिलो 🍗🔥 सुत्र लाउन्ज, हेटौंडाको हाम्रो विशेष चिकेन स्यान्��विच उत्कृष्ट स्वाद, ताजा सामग्री र एकदमै मीठो क्रन्चले भरिएको छ। एकचोटि चाखेपछि तपाईं बारम्बार खाइरहनुहुनेछ 😋🥪 सहरकै उत्कृष्ट खानाको अनुभव लिन हामीकहाँ पाल्नुहोस्!'
                 }&rdquo;
               </p>
               <div className="flex flex-wrap gap-2">
@@ -3468,9 +3449,9 @@ Please confirm or contact the guest. Thank you! 🙏`;
       </footer>
 
       {/* SECURED CONSOLE PORTAL PANEL */}
-      {isAdminAuthOpen && (
+      {/* {isAdminAuthOpen && (
         <AdminAuthModal onAuthSuccess={handleAdminAuthSuccess} />
-      )}
+      )} */}
       
       <AdminPanel 
         isOpen={isAdminOpen}
@@ -3501,7 +3482,6 @@ Please confirm or contact the guest. Thank you! 🙏`;
         setDishImageUrl={setDishImageUrl}
       />
 
-      </div>
-    </GoogleOAuthProvider>
+    </div>
   );
 }
