@@ -175,12 +175,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
     loadAdminData();
 
     // Subscribe to real-time updates
+    console.log('[v0] Setting up Supabase real-time subscriptions...');
     const subReservations = supabaseService.subscribeToReservations((list: any) => {
+      console.log('[v0] Reservations updated:', list.length);
       list.sort((a: any, b: any) => new Date(b.created_at || b.reservation_date || 0).getTime() - new Date(a.created_at || a.reservation_date || 0).getTime());
       setReservations(list);
     });
 
     const subOrders = supabaseService.subscribeToOrders((list: any) => {
+      console.log('[v0] Orders updated:', list.length);
       const mockNames = ["Dipesh K. Shrestha", "Aakash Rai", "Kritisha Giri"];
       const realOrders = list.filter((ord: any) => !mockNames.includes(ord.customer_name));
       realOrders.sort((a: any, b: any) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
@@ -188,12 +191,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
     });
 
     const subHours = supabaseService.subscribeToBusinessHours((hours: any) => {
+      console.log('[v0] Business hours updated');
       const hoursList = Object.values(hours || {}).sort((a: any, b: any) => {
         const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
         return days.indexOf(a.id || '') - days.indexOf(b.id || '');
       });
       setBusinessHours(hoursList as any);
     });
+    
+    console.log('[v0] Subscriptions created:', { subReservations, subOrders, subHours });
 
     // 6. Gallery Catalog
     const savedPhotos = localStorage.getItem('sutra_gallery_photos') || localStorage.getItem('sutra_admin_gallery_photos');
