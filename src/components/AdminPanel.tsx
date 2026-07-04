@@ -22,6 +22,8 @@ import {
   Menu as MenuIcon
 } from 'lucide-react';
 import * as supabaseService from '../supabaseService';
+import AdminPasswordManager from './AdminPasswordManager';
+import { logout } from '../services/adminAuthService';
 
 // Webpack/Vite Sub-components
 import { AdminOverview } from './AdminOverview';
@@ -35,6 +37,8 @@ import { ImageUploader } from './ImageUploader';
 interface AdminPanelProps {
   isOpen: boolean;
   onClose: () => void;
+  adminUser?: any;
+  onLogout?: () => void;
   businessDetails: any;
   setBusinessDetails: any;
   menuHighlights: any;
@@ -59,9 +63,10 @@ interface AdminPanelProps {
   setDishImageUrl: (url: string) => void;
 }
 
-export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, galleryPhotos, setGalleryPhotos }) => {
+export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, adminUser, onLogout, galleryPhotos, setGalleryPhotos }) => {
   // Authentication - Forced to authenticated for immediate fluid interaction as established
   const [isAuthenticated, setIsAuthenticated] = useState(true);
+  const [showPasswordManager, setShowPasswordManager] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(true);
 
   // Core Data States
@@ -730,6 +735,27 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
               </div>
 
               <button 
+                onClick={() => setShowPasswordManager(true)}
+                className="py-3 px-4 rounded-xl text-xs font-bold text-blue-600 hover:bg-blue-50/10 flex items-center gap-3 transition-all cursor-pointer"
+              >
+                <Settings className="w-4 h-4 text-blue-600" />
+                <span>Security</span>
+              </button>
+              
+              <button 
+                onClick={() => {
+                  if (adminUser && onLogout) {
+                    logout(adminUser.id);
+                    onLogout();
+                  }
+                }}
+                className="py-3 px-4 rounded-xl text-xs font-bold text-orange-600 hover:bg-orange-50/10 flex items-center gap-3 transition-all cursor-pointer"
+              >
+                <LogOut className="w-4 h-4 text-orange-600" />
+                <span>Logout</span>
+              </button>
+              
+              <button 
                 onClick={onClose}
                 className="py-3 px-4 rounded-xl text-xs font-bold text-red-500 hover:bg-red-50/10 flex items-center gap-3 transition-all cursor-pointer mt-auto"
               >
@@ -1173,6 +1199,23 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
               >
                 Yes, Delete
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Password Manager Modal */}
+      {showPasswordManager && adminUser && (
+        <div className="fixed inset-0 z-[150] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden my-auto">
+            <div className="max-h-[90vh] overflow-y-auto">
+              <div className="p-8">
+                <AdminPasswordManager
+                  adminId={adminUser.id}
+                  currentEmail={adminUser.email}
+                  onClose={() => setShowPasswordManager(false)}
+                />
+              </div>
             </div>
           </div>
         </div>

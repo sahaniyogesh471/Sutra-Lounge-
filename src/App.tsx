@@ -35,7 +35,10 @@ import { getImageUrl } from './utils';
 import { InquiryForm } from './types';
 import { LazyImage } from './components/LazyImage';
 import { AdminPanel } from './components/AdminPanel';
+import AdminAuthModal from './components/AdminAuthModal';
 import * as supabaseService from './supabaseService';
+import { verifySession } from './services/adminAuthService';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import { 
   LanguageType, 
   STATIC_TRANSLATIONS, 
@@ -453,6 +456,10 @@ export default function App() {
 
   // Local state for the Admin Panel modal interface
   const [isAdminOpen, setIsAdminOpen] = useState(false);
+  const [isAdminAuthOpen, setIsAdminAuthOpen] = useState(false);
+  const [adminUser, setAdminUser] = useState<any>(null);
+  const [adminSessionToken, setAdminSessionToken] = useState<string | null>(null);
+  const sessionCheckInterval = useRef<NodeJS.Timeout | null>(null);
 
   const [heroImageUrl, setHeroImageUrl] = useState(() => {
     return safeStorage.getItem('sutra_hero_image') || '';
@@ -518,6 +525,83 @@ export default function App() {
       document.title = "Sutra Lounge - Best Restaurant & Lounge in Hetauda, Nepal";
     }
   }, [lang]);
+
+  // Check admin session on app load and set up session verification
+  useEffect(() => {
+    const checkAdminSession = async () => {
+      try {
+        const storedAdminId = sessionStorage.getItem('admin_id');
+        const storedToken = sessionStorage.getItem('admin_token');
+
+        if (storedAdminId && storedToken) {
+          const isValid = await verifySession(storedAdminId, storedToken);
+          if (isValid) {
+            setAdminUser({ id: storedAdminId });
+            setAdminSessionToken(storedToken);
+            console.log('[v0] Admin session restored from storage');
+          } else {
+            // Session expired
+            sessionStorage.removeItem('admin_id');
+            sessionStorage.removeItem('admin_token');
+            setAdminUser(null);
+            setAdminSessionToken(null);
+            console.log('[v0] Admin session expired');
+          }
+        }
+      } catch (error) {
+        console.error('[v0] Session check error:', error);
+      }
+    };
+
+    checkAdminSession();
+
+    // Set up periodic session verification (every 5 minutes)
+    sessionCheckInterval.current = setInterval(() => {
+      if (adminUser && adminSessionToken) {
+        verifySession(adminUser.id, adminSessionToken).then((isValid) => {
+          if (!isValid) {
+            setAdminUser(null);
+            setAdminSessionToken(null);
+            setIsAdminOpen(false);
+            setIsAdminAuthOpen(true);
+            console.log('[v0] Session expired, showing auth modal');
+          }
+        });
+      }
+    }, 5 * 60 * 1000);
+
+    return () => {
+      if (sessionCheckInterval.current) clearInterval(sessionCheckInterval.current);
+    };
+  }, []);
+
+  const handleAdminAuthSuccess = (user: any, token: string) => {
+    setAdminUser(user);
+    setAdminSessionToken(token);
+    sessionStorage.setItem('admin_id', user.id);
+    sessionStorage.setItem('admin_token', token);
+    setIsAdminAuthOpen(false);
+    setIsAdminOpen(true);
+    console.log('[v0] Admin authenticated successfully');
+  };
+
+  const handleAdminLogout = () => {
+    setAdminUser(null);
+    setAdminSessionToken(null);
+    sessionStorage.removeItem('admin_id');
+    sessionStorage.removeItem('admin_token');
+    setIsAdminOpen(false);
+    setIsAdminAuthOpen(false);
+    console.log('[v0] Admin logged out');
+  };
+
+  const handleAdminPanelOpen = () => {
+    if (!adminUser || !adminSessionToken) {
+      setIsAdminAuthOpen(true);
+    } else {
+      setIsAdminOpen(true);
+    }
+  };
 
   const toggleLanguage = () => {
     const newLang = lang === 'en' ? 'ne' : 'en';
@@ -1159,8 +1243,11 @@ Please confirm or contact the guest. Thank you! 🙏`;
     ? MENU_HIGHLIGHTS.map(translateMenuItem) 
     : MENU_HIGHLIGHTS.filter(item => item.category === selectedCategory).map(translateMenuItem);
 
+  const googleClientId = process.env.VITE_GOOGLE_CLIENT_ID || '';
+
   return (
-    <div className="min-h-screen w-full overflow-x-hidden flex flex-col font-sans text-charcoal bg-cream-soft relative antialiased">
+    <GoogleOAuthProvider clientId={googleClientId}>
+      <div className="min-h-screen w-full overflow-x-hidden flex flex-col font-sans text-charcoal bg-cream-soft relative antialiased">
       
       {/* TOP PROMOTIONAL ANNOUNCEMENT BAR */}
       <div id="promo-bar" className="bg-charcoal text-cream-soft py-2 px-4 border-b border-gold/15 flex justify-center items-center gap-2 relative overflow-hidden text-center text-[11px] sm:text-xs font-semibold z-50">
@@ -1795,7 +1882,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
               <p className="text-xs text-charcoal-muted font-light leading-relaxed">
                 {lang === 'en' 
                   ? 'Explore our full, dynamically filterable menu below featuring Appetizers, Mocktails, Indian Curries and cafe bites, or complete a secure reservation inquiry to experience modern restaurant hospitality at Nagar Bikash Samiti Marg, Huprachaur.'
-                  : 'हाम्रो पूर्ण मेनुमा एपीटाइजर, मकटेल, भारतीय ��रिकार र क्याफे खाजाहरू उपलब्ध छन्। नगर विकास समिति मार्ग, हुप्रचौरमा सुत्र आतिथ्यता अनुभव गर्न बुकिङ सोधपुछ फारम भर्नुहोस्।'}
+                  : 'हाम्रो पूर्ण मेनुमा एपीटाइजर, मकटेल, भारतीय ��रिकार र क्याफे खाज��हरू उपलब्ध छन्। नगर विकास समिति मार्ग, हुप्रचौरमा सुत्र आतिथ्यता अनुभव गर्न बुकिङ सोधपुछ फारम भर्नुहोस्।'}
               </p>
             </div>
             
@@ -2669,7 +2756,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
                         <option value="Dine-In">{lang === 'en' ? 'Dine-In Table Booking' : 'भोजन हल क्याबिन बुकिङ (Dine-In)'}</option>
                         <option value="Takeout">{lang === 'en' ? 'Takeout / Pickup Pre-Order' : 'खाना पार्सल/टेक-अवे अर्डर'}</option>
                         <option value="Catering">{lang === 'en' ? 'Event Catering Packages' : 'विशेष कार्यक्रम खानपान प्याकेज'}</option>
-                        <option value="General">{lang === 'en' ? 'General Inquiry' : 'सामान्य सोधपुछ'}</option>
+                        <option value="General">{lang === 'en' ? 'General Inquiry' : 'सा���ान्य सोधपुछ'}</option>
                       </select>
                     </div>
                   </div>
@@ -2906,7 +2993,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
                       <strong className="text-charcoal-muted">{lang === 'en' ? 'Date & Time:' : 'मिति र समय:'}</strong> {form.date} &bull; {formatTimeTo12Hour(form.time)}
                     </p>
                     <p className="text-charcoal">
-                      <strong className="text-charcoal-muted">{lang === 'en' ? 'Phone:' : 'फोन नम्बर:'}</strong> {form.phone}
+                      <strong className="text-charcoal-muted">{lang === 'en' ? 'Phone:' : 'फ���न नम्बर:'}</strong> {form.phone}
                     </p>
                   </div>
 
@@ -3165,7 +3252,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
                   <p className="text-[11px] text-charcoal-muted leading-relaxed font-light">
                     {lang === 'en'
                       ? 'Sutra Lounge is centrally located along Nagar Bikash Samiti Marg in Hetauda. We feature designated customer vehicle slots directly in front of the entryway, enabling seamless local ride drops and safe parking for motorbikes and cars.'
-                      : 'सुत्र लाउन्ज हेटौंडाको नगर विकास समिति मार्ग क्षेत्रमा सुलभ रूपमा अवस्थित छ। हाम्रो प्रवेशद्वारको ठीक अगाडि ग्राहकहरूका लागि सवारी साधन तथा मोटरसाइकलहरू व्यवस्थित र सुरक्षित रूपमा पार्किङ गर्ने पर्याप्त ठाउँ छ।'
+                      : 'सुत्र लाउन्ज हेटौंडाको नगर विकास समिति मार्ग क्षेत्रमा सुलभ रूपमा अवस्थित छ। हाम्रो प्रवेशद्वारको ठीक अगाडि ग्राहकहरूका लागि सवारी साधन तथा मोटरसाइकलहरू व��यवस्थित र सुरक्षित रूपमा पार्किङ गर्ने पर्याप्त ठाउँ छ।'
                     }
                   </p>
                 </div>
@@ -3362,7 +3449,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
             <span className="text-cream-soft/20 hidden sm:inline">|</span>
             <button 
               type="button" 
-              onClick={() => setIsAdminOpen(true)}
+              onClick={handleAdminPanelOpen}
               className="text-gold/60 hover:text-gold hover:underline font-semibold cursor-pointer py-0.5 px-1.5 rounded transition-all flex items-center gap-1"
             >
               <Lock className="w-3 h-3 text-gold/80" />
@@ -3381,9 +3468,15 @@ Please confirm or contact the guest. Thank you! 🙏`;
       </footer>
 
       {/* SECURED CONSOLE PORTAL PANEL */}
+      {isAdminAuthOpen && (
+        <AdminAuthModal onAuthSuccess={handleAdminAuthSuccess} />
+      )}
+      
       <AdminPanel 
         isOpen={isAdminOpen}
         onClose={() => setIsAdminOpen(false)}
+        adminUser={adminUser}
+        onLogout={handleAdminLogout}
         businessDetails={businessDetails}
         setBusinessDetails={setBusinessDetails}
         menuHighlights={menuHighlights}
@@ -3408,6 +3501,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
         setDishImageUrl={setDishImageUrl}
       />
 
-    </div>
+      </div>
+    </GoogleOAuthProvider>
   );
 }
