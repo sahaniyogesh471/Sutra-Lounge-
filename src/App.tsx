@@ -1807,7 +1807,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
               <p className="text-xs text-charcoal-muted font-light leading-relaxed">
                 {lang === 'en' 
                   ? 'Explore our full, dynamically filterable menu below featuring Appetizers, Mocktails, Indian Curries and cafe bites, or complete a secure reservation inquiry to experience modern restaurant hospitality at Nagar Bikash Samiti Marg, Huprachaur.'
-                  : 'हाम्रो पूर्ण मेनुमा एपीटाइजर, मकटेल, भारतीय परिकार र क्याफे खाजाहरू उपलब्ध छन्। नगर विकास समिति मार्ग, हुप्रचौरमा सुत्र आतिथ्यता अनुभव गर्न बुकिङ सोधपुछ फारम भर्नुहोस्।'}
+                  : 'हाम्रो पूर्ण मेनुमा एपीटाइजर, मकटेल, भारतीय ��रिकार र क्याफे खाजाहरू उपलब्ध छन्। नगर विकास समिति मार्ग, हुप्रचौरमा सुत्र आतिथ्यता अनुभव गर्न बुकिङ सोधपुछ फारम भर्नुहोस्।'}
               </p>
             </div>
             
@@ -2141,11 +2141,28 @@ Please confirm or contact the guest. Thank you! 🙏`;
       <section ref={storySectionRef} id="story-section" className="py-16 md:py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto overflow-hidden scroll-mt-24">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           
+          {/* Ambiance Image — Left Side */}
           <motion.div 
             initial="hidden"
             animate="visible"
             variants={slideInLeft}
-            className="lg:col-span-5 text-left space-y-4"
+            className="lg:col-span-5 aspect-[4/3] lg:aspect-auto lg:h-full min-h-[300px] rounded-2xl overflow-hidden shadow-lg border border-cream-deep"
+          >
+            <LazyImage 
+              src={getImageUrl('https://i.ibb.co/Cpg2qJ7x/sutra-story-ambiance.png', 'gallery')}
+              alt="Sutra Lounge Restaurant Ambiance - Warm and Inviting Interior"
+              wrapperClassName="w-full h-full"
+              className="w-full h-full object-cover"
+              referrerPolicy="no-referrer"
+            />
+          </motion.div>
+
+          {/* Story Text — Right Side */}
+          <motion.div 
+            initial="hidden"
+            animate="visible"
+            variants={slideInRight}
+            className="lg:col-span-7 text-left space-y-4"
           >
             <span className="font-mono text-xs tracking-widest text-gold uppercase block font-bold">
               {lang === 'en' ? 'Our Aesthetic Story' : 'हाम्रो सुन्दर आन्तरिक वातावरण'}
@@ -2160,32 +2177,6 @@ Please confirm or contact the guest. Thank you! 🙏`;
                 : 'नगर विकास समिति मार्ग, हेटौंडा ४४१०७ मा अवस्थित, सुत्र लाउन्ज एक विशेष उद्देश्यका साथ निर्माण गरिएको हो: जहाँ आउने प्रत्येक पाहुनाले पूर्ण रूपमा न्यानो आतिथ्यता र आरामदायी वातावरणको प्रत्यक्ष अनुभूति गर्न सकून्।'
               }
             </p>
-          </motion.div>
-
-          <motion.div 
-            initial="hidden"
-            animate="visible"
-            variants={slideInRight}
-            className="lg:col-span-7 border-l-0 lg:border-l border-cream-deep pl-0 lg:pl-10 text-left space-y-6"
-          >
-            <p className="text-sm sm:text-base text-charcoal leading-relaxed font-light">
-              {t('story_p1')}
-            </p>
-            <p className="text-sm text-charcoal-muted leading-relaxed font-light">
-              {lang === 'en' 
-                ? "Whether you represent local families holding weekend meetups, corporate executives arranging quick business coffee briefings, or food lovers carrying home takeout, you're supported by friendly floor personnel ready to perfect every detail of your meal. No wonder we hold a solid reputation across Hetauda, Nepal." 
-                : "चाहे तपाईं सप्ताहान्तमा भेटघाट गर्ने स्थानीय परिवार हुनुहोस्, कर्पोरेट बैठकहरूको लागि आउने नेतृत्वकर्ताहरू हुनुहोस्, वा घरमा खाना लैजाने फुड लभरहरू; हाम्रा विनम्र र दक्ष स्टाफहरू तपाईंको सेवामा हरदम तत्पर छन्। त्यसैले त सुत्र लाउन्ज हेटौंडाको पहिलो रोजाइ बन्न सफल भएको छ।"
-              }
-            </p>
-            
-            <div className="p-5 bg-gold-light border border-gold/15 rounded-xl">
-              <p className="font-serif italic text-sm text-gold">
-                &ldquo;{lang === 'en' 
-                  ? 'A clean space, professional barista coffees, crispy sandwhiches, and real warm Nepalese hospitality.' 
-                  : 'एक सफा र स्वच्छ ठाउँ, व्यावसायिक ब्यारिस्टा कफी, क्रिस्पी स्यान्डविच र न्यानो र हार्दिक नेपाली आतिथ्यता।'
-                }&rdquo;
-              </p>
-            </div>
           </motion.div>
 
         </div>

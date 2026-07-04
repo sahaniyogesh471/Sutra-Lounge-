@@ -1,5 +1,13 @@
 import { BusinessInfo, Service, FAQItem, MenuItem, Review, GalleryPhoto } from './types';
 
+// High-quality service and ambiance images hosted on ImgBB CDN
+export const SERVICE_IMAGES = {
+  dine_in: 'https://i.ibb.co/Kx1nd960/sutra-service-dine-in.png',
+  events: 'https://i.ibb.co/wFJTzBNT/sutra-service-events.png',
+  beverages: 'https://i.ibb.co/qL8L3ff2/sutra-service-beverages.png',
+  story: 'https://i.ibb.co/Cpg2qJ7x/sutra-story-ambiance.png',
+};
+
 export const BUSINESS_DETAILS: BusinessInfo = {
   name: 'Sutra Lounge Hetauda',
   tagline: 'The gamechanger in the restaurant & lounge scene in Hetauda. Offering the most sumptuous food & drinks along with good music and great times.',
