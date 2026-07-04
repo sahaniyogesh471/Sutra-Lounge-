@@ -508,9 +508,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
   const handleSaveSettingsAndHours = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      console.log('[v0] Saving settings:', settings);
       await supabaseService.updateRestaurantSettings(settings);
+      console.log('[v0] Settings saved successfully');
 
+      console.log('[v0] Updating business hours for', businessHours.length, 'days');
       for (const day of businessHours) {
+        console.log('[v0] Updating day:', day.id, day.start_time, '-', day.end_time);
         await supabaseService.updateBusinessHoursForDay(day.id, {
           weekday: day.weekday,
           is_open: day.is_open,
@@ -519,9 +523,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
         });
       }
 
-      triggerToast("Operational metrics & hours saved");
+      console.log('[v0] All business hours updated successfully');
+      triggerToast("Operational metrics & hours saved successfully");
     } catch (e: any) {
-      triggerToast(`Failed: ${e.message}`);
+      console.error('[v0] Error saving settings:', e);
+      triggerToast(`Failed to save: ${e.message}`);
     }
   };
 

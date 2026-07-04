@@ -25,15 +25,30 @@ export async function getRestaurantSettings() {
 }
 
 export async function updateRestaurantSettings(settings: any) {
-  const { data, error } = await supabase
-    .from('restaurant_settings')
-    .update(settings)
-    .eq('id', settings.id || (await getRestaurantSettings())?.id)
-    .select()
-    .single()
+  try {
+    // Get the first (and typically only) restaurant settings ID
+    const { data: existing, error: fetchError } = await supabase
+      .from('restaurant_settings')
+      .select('id')
+      .limit(1)
+      .single()
 
-  if (error) throw new Error(error.message)
-  return data
+    if (fetchError || !existing?.id) {
+      throw new Error('No restaurant settings found')
+    }
+
+    const { data, error } = await supabase
+      .from('restaurant_settings')
+      .update(settings)
+      .eq('id', existing.id)
+      .select()
+      .single()
+
+    if (error) throw new Error(error.message)
+    return data
+  } catch (err: any) {
+    throw new Error(err.message || 'Failed to update restaurant settings')
+  }
 }
 
 // ============================================================================
