@@ -21,19 +21,7 @@ import {
   ChevronRight,
   Menu as MenuIcon
 } from 'lucide-react';
-import { 
-  db, 
-  handleFirestoreError, 
-  OperationType,
-  collection, 
-  doc, 
-  onSnapshot, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  setDoc,
-  getDoc
-} from '../firebase';
+import * as supabaseService from '../supabaseService';
 
 // Webpack/Vite Sub-components
 import { AdminOverview } from './AdminOverview';
@@ -149,63 +137,62 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
   useEffect(() => {
     if (!isAuthenticated) return;
 
-    // 1. Reservations
-    const unsubReservations = onSnapshot(collection(db, 'reservations'), (snapshot) => {
-      const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
-      list.sort((a, b) => new Date(b.created_at || b.reservation_date || 0).getTime() - new Date(a.created_at || a.reservation_date || 0).getTime());
-      setReservations(list);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'reservations');
-    });
+    // Load all data from Supabase
+    async function loadAdminData() {
+      try {
+        const [reservations, menuItems, orders, settings, businessHours] = await Promise.all([
+          supabaseService.getReservations(),
+          supabaseService.getMenuItems(),
+          supabaseService.getOrders(),
+          supabaseService.getRestaurantSettings(),
+          supabaseService.getBusinessHours()
+        ]);
 
-    // 2. Menu Items
-    const unsubMenu = onSnapshot(collection(db, 'menu_items'), (snapshot) => {
-      const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
-      setMenuItems(list);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'menu_items');
-    });
+        // Sort reservations by date
+        reservations.sort((a: any, b: any) => new Date(b.created_at || b.reservation_date || 0).getTime() - new Date(a.created_at || a.reservation_date || 0).getTime());
+        setReservations(reservations);
+        setMenuItems(menuItems);
 
-    // 3. Online Orders
-    const unsubOrders = onSnapshot(collection(db, 'online_orders'), (snapshot) => {
-      const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
-      const mockNames = ["Dipesh K. Shrestha", "Aakash Rai", "Kritisha Giri"];
-      const realOrders = list.filter(ord => !mockNames.includes(ord.customer_name));
-      
-      realOrders.sort((a,b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
-      setOrders(realOrders);
+        // Filter and sort orders
+        const mockNames = ["Dipesh K. Shrestha", "Aakash Rai", "Kritisha Giri"];
+        const realOrders = orders.filter((ord: any) => !mockNames.includes(ord.customer_name));
+        realOrders.sort((a: any, b: any) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+        setOrders(realOrders);
 
-      // Clean up existing dummy orders in database background
-      const dummyDocs = list.filter(ord => mockNames.includes(ord.customer_name));
-      if (dummyDocs.length > 0) {
-        dummyDocs.forEach(async (docObj) => {
-          try {
-            await deleteDoc(doc(db, 'online_orders', docObj.id));
-          } catch (e) {
-            console.warn("Error purging mock doc:", e);
-          }
+        setSettings(settings);
+
+        // Convert business hours object to array and sort
+        const hoursList = Object.values(businessHours || {}).sort((a: any, b: any) => {
+          const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+          return days.indexOf(a.id || '') - days.indexOf(b.id || '');
         });
+        setBusinessHours(hoursList as any);
+      } catch (error) {
+        console.error('Error loading admin data:', error);
       }
-    }, (error) => {
-      console.warn("Could not load orders: ", error);
+    }
+
+    loadAdminData();
+
+    // Subscribe to real-time updates
+    const subReservations = supabaseService.subscribeToReservations((list: any) => {
+      list.sort((a: any, b: any) => new Date(b.created_at || b.reservation_date || 0).getTime() - new Date(a.created_at || a.reservation_date || 0).getTime());
+      setReservations(list);
     });
 
-    // 4. Restaurant Settings
-    const unsubSettings = onSnapshot(collection(db, 'restaurant_settings'), (snapshot) => {
-      const defaultDoc = snapshot.docs.find(doc => doc.id === 'default');
-      if (defaultDoc) {
-        setSettings(defaultDoc.data());
-      }
+    const subOrders = supabaseService.subscribeToOrders((list: any) => {
+      const mockNames = ["Dipesh K. Shrestha", "Aakash Rai", "Kritisha Giri"];
+      const realOrders = list.filter((ord: any) => !mockNames.includes(ord.customer_name));
+      realOrders.sort((a: any, b: any) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+      setOrders(realOrders);
     });
 
-    // 5. Business Hours
-    const unsubHours = onSnapshot(collection(db, 'business_hours'), (snapshot) => {
-      const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
-      const sorted = list.sort((a, b) => {
+    const subHours = supabaseService.subscribeToBusinessHours((hours: any) => {
+      const hoursList = Object.values(hours || {}).sort((a: any, b: any) => {
         const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-        return days.indexOf(a.id) - days.indexOf(b.id);
+        return days.indexOf(a.id || '') - days.indexOf(b.id || '');
       });
-      setBusinessHours(sorted);
+      setBusinessHours(hoursList as any);
     });
 
     // 6. Gallery Catalog
@@ -274,11 +261,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
     }
 
     return () => {
-      unsubReservations();
-      unsubMenu();
-      unsubOrders();
-      unsubSettings();
-      unsubHours();
+      try {
+        subReservations?.unsubscribe?.();
+        subOrders?.unsubscribe?.();
+        subHours?.unsubscribe?.();
+      } catch (e) {
+        console.warn('Error unsubscribing:', e);
+      }
     };
   }, [isAuthenticated]);
 
@@ -330,7 +319,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
         created_at: new Date().toISOString()
       };
 
-      await addDoc(collection(db, 'online_orders'), payload);
+      await supabaseService.addOrder(payload);
       setShowAddOrderModal(false);
       setNewOrderForm({
         customer_name: '',
@@ -382,7 +371,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
   // Order state status mutations
   const handleUpdateOrderStatus = async (orderId: string, status: string) => {
     try {
-      await updateDoc(doc(db, 'online_orders', orderId), { status });
+      await supabaseService.updateOrder(orderId, { status });
       triggerToast(`Order status bumped to ${status.toUpperCase()}`);
     } catch (e: any) {
       triggerToast(`Failed: ${e.message}`);
@@ -391,7 +380,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
 
   const handleUpdateOrderPaymentStatus = async (orderId: string, payment_status: string) => {
     try {
-      await updateDoc(doc(db, 'online_orders', orderId), { payment_status });
+      await supabaseService.updateOrder(orderId, { payment_status });
       triggerToast(`Billing updated to ${payment_status.toUpperCase()}`);
     } catch (e: any) {
       triggerToast(`Error: ${e.message}`);
@@ -405,7 +394,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
       message: "Are you sure you want to remove this order completely from logs?",
       onConfirm: async () => {
         try {
-          await deleteDoc(doc(db, 'online_orders', orderId));
+          await supabaseService.deleteOrder(orderId);
           triggerToast("Order removed cleanly");
         } catch (e: any) {
           triggerToast(`Error: ${e.message}`);
@@ -417,7 +406,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
   // Reservation functions
   const handleUpdateReservationStatus = async (resId: string, status: string) => {
     try {
-      await updateDoc(doc(db, 'reservations', resId), { status });
+      await supabaseService.updateReservation(resId, { status });
       triggerToast(`Booking status updated to ${status.toUpperCase()}`);
     } catch (e: any) {
       triggerToast(`Update failed: ${e.message}`);
@@ -431,7 +420,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
       message: "Are you sure you want to delete this reservation?",
       onConfirm: async () => {
         try {
-          await deleteDoc(doc(db, 'reservations', resId));
+          await supabaseService.deleteReservation(resId);
           triggerToast("Reservation deleted successfully");
         } catch (e: any) {
           triggerToast(`Failed: ${e.message}`);
@@ -457,12 +446,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
       };
 
       if (editingMenuItem) {
-        await updateDoc(doc(db, 'menu_items', editingMenuItem.id), payload);
+        await supabaseService.updateMenuItem(editingMenuItem.id, payload);
         setEditingMenuItem(null);
         triggerToast("Dish details updated");
       } else {
         const id = "m_" + Date.now();
-        await setDoc(doc(db, 'menu_items', id), {
+        await supabaseService.addMenuItem({
+          id,
           ...payload,
           created_at: new Date().toISOString()
         });
@@ -490,7 +480,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
       message: "Are you sure you want to remove this menu item from Sutralounge streams?",
       onConfirm: async () => {
         try {
-          await deleteDoc(doc(db, 'menu_items', id));
+          await supabaseService.deleteMenuItem(id);
           triggerToast("Dish retired from active offering");
         } catch (e: any) {
           triggerToast(`Error deleting: ${e.message}`);
@@ -501,7 +491,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
 
   const handleToggleMenuBoolean = async (id: string, field: 'is_active' | 'is_featured', currentValue: boolean) => {
     try {
-      await updateDoc(doc(db, 'menu_items', id), { [field]: !currentValue });
+      await supabaseService.updateMenuItem(id, { [field]: !currentValue });
       triggerToast(`Dish ${field === 'is_active' ? 'status' : ' spotlight'} modified`);
     } catch (e: any) {
       triggerToast(`Modification error: ${e.message}`);
@@ -512,15 +502,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
   const handleSaveSettingsAndHours = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await setDoc(doc(db, 'restaurant_settings', 'default'), settings, { merge: true });
+      await supabaseService.updateRestaurantSettings(settings);
 
       for (const day of businessHours) {
-        await setDoc(doc(db, 'business_hours', day.id), {
+        await supabaseService.updateBusinessHoursForDay(day.id, {
           weekday: day.weekday,
           is_open: day.is_open,
           start_time: day.start_time,
           end_time: day.end_time
-        }, { merge: true });
+        });
       }
 
       triggerToast("Operational metrics & hours saved");
@@ -599,7 +589,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
     try {
       const dish = menuItems.find(m => m.id === dishId);
       if (!dish) return;
-      await updateDoc(doc(db, 'menu_items', dishId), { image_url: imageUrl });
+      await supabaseService.updateMenuItem(dishId, { image_url: imageUrl });
       triggerToast(`Photo thumbnail assigned to ${dish.name}!`);
     } catch (e: any) {
       triggerToast(`Assignment error: ${e.message}`);
@@ -789,12 +779,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
                 onSaveHours={async () => {
                   try {
                     for (const day of businessHours) {
-                      await setDoc(doc(db, 'business_hours', day.id), {
+                      await supabaseService.updateBusinessHoursForDay(day.id, {
                         weekday: day.weekday,
                         is_open: day.is_open,
                         start_time: day.start_time,
                         end_time: day.end_time
-                      }, { merge: true });
+                      });
                     }
                   } catch (e: any) {
                     triggerToast(`Save error: ${e.message}`);

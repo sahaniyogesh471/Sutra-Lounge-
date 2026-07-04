@@ -35,15 +35,7 @@ import { getImageUrl } from './utils';
 import { InquiryForm } from './types';
 import { LazyImage } from './components/LazyImage';
 import { AdminPanel } from './components/AdminPanel';
-import { 
-  db, 
-  seedDatabaseIfEmpty, 
-  handleFirestoreError, 
-  OperationType,
-  collection, 
-  onSnapshot, 
-  addDoc 
-} from './firebase';
+import * as supabaseService from './supabaseService';
 import { 
   LanguageType, 
   STATIC_TRANSLATIONS, 
@@ -194,72 +186,72 @@ export default function App() {
   const [dbMenuItems, setDbMenuItems] = useState<any[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<any | null>(null);
 
-  // Trigger seeding once on app load
+  // Load initial data from Supabase on app load
   useEffect(() => {
-    seedDatabaseIfEmpty();
+    loadSupabaseData();
   }, []);
 
-  // Listen to Firestore updates
-  useEffect(() => {
-    const unsubReservations = onSnapshot(collection(db, 'reservations'), (snapshot) => {
-      const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setDbReservations(list);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'reservations');
-    });
-    const unsubTables = onSnapshot(collection(db, 'restaurant_tables'), (snapshot) => {
-      const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setDbTables(list);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'restaurant_tables');
-    });
-    const unsubHours = onSnapshot(collection(db, 'business_hours'), (snapshot) => {
-      const list = snapshot.docs.map(doc => ({ weekday: doc.id, ...doc.data() }));
-      setDbBusinessHours(list);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'business_hours');
-    });
-    const unsubBlocked = onSnapshot(collection(db, 'blocked_dates'), (snapshot) => {
-      const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setDbBlockedDates(list);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'blocked_dates');
-    });
-    const unsubSettings = onSnapshot(collection(db, 'restaurant_settings'), (snapshot) => {
-      const defaultDoc = snapshot.docs.find(doc => doc.id === 'default');
-      if (defaultDoc) {
-        const data = defaultDoc.data() || {};
-        setDbSettings({
-          restaurant_name: data.restaurant_name || "Sutra Lounge",
-          restaurant_email: data.restaurant_email || "info@sutralounge.com.np",
-          restaurant_phone: data.restaurant_phone || "+977 9844-500501",
-          restaurant_address: data.restaurant_address || "Nagar Bikash Samiti Marg, Hetauda 44107, Nepal",
-          slot_interval_minutes: Number(data.slot_interval_minutes || 30),
-          booking_notice_hours: Number(data.booking_notice_hours || 2),
-          default_reservation_duration_minutes: Number(data.default_reservation_duration_minutes || 90),
-          max_party_size: Number(data.max_party_size || 20),
-          hero_image_url: data.hero_image_url || "",
-          dish_image_url: data.dish_image_url || ""
-        });
-      }
-    }, (error) => {
-      handleFirestoreError(error, OperationType.GET, 'restaurant_settings');
-    });
-    const unsubMenu = onSnapshot(collection(db, 'menu_items'), (snapshot) => {
-      const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setDbMenuItems(list);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'menu_items');
-    });
+  // Load all data from Supabase
+  async function loadSupabaseData() {
+    try {
+      // Load all tables in parallel
+      const [tables, reservations, businessHours, blockedDates, settings, menuItems] = await Promise.all([
+        supabaseService.getRestaurantTables(),
+        supabaseService.getReservations(),
+        supabaseService.getBusinessHours(),
+        supabaseService.getBlockedDates(),
+        supabaseService.getRestaurantSettings(),
+        supabaseService.getMenuItems()
+      ]);
 
-    return () => {
-      unsubReservations();
-      unsubTables();
-      unsubHours();
-      unsubBlocked();
-      unsubSettings();
-      unsubMenu();
-    };
+      setDbTables(tables);
+      setDbReservations(reservations);
+      setDbBusinessHours(
+        Object.entries(businessHours).map(([key, value]: [string, any]) => ({ 
+          weekday: value.weekday || key, 
+          ...value 
+        }))
+      );
+      setDbBlockedDates(blockedDates.map(date => ({ blocked_date: date, id: date })));
+      setDbSettings({
+        restaurant_name: settings?.restaurant_name || "Sutra Lounge",
+        restaurant_email: settings?.restaurant_email || "sutraloungehtd@gmail.com",
+        restaurant_phone: settings?.restaurant_phone || "+977 9844-500501",
+        restaurant_address: settings?.restaurant_address || "Nagar Bikash Samiti Marg, Hetauda 44107, Nepal",
+        slot_interval_minutes: Number(settings?.slot_interval_minutes || 30),
+        booking_notice_hours: Number(settings?.booking_notice_hours || 2),
+        default_reservation_duration_minutes: Number(settings?.default_reservation_duration_minutes || 90),
+        max_party_size: Number(settings?.max_party_size || 20),
+        hero_image_url: settings?.hero_image_url || "",
+        dish_image_url: settings?.dish_image_url || ""
+      });
+      setDbMenuItems(menuItems);
+    } catch (error) {
+      console.error('Error loading data from Supabase:', error);
+    }
+  }
+
+  // Subscribe to real-time updates
+  useEffect(() => {
+    try {
+      const subReservations = supabaseService.subscribeToReservations(setDbReservations);
+      const subOrders = supabaseService.subscribeToOrders((orders) => {});
+      const subHours = supabaseService.subscribeToBusinessHours((hours) => {
+        const hoursList = Object.entries(hours).map(([key, value]: [string, any]) => ({ 
+          weekday: value.weekday || key, 
+          ...value 
+        }));
+        setDbBusinessHours(hoursList);
+      });
+
+      return () => {
+        subReservations.unsubscribe?.();
+        subOrders.unsubscribe?.();
+        subHours.unsubscribe?.();
+      };
+    } catch (error) {
+      console.error('Error setting up subscriptions:', error);
+    }
   }, []);
 
   // Dynamic slot calculations
@@ -1069,9 +1061,9 @@ export default function App() {
       };
 
       try {
-        await addDoc(collection(db, 'reservations'), resData);
+        await supabaseService.addReservation(resData);
       } catch (err: any) {
-        handleFirestoreError(err, OperationType.CREATE, 'reservations');
+        console.error('Error creating reservation:', err);
       }
       setSubmitSuccess(true);
 
@@ -1709,7 +1701,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
             <p className="text-xs text-charcoal-muted max-w-xl mx-auto font-light leading-relaxed">
               {lang === 'en' 
                 ? "Curated masterly pairings representing the heart, heat, and soul of Sutra Lounge. Expertly prepared with exquisite local spice reductions and freshly sourced ingredients." 
-                : "सुत्र लाउन्जको मुख्य स्वाद र आत्मा प्रतिनिधित्व गर्ने विशेष परिकारहरू। रैथाने नेपाली म��ला र ताजा स्थानीय सामग्रीहरूद्वारा विशेषज्ञताका साथ तयार गरिएको।"}
+                : "सुत्र लाउन्जको मुख्य स्वाद र आत्मा प्रतिनिधित्व गर्ने विशेष परिकारहरू। रैथाने नेपाली म��ला र ताजा स्थानीय साम���्रीहरूद्वारा विशेषज्ञताका साथ तयार गरिएको।"}
             </p>
           </motion.div>
 
@@ -2248,7 +2240,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
             <p className="text-sm text-charcoal-muted pt-2 font-light">
               {lang === 'en'
                 ? `We cherish every voice. Sourced transparently from our active ${BUSINESS_DETAILS.reviewCount} Google Maps reviewers.`
-                : `हामी प्रत्येक प्रतिक्रियाको कदर गर्दछौं। गुगल म्य��प��सका ${BUSINESS_DETAILS.reviewCount}+ सक्रिय समीक्षकहरूबाट पारदर्श�� रूपमा प्राप्त।`
+                : `हामी प्रत्येक प्रतिक्रियाको कदर गर्दछौं। गुगल म्य��प��सका ${BUSINESS_DETAILS.reviewCount}+ सक���रिय समीक्षकहरूबाट पारदर्श�� रूपमा प्राप्त।`
               }
             </p>
           </motion.div>
@@ -2356,7 +2348,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
             className="flex flex-wrap justify-center items-center gap-2.5 mb-10 border-b border-cream-deep pb-6 max-w-xl mx-auto"
           >
             <span className="text-xs font-bold text-charcoal-muted uppercase mr-2 block sm:inline">
-              {lang === 'en' ? 'Filter reviews:' : 'समीक्षा फिल्टर गर्नुहोस्:'}
+              {lang === 'en' ? 'Filter reviews:' : '��मीक्षा फिल्टर गर्नुहोस्:'}
             </span>
             {[
               { id: 'All', label: lang === 'en' ? 'All Feedbacks' : 'सबै प्रतिक्रियाहरू' },
@@ -3252,7 +3244,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
             <p className="text-xs text-cream-soft/60 leading-relaxed font-light max-w-sm">
               {lang === 'en' 
                 ? 'Nagar Bikash Samiti Marg, Hetauda 44107, Nepal. The leading modern restaurant landmark in town. Savor signature sandwich platters, barista-grade refreshments, and local delicacies prepared with absolute care.'
-                : 'नगर विकास समिति मार्ग, हेटौंडा ४४१०७, नेपाल। शहरको मुख्य आधुनिक र प्रिमियम रेस्टुरेन्ट। हाम्रो विशेष एभर्डिन रेसिपी स्यान्डविच, स्तरिय कफी र चिसो पेय पदार्थहरूको स्वादिष्ट स्वाद लिनुहोस्।'
+                : 'नग��� विकास समिति मार्ग, हेटौंडा ४४१०७, नेपाल। शहरको मुख्य आधुनिक र प्रिमियम रेस्टुरेन्ट। हाम्रो विशेष एभर्डिन रेसिपी स्यान्डविच, स्तरिय कफी र चिसो पेय पदार्थहरूको स्वादिष्ट स्वाद लिनुहोस्।'
               }
             </p>
             <div className="flex items-center gap-3">
@@ -3320,7 +3312,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
               </li>
               <li>
                 <button onClick={() => scrollToSection(storySectionRef)} className="hover:text-gold transition-colors cursor-pointer">
-                  {lang === 'en' ? 'Our Story' : 'हाम्रो कथा'}
+                  {lang === 'en' ? 'Our Story' : 'हाम्���ो कथा'}
                 </button>
               </li>
               <li>

@@ -15,7 +15,7 @@ import {
   ChevronLeft, 
   ChevronRight
 } from 'lucide-react';
-import { db, collection, addDoc } from '../firebase';
+import * as supabaseService from '../supabaseService';
 
 interface AdminReservationsProps {
   reservations: any[];
@@ -90,7 +90,7 @@ export const AdminReservations: React.FC<AdminReservationsProps> = ({
         created_at: new Date().toISOString()
       };
 
-      await addDoc(collection(db, 'reservations'), payload);
+      await supabaseService.addReservation(payload);
       setIsWalkInModalOpen(false);
       setWalkInName('');
       setWalkInPhone('');
