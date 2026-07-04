@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { BUSINESS_DETAILS as INITIAL_BUSINESS_DETAILS, SERVICES_LIST as INITIAL_SERVICES_LIST, FAQS as INITIAL_FAQS, REASSURANCE_POINTS as INITIAL_REASSURANCE_POINTS, MENU_HIGHLIGHTS as INITIAL_MENU_HIGHLIGHTS, AUTHENTIC_REVIEWS as INITIAL_AUTHENTIC_REVIEWS, OWNER_UPDATE as INITIAL_OWNER_UPDATE, MAPS_GALLERY_PHOTOS as INITIAL_MAPS_GALLERY_PHOTOS, PROMO_ANNOUNCEMENTS as INITIAL_PROMO_ANNOUNCEMENTS } from './data';
+import { getImageUrl } from './utils';
 import { InquiryForm } from './types';
 import { LazyImage } from './components/LazyImage';
 import { AdminPanel } from './components/AdminPanel';
@@ -1744,7 +1745,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
                     </span>
 
                     <LazyImage 
-                      src={dish.image} 
+                      src={getImageUrl(dish.image, 'menu')} 
                       alt={dish.title} 
                       wrapperClassName="w-full h-full"
                       className="w-full h-full object-cover group-hover:scale-106 transition-transform duration-500 select-none"
@@ -1886,9 +1887,9 @@ Please confirm or contact the guest. Thank you! 🙏`;
               >
                 <div>
                   {item.image && (
-                    <div className="relative aspect-video sm:aspect-square md:aspect-video rounded-xl overflow-hidden mb-4 bg-cream-deep border border-cream-deep">
+                    <div className="relative aspect-[4/3] w-full overflow-hidden bg-cream-deep border-b border-cream-deep">
                       <LazyImage 
-                        src={item.image} 
+                        src={getImageUrl(item.image, 'menu')}
                         alt={item.title} 
                         wrapperClassName="w-full h-full"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 select-none"
@@ -2525,7 +2526,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
                   >
                     <div className="relative aspect-video sm:aspect-square md:aspect-video w-full bg-cream-deep overflow-hidden group">
                       <LazyImage 
-                        src={photo.url} 
+                        src={getImageUrl(photo.url, 'gallery')} 
                         alt={photo.caption} 
                         wrapperClassName="w-full h-full"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"

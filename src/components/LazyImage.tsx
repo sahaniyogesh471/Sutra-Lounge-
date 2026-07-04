@@ -7,6 +7,8 @@ interface LazyImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   wrapperClassName?: string;
   /** When true, skips IntersectionObserver and loads immediately (use for above-the-fold images) */
   eager?: boolean;
+  /** Fallback image URL if primary fails to load */
+  fallback?: string;
 }
 
 export const LazyImage: React.FC<LazyImageProps> = ({
@@ -15,11 +17,14 @@ export const LazyImage: React.FC<LazyImageProps> = ({
   className = '',
   wrapperClassName = '',
   eager = false,
+  fallback,
   ...props
 }) => {
   const [isIntersected, setIsIntersected] = useState(eager);
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [currentSrc, setCurrentSrc] = useState(src);
+  const [retryCount, setRetryCount] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -83,21 +88,43 @@ export const LazyImage: React.FC<LazyImageProps> = ({
       )}
 
       {/* Actual image — only rendered once in viewport */}
-      {isIntersected && !hasError && (
-        <img
-          src={src}
-          alt={alt}
-          loading={eager ? 'eager' : 'lazy'}
-          decoding="async"
-          referrerPolicy="no-referrer"
-          crossOrigin="anonymous"
-          onLoad={() => setIsLoaded(true)}
-          onError={() => { setHasError(true); setIsLoaded(true); }}
-          className={`transition-opacity duration-500 ease-out select-none ${
-            isLoaded ? 'opacity-100' : 'opacity-0'
-          } ${className}`}
-          {...props}
-        />
+      {isIntersected && (
+        <>
+          {!hasError && (
+            <img
+              src={currentSrc}
+              alt={alt}
+              loading={eager ? 'eager' : 'lazy'}
+              decoding="async"
+              referrerPolicy="no-referrer"
+              crossOrigin="anonymous"
+              onLoad={() => {
+                setIsLoaded(true);
+                setHasError(false);
+              }}
+              onError={() => {
+                setIsLoaded(true);
+                // Try fallback image if available and haven't tried yet
+                if (fallback && currentSrc !== fallback && retryCount === 0) {
+                  setCurrentSrc(fallback);
+                  setRetryCount(1);
+                  setIsLoaded(false);
+                } else {
+                  setHasError(true);
+                }
+              }}
+              className={`transition-opacity duration-500 ease-out select-none ${
+                isLoaded ? 'opacity-100' : 'opacity-0'
+              } ${className}`}
+              {...props}
+            />
+          )}
+          {hasError && (
+            <div className="absolute inset-0 flex items-center justify-center bg-cream-deep/50 text-charcoal-muted/40 text-xs font-medium">
+              Image unavailable
+            </div>
+          )}
+        </>
       )}
 
       <style>{`
