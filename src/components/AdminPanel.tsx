@@ -73,7 +73,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
   const [settings, setSettings] = useState<any>({
     restaurant_name: "Sutra Lounge",
     restaurant_email: "sutraloungehtd@gmail.com",
-    restaurant_phone: "+977 9844-500501",
+    restaurant_phone: "057-522111",
     restaurant_address: "Nagar Bikash Samiti Marg, Hetauda 44107, Nepal",
   });
 
