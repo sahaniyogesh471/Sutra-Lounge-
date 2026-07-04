@@ -1243,7 +1243,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
     ? MENU_HIGHLIGHTS.map(translateMenuItem) 
     : MENU_HIGHLIGHTS.filter(item => item.category === selectedCategory).map(translateMenuItem);
 
-  const googleClientId = process.env.VITE_GOOGLE_CLIENT_ID || '';
+  const googleClientId = process.env.VITE_GOOGLE_CLIENT_ID || 'test-client-id';
 
   return (
     <GoogleOAuthProvider clientId={googleClientId}>
