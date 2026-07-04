@@ -560,7 +560,7 @@ export default function App() {
       },
       'Aakash Rai': {
         role: 'प्रमाणित ग्राहक',
-        timeAgo: '३ महिना अगाडि',
+        timeAgo: '३ म��िना अगाडि',
         content: 'यहाँको अनुभ��� असाध्यै रमाइलो रह्यो। भेटघाट र आरामसँग खाना खानको लागि निकै उपयुक्त र स्वागतयोग्य ठाउँ छ। कर्मचारीहरूको व्यवहार निकै मित्रवत र सेवामुखी थियो।',
         highlights: ['स्वागतयोग्य वातावरण', 'मित्रवत स्टाफ', 'उत्कृष्ट सेवा']
       },
@@ -2149,7 +2149,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
             className="lg:col-span-5 aspect-[4/3] lg:aspect-auto lg:h-full min-h-[300px] rounded-2xl overflow-hidden shadow-lg border border-cream-deep"
           >
             <LazyImage 
-              src={getImageUrl('https://i.ibb.co/Cpg2qJ7x/sutra-story-ambiance.png', 'gallery')}
+              src={getImageUrl('https://i.ibb.co/HTmYncqG/sutra-story-ambiance-v2.png', 'gallery')}
               alt="Sutra Lounge Restaurant Ambiance - Warm and Inviting Interior"
               wrapperClassName="w-full h-full"
               className="w-full h-full object-cover"
