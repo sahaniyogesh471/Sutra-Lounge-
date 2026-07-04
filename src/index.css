@@ -28,26 +28,30 @@ body {
   scroll-behavior: smooth;
 }
 
-/* CRITICAL: Safety net for permanently invisible content */
+/* CRITICAL: Safety net — ensure no Framer Motion section/container
+   stays permanently invisible. Scoped to layout elements only so
+   tooltips, modals and dropdowns (which use role/aria attributes) are unaffected. */
 section[style*="opacity: 0"],
 article[style*="opacity: 0"],
-main[style*="opacity: 0"],
-div[data-render-boundary][style*="opacity: 0"] {
+main[style*="opacity: 0"] {
   opacity: 1 !important;
   visibility: visible !important;
-  display: block !important;
 }
 
-/* Ensure images and content inside motion containers are always accessible */
-[data-motion-value] {
-  display: block !important;
+/* Broad catch for Framer Motion divs used as page-level section wrappers */
+div.max-w-7xl[style*="opacity: 0"],
+div.py-16[style*="opacity: 0"],
+div.py-24[style*="opacity: 0"],
+div.grid[style*="opacity: 0"],
+div.flex[style*="opacity: 0"] {
+  opacity: 1 !important;
+  visibility: visible !important;
 }
 
-/* Prevent overflow/clip from hiding content */
+/* Prevent scroll-overflow clipping on major layout containers */
 section,
 article,
 main {
-  overflow: visible !important;
   visibility: visible !important;
 }
 

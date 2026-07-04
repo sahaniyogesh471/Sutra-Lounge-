@@ -88,7 +88,6 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
           ).trim();
 
           if (imgbbKey !== '') {
-            console.log('[ImageUploader] Uploading to ImgBB...');
             // Convert data URL back to Blob to upload via multipart/form-data
             fetch(compressedDataUrl)
               .then(res => res.blob())
@@ -112,22 +111,18 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
               })
               .then(json => {
                 if (json.success && json.data?.url) {
-                  console.log('[ImageUploader] ImgBB upload success:', json.data.url);
                   onChange(json.data.url);
                 } else {
-                  console.warn('[ImageUploader] ImgBB returned success=false, falling back to base64. Error:', json.error?.message);
                   onChange(compressedDataUrl);
                 }
                 setIsProcessing(false);
               })
-              .catch(err => {
-                console.error('[ImageUploader] ImgBB upload failed, falling back to base64:', err);
+              .catch(() => {
                 onChange(compressedDataUrl);
                 setIsProcessing(false);
               });
           } else {
             // No API key configured — store as compressed base64
-            console.warn('[ImageUploader] No ImgBB API key found. Saving as base64. Set VITE_IMGBB_API_KEY or add via Admin Settings.');
             onChange(compressedDataUrl);
             setIsProcessing(false);
           }

@@ -66,7 +66,7 @@ export const TikTokIcon = ({ className = "w-4 h-4" }: { className?: string }) =>
 );
 
 // Hero images hosted on ImgBB CDN for fast global delivery
-const heroImage = 'https://i.ibb.co/wNNbMTxY/sutra-hero-bg.png';
+const heroImage = 'https://i.ibb.co/HTmYncqG/sutra-story-ambiance-v2.png';
 const dishImage = 'https://i.ibb.co/Xxd8hkQb/sutra-hero-dish.png';
 
 // Animation variants — hidden state is IDENTICAL to visible to ensure
@@ -181,8 +181,8 @@ export default function App() {
   const [dbBlockedDates, setDbBlockedDates] = useState<any[]>([]);
   const [dbSettings, setDbSettings] = useState<any>({
     restaurant_name: "Sutra Lounge",
-    restaurant_email: "info@sutralounge.com.np",
-    restaurant_phone: "+977 1500000",
+    restaurant_email: "sutraloungehtd@gmail.com",
+    restaurant_phone: "+977 9844-500501",
     restaurant_address: "Nagar Bikash Samiti Marg, Hetauda 44107, Nepal",
     slot_interval_minutes: 30,
     booking_notice_hours: 2,
@@ -232,7 +232,7 @@ export default function App() {
         setDbSettings({
           restaurant_name: data.restaurant_name || "Sutra Lounge",
           restaurant_email: data.restaurant_email || "info@sutralounge.com.np",
-          restaurant_phone: data.restaurant_phone || "+977 1500000",
+          restaurant_phone: data.restaurant_phone || "+977 9844-500501",
           restaurant_address: data.restaurant_address || "Nagar Bikash Samiti Marg, Hetauda 44107, Nepal",
           slot_interval_minutes: Number(data.slot_interval_minutes || 30),
           booking_notice_hours: Number(data.booking_notice_hours || 2),
@@ -270,14 +270,12 @@ export default function App() {
       // Check blocked holidays: check both fields to be completely compliant and robust
       const isBlocked = dbBlockedDates.some(b => b.date === selectedDateStr || b.blocked_date === selectedDateStr);
       if (isBlocked) {
-        console.log(`[Slot Calculation] Slot generation skipped: Date ${selectedDateStr} is exists in blocked_dates.`);
         return [];
       }
 
       const partySize = Number(guests);
       const maxPartySize = Number(dbSettings?.max_party_size || 20);
       if (partySize > maxPartySize || partySize < 1) {
-        console.log(`[Slot Calculation] Selected party size ${partySize} is outside allowed range (1 - ${maxPartySize}).`);
         return [];
       }
 
@@ -317,7 +315,6 @@ export default function App() {
       });
 
       if (!dayConfig || !dayConfig.is_open) {
-        console.log(`[Slot Calculation] Restaurant is closed on ${weekdayName}.`);
         return [];
       }
 
@@ -348,7 +345,6 @@ export default function App() {
       });
 
       if (activeTables.length === 0) {
-        console.log(`[Slot Calculation] No active tables have capacity >= ${partySize}.`);
         return [];
       }
 
