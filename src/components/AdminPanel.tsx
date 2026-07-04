@@ -72,8 +72,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
   const [businessHours, setBusinessHours] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>({
     restaurant_name: "Sutra Lounge",
-    restaurant_email: "info@sutralounge.com.np",
-    restaurant_phone: "+977 1500000",
+    restaurant_email: "sutraloungehtd@gmail.com",
+    restaurant_phone: "+977 9844-500501",
     restaurant_address: "Nagar Bikash Samiti Marg, Hetauda 44107, Nepal",
   });
 
@@ -605,7 +605,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-0 md:p-4 overflow-hidden">
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-0 md:p-4 overflow-y-auto">
       
       {/* Dynamic Toast Feedback Overlay */}
       <AnimatePresence>
@@ -622,7 +622,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, gallery
         )}
       </AnimatePresence>
 
-      <div className="w-full h-full lg:rounded-2xl border border-gray-200 bg-[#f8f9fa] overflow-hidden flex relative shadow-2xl text-[#191c1d]">
+      <div className="w-full max-h-[95vh] lg:rounded-2xl border border-gray-200 bg-[#f8f9fa] overflow-hidden flex relative shadow-2xl text-[#191c1d]">
         
         {/* ======================================================= */}
         {/* SIDE BAR LAYOUT FOR GRAPHICAL DESIGN SAME-TO-SAME */}
