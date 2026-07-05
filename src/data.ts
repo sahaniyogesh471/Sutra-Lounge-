@@ -339,7 +339,7 @@ export const REASSURANCE_POINTS = [
 
 export const MAPS_GALLERY_PHOTOS: GalleryPhoto[] = [
   {
-    url: '/images/sutra-interior.png',
+    url: '/images/lounge_interior_1781264521294.webp',
     caption: 'Cozy luxurious lounge seating with golden ambient lighting and elegant wooden pillars',
     author: 'Pujan Shrestha (Local Guide)',
     category: 'Interior',
@@ -347,7 +347,7 @@ export const MAPS_GALLERY_PHOTOS: GalleryPhoto[] = [
     socialLink: 'https://www.instagram.com/sutraloungehetauda/'
   },
   {
-    url: '/images/sutra-counter.png',
+    url: '/images/bar_counter_1781264533823.webp',
     caption: 'Main dining counter area featuring premium wood decor and welcoming hospitality structure',
     author: 'Aarav Devkota (Verified Reviewer)',
     category: 'Interior',
@@ -355,7 +355,7 @@ export const MAPS_GALLERY_PHOTOS: GalleryPhoto[] = [
     socialLink: 'https://www.instagram.com/sutraloungehetauda/'
   },
   {
-    url: '/images/sutra-food.png',
+    url: '/images/chicken_pizza_1781264551782.webp',
     caption: 'Satisfying gourmet Stone-Baked Chicken Pizza served hot with melting cheese pulls',
     author: 'Sneha Shrestha (Business Guide)',
     category: 'Food',
@@ -363,7 +363,7 @@ export const MAPS_GALLERY_PHOTOS: GalleryPhoto[] = [
     socialLink: 'https://www.facebook.com/SutraLounge/'
   },
   {
-    url: '/images/sutra-drinks.png',
+    url: '/images/latte_macchiato_1781264507039.webp',
     caption: 'Barista cappuccino with robust flavor profile and perfect milk frothing art',
     author: 'Barsha Thapa (Local Guide)',
     category: 'Drinks',
@@ -371,7 +371,7 @@ export const MAPS_GALLERY_PHOTOS: GalleryPhoto[] = [
     socialLink: 'https://www.instagram.com/sutraloungehetauda/'
   },
   {
-    url: '/images/sutra-momos.png',
+    url: '/images/fried_momo_1781264566590.webp',
     caption: 'Crisp Fried Chicken Momos plated alongside traditional spiced Nepalese pickling chutney',
     author: 'Sanjay Chaudhari (Verified Patron)',
     category: 'Food',
@@ -379,7 +379,7 @@ export const MAPS_GALLERY_PHOTOS: GalleryPhoto[] = [
     socialLink: 'https://www.facebook.com/SutraLounge/'
   },
   {
-    url: '/images/sutra-exterior.png',
+    url: '/images/rooftop_patio_1781264582785.webp',
     caption: 'Sutra Lounge premium cozy lighting & gourmet hospitality details',
     author: 'Rabin Lama (Local Guide)',
     category: 'Exterior',
