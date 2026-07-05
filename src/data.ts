@@ -339,7 +339,7 @@ export const REASSURANCE_POINTS = [
 
 export const MAPS_GALLERY_PHOTOS: GalleryPhoto[] = [
   {
-    url: 'https://images.unsplash.com/photo-1517457373614-b7152f800bb1?w=600&h=400&fit=crop&q=85',
+    url: '/images/sutra-interior.png',
     caption: 'Cozy luxurious lounge seating with golden ambient lighting and elegant wooden pillars',
     author: 'Pujan Shrestha (Local Guide)',
     category: 'Interior',
@@ -347,7 +347,7 @@ export const MAPS_GALLERY_PHOTOS: GalleryPhoto[] = [
     socialLink: 'https://www.instagram.com/sutraloungehetauda/'
   },
   {
-    url: 'https://images.unsplash.com/photo-1521017b35bcc1d116d612e92c6885eb930990887?w=600&h=400&fit=crop&q=85',
+    url: '/images/sutra-counter.png',
     caption: 'Main dining counter area featuring premium wood decor and welcoming hospitality structure',
     author: 'Aarav Devkota (Verified Reviewer)',
     category: 'Interior',
@@ -355,7 +355,7 @@ export const MAPS_GALLERY_PHOTOS: GalleryPhoto[] = [
     socialLink: 'https://www.instagram.com/sutraloungehetauda/'
   },
   {
-    url: 'https://images.unsplash.com/photo-1528840042246-12123dd332d6?w=600&h=400&fit=crop&q=85',
+    url: '/images/sutra-food.png',
     caption: 'Satisfying gourmet Stone-Baked Chicken Pizza served hot with melting cheese pulls',
     author: 'Sneha Shrestha (Business Guide)',
     category: 'Food',
@@ -363,7 +363,7 @@ export const MAPS_GALLERY_PHOTOS: GalleryPhoto[] = [
     socialLink: 'https://www.facebook.com/SutraLounge/'
   },
   {
-    url: 'https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=600&h=400&fit=crop&q=85',
+    url: '/images/sutra-drinks.png',
     caption: 'Barista cappuccino with robust flavor profile and perfect milk frothing art',
     author: 'Barsha Thapa (Local Guide)',
     category: 'Drinks',

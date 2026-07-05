@@ -9,6 +9,8 @@ interface LazyImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   eager?: boolean;
   /** Fallback image URL if primary fails to load */
   fallback?: string;
+  /** Blur-up/placeholder image for progressive loading */
+  blurDataUrl?: string;
 }
 
 export const LazyImage: React.FC<LazyImageProps> = ({
@@ -18,6 +20,7 @@ export const LazyImage: React.FC<LazyImageProps> = ({
   wrapperClassName = '',
   eager = false,
   fallback,
+  blurDataUrl,
   ...props
 }) => {
   const [isIntersected, setIsIntersected] = useState(eager);
