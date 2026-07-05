@@ -59,23 +59,25 @@ export const LazyImage: React.FC<LazyImageProps> = ({
   useEffect(() => {
     setIsLoaded(false);
     setHasError(false);
+    setRetryCount(0);
+    setCurrentSrc(src);
   }, [src]);
 
   return (
     <div
       ref={containerRef}
-      className={`relative overflow-hidden ${wrapperClassName}`}
+      className={`relative overflow-hidden bg-cream-soft ${wrapperClassName}`}
       style={{ backgroundColor: 'rgba(245,238,223,0.6)', contain: 'layout paint', willChange: 'transform' }}
     >
-      {/* Shimmer skeleton shown while loading */}
+      {/* Shimmer skeleton shown while loading - fast, lightweight */}
       {!isLoaded && !hasError && (
         <div
           className="absolute inset-0 z-0"
           style={{
             background:
-              'linear-gradient(90deg, #f5eedf 25%, #fdf8f0 50%, #f5eedf 75%)',
+              'linear-gradient(90deg, rgba(245,238,223,0.8) 0%, rgba(253,248,240,0.9) 50%, rgba(245,238,223,0.8) 100%)',
             backgroundSize: '200% 100%',
-            animation: 'shimmer 1.4s ease-in-out infinite',
+            animation: 'shimmer 1.2s ease-in-out infinite',
           }}
         />
       )}
@@ -98,6 +100,8 @@ export const LazyImage: React.FC<LazyImageProps> = ({
               decoding="async"
               referrerPolicy="no-referrer"
               crossOrigin="anonymous"
+              fetchPriority={eager ? 'high' : 'auto'}
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
               onLoad={() => {
                 setIsLoaded(true);
                 setHasError(false);
@@ -113,15 +117,16 @@ export const LazyImage: React.FC<LazyImageProps> = ({
                   setHasError(true);
                 }
               }}
-              className={`transition-opacity duration-500 ease-out select-none ${
+              className={`transition-opacity duration-300 ease-out select-none w-full h-full ${
                 isLoaded ? 'opacity-100' : 'opacity-0'
               } ${className}`}
               {...props}
             />
           )}
           {hasError && (
-            <div className="absolute inset-0 flex items-center justify-center bg-cream-deep/50 text-charcoal-muted/40 text-xs font-medium">
-              Image unavailable
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-cream-deep/50 text-charcoal-muted/60 text-xs font-medium gap-2 p-4">
+              <span>Image Loading</span>
+              <span className="text-[10px] opacity-75">Check connection</span>
             </div>
           )}
         </>

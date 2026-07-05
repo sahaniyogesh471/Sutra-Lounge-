@@ -339,7 +339,7 @@ export const REASSURANCE_POINTS = [
 
 export const MAPS_GALLERY_PHOTOS: GalleryPhoto[] = [
   {
-    url: 'https://i.ibb.co/gLVq6bMf/sutra-lounge-interior.png',
+    url: 'https://images.unsplash.com/photo-1517457373614-b7152f800bb1?w=600&h=400&fit=crop&q=85',
     caption: 'Cozy luxurious lounge seating with golden ambient lighting and elegant wooden pillars',
     author: 'Pujan Shrestha (Local Guide)',
     category: 'Interior',
@@ -347,7 +347,7 @@ export const MAPS_GALLERY_PHOTOS: GalleryPhoto[] = [
     socialLink: 'https://www.instagram.com/sutraloungehetauda/'
   },
   {
-    url: 'https://i.ibb.co/LDjLWsd1/sutra-bar-counter.png',
+    url: 'https://images.unsplash.com/photo-1521017b35bcc1d116d612e92c6885eb930990887?w=600&h=400&fit=crop&q=85',
     caption: 'Main dining counter area featuring premium wood decor and welcoming hospitality structure',
     author: 'Aarav Devkota (Verified Reviewer)',
     category: 'Interior',
@@ -355,7 +355,7 @@ export const MAPS_GALLERY_PHOTOS: GalleryPhoto[] = [
     socialLink: 'https://www.instagram.com/sutraloungehetauda/'
   },
   {
-    url: 'https://i.ibb.co/Kc0C6CM7/sutra-chicken-pizza.png',
+    url: 'https://images.unsplash.com/photo-1528840042246-12123dd332d6?w=600&h=400&fit=crop&q=85',
     caption: 'Satisfying gourmet Stone-Baked Chicken Pizza served hot with melting cheese pulls',
     author: 'Sneha Shrestha (Business Guide)',
     category: 'Food',
@@ -363,7 +363,7 @@ export const MAPS_GALLERY_PHOTOS: GalleryPhoto[] = [
     socialLink: 'https://www.facebook.com/SutraLounge/'
   },
   {
-    url: 'https://i.ibb.co/5Xp213wm/sutra-latte-macchiato.png',
+    url: 'https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=600&h=400&fit=crop&q=85',
     caption: 'Barista cappuccino with robust flavor profile and perfect milk frothing art',
     author: 'Barsha Thapa (Local Guide)',
     category: 'Drinks',
@@ -371,7 +371,7 @@ export const MAPS_GALLERY_PHOTOS: GalleryPhoto[] = [
     socialLink: 'https://www.instagram.com/sutraloungehetauda/'
   },
   {
-    url: 'https://i.ibb.co/Q7k9VLYR/sutra-fried-momo.png',
+    url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&h=400&fit=crop&q=85',
     caption: 'Crisp Fried Chicken Momos plated alongside traditional spiced Nepalese pickling chutney',
     author: 'Sanjay Chaudhari (Verified Patron)',
     category: 'Food',
@@ -379,7 +379,7 @@ export const MAPS_GALLERY_PHOTOS: GalleryPhoto[] = [
     socialLink: 'https://www.facebook.com/SutraLounge/'
   },
   {
-    url: 'https://i.ibb.co/mFtTsJp6/sutra-rooftop-patio.png',
+    url: 'https://images.unsplash.com/photo-1504674900968-87f84b26d38a?w=600&h=400&fit=crop&q=85',
     caption: 'Sutra Lounge premium cozy lighting & gourmet hospitality details',
     author: 'Rabin Lama (Local Guide)',
     category: 'Exterior',
