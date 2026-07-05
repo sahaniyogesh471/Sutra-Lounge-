@@ -2,7 +2,7 @@ import bcryptjs from 'bcryptjs';
 import CryptoJS from 'crypto-js';
 import { supabase } from '../lib/supabase';
 
-const ENCRYPTION_KEY = process.env.VITE_ENCRYPTION_KEY || 'sutra-lounge-secret-key-2024';
+const ENCRYPTION_KEY = import.meta.env.VITE_ENCRYPTION_KEY || 'sutra-lounge-secret-key-2024';
 
 interface AdminUser {
   id: string;
