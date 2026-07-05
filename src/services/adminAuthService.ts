@@ -332,8 +332,29 @@ export async function verifySession(adminId: string, sessionToken: string): Prom
 }
 
 // Update admin password
-export async function updateAdminPassword(adminId: string, newPassword: string): Promise<{ success: boolean; message: string }> {
+export async function updateAdminPassword(adminId: string, currentPassword: string, newPassword: string): Promise<{ success: boolean; message: string }> {
   try {
+    // Fetch current admin to verify current password
+    const { data: admin, error: fetchError } = await supabase
+      .from('admin_users')
+      .select('password_hash')
+      .eq('id', adminId)
+      .single();
+
+    if (fetchError || !admin) {
+      throw new Error('Admin not found');
+    }
+
+    // Verify current password
+    const isPasswordCorrect = await bcryptjs.compare(currentPassword, admin.password_hash);
+    if (!isPasswordCorrect) {
+      return {
+        success: false,
+        message: 'Current password is incorrect'
+      };
+    }
+
+    // Update password
     const passwordHash = await hashPassword(newPassword);
 
     const { error } = await supabase
@@ -343,7 +364,7 @@ export async function updateAdminPassword(adminId: string, newPassword: string):
 
     if (error) throw error;
 
-    await logAudit(adminId, 'PASSWORD_CHANGED', {});
+    await logAudit(adminId, 'PASSWORD_CHANGED', { changedAt: new Date().toISOString() });
 
     return {
       success: true,

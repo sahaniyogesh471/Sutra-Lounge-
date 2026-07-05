@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, Lock, Key, Mail, Loader, CheckCircle, AlertCircle, X } from 'lucide-react';
+import { updateAdminPassword, updateAdminPasscode, updateAdminEmail } from '../services/adminAuthService';
 
 interface AdminPasswordManagerProps {
   adminId: string;
@@ -54,12 +55,16 @@ export default function AdminPasswordManager({ adminId, currentEmail, onClose }:
 
     setLoading(true);
     try {
-      // TODO: Call actual updateAdminPassword function
-      setSuccessMessage('Password updated successfully');
-      setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
-      setTimeout(() => setSuccessMessage(''), 3000);
+      const response = await updateAdminPassword(adminId, passwordForm.currentPassword, passwordForm.newPassword);
+      if (response.success) {
+        setSuccessMessage('Password updated successfully');
+        setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+        setTimeout(() => setSuccessMessage(''), 3000);
+      } else {
+        setErrorMessage(response.message || 'Failed to update password');
+      }
     } catch (error: any) {
-      setErrorMessage('Failed to update password');
+      setErrorMessage(error.message || 'Failed to update password');
     } finally {
       setLoading(false);
     }
@@ -83,12 +88,16 @@ export default function AdminPasswordManager({ adminId, currentEmail, onClose }:
 
     setLoading(true);
     try {
-      // TODO: Call actual updateAdminPasscode function
-      setSuccessMessage('Passcode updated successfully');
-      setPasscodeForm({ newPasscode: '', confirmPasscode: '' });
-      setTimeout(() => setSuccessMessage(''), 3000);
+      const response = await updateAdminPasscode(adminId, passcodeForm.newPasscode);
+      if (response.success) {
+        setSuccessMessage('Passcode updated successfully');
+        setPasscodeForm({ newPasscode: '', confirmPasscode: '' });
+        setTimeout(() => setSuccessMessage(''), 3000);
+      } else {
+        setErrorMessage(response.message || 'Failed to update passcode');
+      }
     } catch (error: any) {
-      setErrorMessage('Failed to update passcode');
+      setErrorMessage(error.message || 'Failed to update passcode');
     } finally {
       setLoading(false);
     }
@@ -112,12 +121,16 @@ export default function AdminPasswordManager({ adminId, currentEmail, onClose }:
 
     setLoading(true);
     try {
-      // TODO: Call actual updateAdminEmail function
-      setSuccessMessage('Email updated successfully');
-      setEmailForm({ newEmail: '', confirmEmail: '' });
-      setTimeout(() => setSuccessMessage(''), 3000);
+      const response = await updateAdminEmail(adminId, emailForm.newEmail);
+      if (response.success) {
+        setSuccessMessage('Email updated successfully');
+        setEmailForm({ newEmail: '', confirmEmail: '' });
+        setTimeout(() => setSuccessMessage(''), 3000);
+      } else {
+        setErrorMessage(response.message || 'Failed to update email');
+      }
     } catch (error: any) {
-      setErrorMessage('Failed to update email');
+      setErrorMessage(error.message || 'Failed to update email');
     } finally {
       setLoading(false);
     }
