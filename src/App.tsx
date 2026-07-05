@@ -1243,8 +1243,11 @@ Please confirm or contact the guest. Thank you! 🙏`;
     ? MENU_HIGHLIGHTS.map(translateMenuItem) 
     : MENU_HIGHLIGHTS.filter(item => item.category === selectedCategory).map(translateMenuItem);
 
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || 'test-client-id-for-development';
+
   return (
-    <div className="min-h-screen w-full overflow-x-hidden flex flex-col font-sans text-charcoal bg-cream-soft relative antialiased">
+    <GoogleOAuthProvider clientId={googleClientId}>
+      <div className="min-h-screen w-full overflow-x-hidden flex flex-col font-sans text-charcoal bg-cream-soft relative antialiased">
       
       {/* TOP PROMOTIONAL ANNOUNCEMENT BAR */}
       <div id="promo-bar" className="bg-charcoal text-cream-soft py-2 px-4 border-b border-gold/15 flex justify-center items-center gap-2 relative overflow-hidden text-center text-[11px] sm:text-xs font-semibold z-50">
@@ -3082,7 +3085,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
                 <p className="text-sm text-charcoal-muted leading-relaxed font-light">
                   {lang === 'en' 
                     ? 'Sutra Lounge operates from our central location in Nagar Bikash Samiti Marg, Hetauda. Stop by to take in the serene vibe daily!' 
-                    : 'सुत्र लाउन्ज हेटौंडाको नगर विकास समिति मार्���को मध्य भागमा अवस्थित छ। दैनिक शान्त र मनमोहक वातावरणको आनन्द लिन आउनुहोस्!'
+                    : 'सुत्र लाउन्ज हेटौंडाको नगर विकास समिति मार्���को मध्य भागमा अवस्थित छ। दैनिक शान्त र मनमोहक वातावरणको आनन्द लिन आउ��ुहोस्!'
                   }
                 </p>
 
@@ -3498,6 +3501,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
         setDishImageUrl={setDishImageUrl}
       />
 
-    </div>
+      </div>
+    </GoogleOAuthProvider>
   );
 }
