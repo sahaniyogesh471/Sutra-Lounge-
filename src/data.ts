@@ -371,7 +371,7 @@ export const MAPS_GALLERY_PHOTOS: GalleryPhoto[] = [
     socialLink: 'https://www.instagram.com/sutraloungehetauda/'
   },
   {
-    url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&h=400&fit=crop&q=85',
+    url: '/images/sutra-momos.png',
     caption: 'Crisp Fried Chicken Momos plated alongside traditional spiced Nepalese pickling chutney',
     author: 'Sanjay Chaudhari (Verified Patron)',
     category: 'Food',
@@ -379,7 +379,7 @@ export const MAPS_GALLERY_PHOTOS: GalleryPhoto[] = [
     socialLink: 'https://www.facebook.com/SutraLounge/'
   },
   {
-    url: 'https://images.unsplash.com/photo-1504674900968-87f84b26d38a?w=600&h=400&fit=crop&q=85',
+    url: '/images/sutra-exterior.png',
     caption: 'Sutra Lounge premium cozy lighting & gourmet hospitality details',
     author: 'Rabin Lama (Local Guide)',
     category: 'Exterior',
