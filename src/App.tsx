@@ -35,9 +35,9 @@ import { getImageUrl } from './utils';
 import { InquiryForm } from './types';
 import { LazyImage } from './components/LazyImage';
 import { AdminPanel } from './components/AdminPanel';
-// import AdminAuthModal from './components/AdminAuthModal';
+import AdminAuthModal from './components/AdminAuthModal';
 import * as supabaseService from './supabaseService';
-// import { verifySession } from './services/adminAuthService';
+import { verifySession, loginWithEmailPassword, loginWithPasscode } from './services/adminAuthService';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { 
   LanguageType, 
@@ -527,7 +527,7 @@ export default function App() {
   }, [lang]);
 
   // Check admin session on app load and set up session verification
-  /* useEffect(() => {
+  useEffect(() => {
     const checkAdminSession = async () => {
       try {
         const storedAdminId = sessionStorage.getItem('admin_id');
@@ -573,18 +573,34 @@ export default function App() {
     return () => {
       if (sessionCheckInterval.current) clearInterval(sessionCheckInterval.current);
     };
-  }, []); */
+  }, []);
 
   const handleAdminAuthSuccess = (user: any, token: string) => {
-    console.log('[v0] Auth would happen here');
+    setAdminUser(user);
+    setAdminSessionToken(token);
+    sessionStorage.setItem('admin_id', user.id);
+    sessionStorage.setItem('admin_token', token);
+    setIsAdminAuthOpen(false);
+    setIsAdminOpen(true);
+    console.log('[v0] Admin authenticated successfully');
   };
 
   const handleAdminLogout = () => {
-    console.log('[v0] Logout would happen here');
+    setAdminUser(null);
+    setAdminSessionToken(null);
+    sessionStorage.removeItem('admin_id');
+    sessionStorage.removeItem('admin_token');
+    setIsAdminOpen(false);
+    setIsAdminAuthOpen(false);
+    console.log('[v0] Admin logged out');
   };
 
   const handleAdminPanelOpen = () => {
-    setIsAdminOpen(true);
+    if (!adminUser || !adminSessionToken) {
+      setIsAdminAuthOpen(true);
+    } else {
+      setIsAdminOpen(true);
+    }
   };
 
   const toggleLanguage = () => {
@@ -2830,7 +2846,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
                                 <span>
                                   {lang === 'en' 
                                     ? 'No availability matching this capacity or date. Try another date or adjust party size!' 
-                                    : 'चयन गरिएको मितिमा पाहुनाको संख्या अनुसारको टेबल वा समय उपलब्ध छैन। कृपया अर्को मिति वा पाहुना संख्या परिवर्तन गर्नुहोस्।'}
+                                    : 'चयन गरिएको मितिमा पाहुनाको संख्या अनुसा��को टेबल वा समय उपलब्ध छैन। कृपया अर्को मिति वा पाहुना संख्या परिवर्तन गर्नुहोस्।'}
                                 </span>
                               </div>
                             );
@@ -3449,9 +3465,9 @@ Please confirm or contact the guest. Thank you! 🙏`;
       </footer>
 
       {/* SECURED CONSOLE PORTAL PANEL */}
-      {/* {isAdminAuthOpen && (
+      {isAdminAuthOpen && (
         <AdminAuthModal onAuthSuccess={handleAdminAuthSuccess} />
-      )} */}
+      )}
       
       <AdminPanel 
         isOpen={isAdminOpen}
