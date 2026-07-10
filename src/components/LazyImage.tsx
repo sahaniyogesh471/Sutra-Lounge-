@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { getLQIPForImage } from '../lqip-data';
 
 interface LazyImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   src: string;
@@ -29,6 +30,9 @@ export const LazyImage: React.FC<LazyImageProps> = ({
   const [currentSrc, setCurrentSrc] = useState(src);
   const [retryCount, setRetryCount] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
+  
+  // Get LQIP blur placeholder (auto-detect from image URL if not provided)
+  const lqipUrl = blurDataUrl || getLQIPForImage(src);
 
   useEffect(() => {
     if (eager) return;
@@ -72,8 +76,20 @@ export const LazyImage: React.FC<LazyImageProps> = ({
       className={`relative overflow-hidden bg-cream-soft ${wrapperClassName}`}
       style={{ backgroundColor: 'rgba(245,238,223,0.6)', contain: 'layout paint', willChange: 'transform' }}
     >
+      {/* LQIP Blur Placeholder - shows instantly while full image loads */}
+      {lqipUrl && !isLoaded && !hasError && (
+        <img
+          src={lqipUrl}
+          alt={alt}
+          className="absolute inset-0 w-full h-full object-cover blur-md transition-opacity duration-300"
+          style={{ opacity: isIntersected ? 1 : 0 }}
+          aria-hidden="true"
+          decoding="async"
+        />
+      )}
+
       {/* Shimmer skeleton shown while loading - fast, lightweight */}
-      {!isLoaded && !hasError && (
+      {!isLoaded && !hasError && !lqipUrl && (
         <div
           className="absolute inset-0 z-0"
           style={{

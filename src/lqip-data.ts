@@ -1,10 +1,48 @@
-// Auto-generated LQIP (Low Quality Image Placeholders) data
-// Generated at: 2026-07-10T17:50:31.880Z
-// Run: npm run generate-lqip to regenerate
+// LQIP (Low Quality Image Placeholders) - Pre-generated blur data URLs
+// These are SVG-based blur placeholders that load instantly
+// Smooth fade transition from blur to full resolution image
 
-export const LQIP_DATA = {};
+export const LQIP_DATA = {
+  'lounge_interior_1781264521294.webp': {
+    src: '/images/lounge_interior_1781264521294.webp',
+    blurDataUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI4MDAiIHZpZXdCb3g9IjAgMCAxMjAwIDgwMCIgcHJlc2VydmVBc3BlY3RSYXRpbyE9InhNaWRZTWlkIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IGZpbGw9IiNkMWM0YTgiIHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjgwMCIvPjxmaWx0ZXIgaWQ9ImJsdXIiIHg9Ii0xMDAiIHk9Ii0xMDAiIHdpZHRoPSIxNDAwIiBoZWlnaHQ9IjEwMDAiPjxmZVR1cmJ1bGVuY2UgdHlwZT0iZnJhY3RhbE5vaXNlIiBiYXNlRnJlcXVlbmN5PSIuOCIgbnVtT2N0YXZlcz0iNCIgc2VlZD0iMiIvPjxmZURpc3BsYWNlbWVudE1hcCBpbj0iU291cmNlR3JhcGhpYyIgc2NhbGU9IjgwIi8+PC9maWx0ZXI+PHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iODAwIiBmaWxsPSIjODk2ZDMzIiBvcGFjaXR5PSIuOCIgZmlsdGVyPSJ1cmwoI2JsdXIpIi8+PC9zdmc+',
+    width: 1200,
+    height: 800,
+  },
+  'bar_counter_1781264533823.webp': {
+    src: '/images/bar_counter_1781264533823.webp',
+    blurDataUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI4MDAiIHZpZXdCb3g9IjAgMCAxMjAwIDgwMCIgcHJlc2VydmVBc3BlY3RSYXRpbyE9InhNaWRZTWlkIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IGZpbGw9IiNjMmE0NjAiIHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjgwMCIvPjxmaWx0ZXIgaWQ9ImJsdXIiIHg9Ii0xMDAiIHk9Ii0xMDAiIHdpZHRoPSIxNDAwIiBoZWlnaHQ9IjEwMDAiPjxmZVR1cmJ1bGVuY2UgdHlwZT0iZnJhY3RhbE5vaXNlIiBiYXNlRnJlcXVlbmN5PSIuOCIgbnVtT2N0YXZlcz0iNCIgc2VlZD0iMyIvPjxmZURpc3BsYWNlbWVudE1hcCBpbj0iU291cmNlR3JhcGhpYyIgc2NhbGU9IjgwIi8+PC9maWx0ZXI+PHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iODAwIiBmaWxsPSIjYjg5NDUwIiBvcGFjaXR5PSIuNyIgZmlsdGVyPSJ1cmwoI2JsdXIpIi8+PC9zdmc+',
+    width: 1200,
+    height: 800,
+  },
+  'chicken_pizza_1781264551782.webp': {
+    src: '/images/chicken_pizza_1781264551782.webp',
+    blurDataUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI4MDAiIHZpZXdCb3g9IjAgMCAxMjAwIDgwMCIgcHJlc2VydmVBc3BlY3RSYXRpbyE9InhNaWRZTWlkIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IGZpbGw9IiNkNGE1NzYiIHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjgwMCIvPjxmaWx0ZXIgaWQ9ImJsdXIiIHg9Ii0xMDAiIHk9Ii0xMDAiIHdpZHRoPSIxNDAwIiBoZWlnaHQ9IjEwMDAiPjxmZVR1cmJ1bGVuY2UgdHlwZT0iZnJhY3RhbE5vaXNlIiBiYXNlRnJlcXVlbmN5PSIuNyIgbnVtT2N0YXZlcz0iNCIgc2VlZD0iNSIvPjxmZURpc3BsYWNlbWVudE1hcCBpbj0iU291cmNlR3JhcGhpYyIgc2NhbGU9IjcwIi8+PC9maWx0ZXI+PHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iODAwIiBmaWxsPSIjY2M5YTZkIiBvcGFjaXR5PSIuOCIgZmlsdGVyPSJ1cmwoI2JsdXIpIi8+PC9zdmc+',
+    width: 1200,
+    height: 800,
+  },
+  'latte_macchiato_1781264507039.webp': {
+    src: '/images/latte_macchiato_1781264507039.webp',
+    blurDataUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI4MDAiIHZpZXdCb3g9IjAgMCAxMjAwIDgwMCIgcHJlc2VydmVBc3BlY3RSYXRpbyE9InhNaWRZTWlkIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IGZpbGw9IiNhODg2NjYiIHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjgwMCIvPjxmaWx0ZXIgaWQ9ImJsdXIiIHg9Ii0xMDAiIHk9Ii0xMDAiIHdpZHRoPSIxNDAwIiBoZWlnaHQ9IjEwMDAiPjxmZVR1cmJ1bGVuY2UgdHlwZT0iZnJhY3RhbE5vaXNlIiBiYXNlRnJlcXVlbmN5PSIuOCIgbnVtT2N0YXZlcz0iMyIgc2VlZD0iMiIvPjxmZURpc3BsYWNlbWVudE1hcCBpbj0iU291cmNlR3JhcGhpYyIgc2NhbGU9IjYwIi8+PC9maWx0ZXI+PHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iODAwIiBmaWxsPSIjOTc3NzY2IiBvcGFjaXR5PSIuOCIgZmlsdGVyPSJ1cmwoI2JsdXIpIi8+PC9zdmc+',
+    width: 1200,
+    height: 800,
+  },
+  'fried_momo_1781264566590.webp': {
+    src: '/images/fried_momo_1781264566590.webp',
+    blurDataUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI4MDAiIHZpZXdCb3g9IjAgMCAxMjAwIDgwMCIgcHJlc2VydmVBc3BlY3RSYXRpbyE9InhNaWRZTWlkIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IGZpbGw9IiNjY2E1NTEiIHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjgwMCIvPjxmaWx0ZXIgaWQ9ImJsdXIiIHg9Ii0xMDAiIHk9Ii0xMDAiIHdpZHRoPSIxNDAwIiBoZWlnaHQ9IjEwMDAiPjxmZVR1cmJ1bGVuY2UgdHlwZT0iZnJhY3RhbE5vaXNlIiBiYXNlRnJlcXVlbmN5PSIuOCIgbnVtT2N0YXZlcz0iNCIgc2VlZD0iNCIvPjxmZURpc3BsYWNlbWVudE1hcCBpbj0iU291cmNlR3JhcGhpYyIgc2NhbGU9IjcwIi8+PC9maWx0ZXI+PHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iODAwIiBmaWxsPSIjYmI5YjQwIiBvcGFjaXR5PSIuOCIgZmlsdGVyPSJ1cmwoI2JsdXIpIi8+PC9zdmc+',
+    width: 1200,
+    height: 800,
+  },
+  'rooftop_patio_1781264582785.webp': {
+    src: '/images/rooftop_patio_1781264582785.webp',
+    blurDataUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI4MDAiIHZpZXdCb3g9IjAgMCAxMjAwIDgwMCIgcHJlc2VydmVBc3BlY3RSYXRpbyE9InhNaWRZTWlkIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IGZpbGw9IiM5ZDc0NDAiIHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjgwMCIvPjxmaWx0ZXIgaWQ9ImJsdXIiIHg9Ii0xMDAiIHk9Ii0xMDAiIHdpZHRoPSIxNDAwIiBoZWlnaHQ9IjEwMDAiPjxmZVR1cmJ1bGVuY2UgdHlwZT0iZnJhY3RhbE5vaXNlIiBiYXNlRnJlcXVlbmN5PSIuNyIgbnVtT2N0YXZlcz0iNCIgc2VlZD0iNiIvPjxmZURpc3BsYWNlbWVudE1hcCBpbj0iU291cmNlR3JhcGhpYyIgc2NhbGU9IjgwIi8+PC9maWx0ZXI+PHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iODAwIiBmaWxsPSIjOGQ2NjMwIiBvcGFjaXR5PSIuOCIgZmlsdGVyPSJ1cmwoI2JsdXIpIi8+PC9zdmc+',
+    width: 1200,
+    height: 800,
+  },
+};
 
+// Get LQIP data for a specific image URL
 export const getLQIPForImage = (src: string): string | undefined => {
-  const entry = Object.values(LQIP_DATA).find((item: any) => item.src === src);
+  const entry = Object.values(LQIP_DATA).find((item) => item.src === src);
   return entry?.blurDataUrl;
 };
