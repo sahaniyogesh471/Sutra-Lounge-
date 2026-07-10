@@ -3,7 +3,6 @@
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "framework": "vite",
-  "public": true,
   "headers": [
     {
       "source": "/images/:path*",
