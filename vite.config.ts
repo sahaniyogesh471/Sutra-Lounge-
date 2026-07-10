@@ -18,22 +18,45 @@ export default defineConfig(() => {
         compress: {
           drop_console: true,
           drop_debugger: true,
+          passes: 2,
+        },
+        format: {
+          comments: false,
         },
       },
       rollupOptions: {
         output: {
-          manualChunks: {
-            'vendor': ['react', 'react-dom'],
-            'supabase': ['@supabase/supabase-js'],
-            'utils': ['/src/utils.ts', '/src/translations.ts'],
+          manualChunks: (id) => {
+            if (id.includes('node_modules/react')) {
+              return 'vendor-react';
+            }
+            if (id.includes('node_modules/@supabase')) {
+              return 'vendor-supabase';
+            }
+            if (id.includes('node_modules/motion')) {
+              return 'vendor-motion';
+            }
+            if (id.includes('node_modules/lucide')) {
+              return 'vendor-icons';
+            }
+            if (id.includes('src/components/AdminPanel') || id.includes('src/components/Admin')) {
+              return 'admin-panel';
+            }
+            if (id.includes('src/utils.ts') || id.includes('src/translations.ts')) {
+              return 'utils';
+            }
+            if (id.includes('src/data.ts')) {
+              return 'data';
+            }
           },
           chunkFileNames: 'assets/[name]-[hash].js',
           entryFileNames: 'assets/[name]-[hash].js',
         },
       },
-      chunkSizeWarningLimit: 1000,
+      chunkSizeWarningLimit: 600,
       cssCodeSplit: true,
       reportCompressedSize: false,
+      sourcemap: false,
     },
     server: {
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
