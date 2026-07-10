@@ -29,8 +29,5 @@
     }
   ],
   "redirects": [],
-  "rewrites": [],
-  "env": [
-    "NEXT_PUBLIC_APP_URL"
-  ]
+  "rewrites": []
 }
