@@ -1,0 +1,29 @@
+{
+  "account_id": "YOUR_ACCOUNT_ID",
+  "project_name": "sutra-lounge",
+  "production_branch": "main",
+  "build": {
+    "command": "npm run build",
+    "cwd": "./",
+    "watch_paths": ["src/**/*.tsx", "src/**/*.ts", "public/**/*"]
+  },
+  "env": {
+    "production": {
+      "vars": {
+        "VITE_SUPABASE_URL": "https://your-project.supabase.co",
+        "VITE_SUPABASE_ANON_KEY": "your-anon-key-here",
+        "VITE_APP_URL": "https://sutra-loungehtd.com"
+      }
+    }
+  },
+  "routes": [
+    {
+      "pattern": "sutra-loungehtd.pages.dev",
+      "zone_name": "pages.dev"
+    }
+  ],
+  "deployment_config": {
+    "preview_branch": "v0/table-booking-with-whatsapp-6d7a8b4b",
+    "preview_deployment_setting": "custom"
+  }
+}

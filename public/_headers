@@ -1,0 +1,37 @@
+# Security Headers for all responses
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: SAMEORIGIN
+  X-XSS-Protection: 1; mode=block
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(), microphone=(), camera=()
+
+# Asset caching - immutable for versioned files
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+  ETag: W/"versioned"
+
+# Image caching - long TTL since we use versioned names
+/images/*
+  Cache-Control: public, max-age=31536000, immutable
+  Content-Type: image/webp
+
+# HTML files - don't cache (always fetch new)
+/*.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+# JS and CSS chunks - cache but revalidate
+/assets/*.js
+  Cache-Control: public, max-age=31536000, immutable
+
+/assets/*.css
+  Cache-Control: public, max-age=31536000, immutable
+
+# Default HTML - no cache
+/index.html
+  Cache-Control: public, max-age=0, must-revalidate
+  Content-Type: text/html; charset=utf-8
+
+# JSON data files
+/data/*
+  Cache-Control: public, max-age=3600

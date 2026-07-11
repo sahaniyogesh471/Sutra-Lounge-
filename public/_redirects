@@ -1,0 +1,11 @@
+# Redirect all non-matching routes to index.html for SPA routing
+# This allows React Router to handle all client-side routing
+
+# API routes (if any backend needed in future)
+# /api/* https://api.example.com/:splat 200
+
+# All other requests go to index.html (SPA mode)
+/* /index.html 200
+
+# Status page redirect
+/status https://status.sutra-loungehtd.com 301

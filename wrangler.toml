@@ -1,0 +1,35 @@
+name = "sutra-lounge"
+type = "javascript"
+main = "dist/index.js"
+compatibility_date = "2024-12-01"
+
+# Build configuration for Vite
+[build]
+command = "npm run build"
+cwd = "./"
+watch_paths = ["src/**/*.tsx", "src/**/*.ts", "public/**/*"]
+
+# Routes - optional, for advanced routing
+[env.production]
+routes = [
+  { pattern = "sutra-loungehtd.pages.dev", zone_name = "pages.dev" }
+]
+
+# Environment variables will be set in Cloudflare dashboard
+[env.production.vars]
+# These will be injected at build/runtime
+
+# Functions configuration (if needed for API routes)
+# Currently not needed - this is a static Vite app
+
+# Asset settings for optimal caching
+[[rules]]
+type = "CompiledContentType"
+globs = ["**/*.wasm"]
+fallthrough = true
+
+# Image caching rules
+[[routes]]
+pattern = "*/images/*"
+zone_name = "pages.dev"
+custom_domain = false
