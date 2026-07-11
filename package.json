@@ -9,8 +9,11 @@
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
-    "deploy:cloudflare": "npm run build && wrangler pages publish dist",
-    "setup:cloudflare": "npm install -g wrangler && wrangler login"
+    "validate": "node scripts/validate-cloudflare.mjs",
+    "deploy:cloudflare": "npm run build && npm run validate && ./scripts/deploy-cloudflare.sh",
+    "rollback:cloudflare": "./scripts/rollback-cloudflare.sh",
+    "setup:cloudflare": "npm install -g wrangler && wrangler login",
+    "test:build": "npm run build && npm run validate"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

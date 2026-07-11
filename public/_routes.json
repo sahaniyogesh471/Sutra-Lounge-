@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "description": "Cloudflare Pages Advanced Routing Configuration",
+  "include": ["/"],
+  "exclude": [
+    "/assets/*",
+    "/images/*",
+    "/fonts/*",
+    "/favicon.ico",
+    "/manifest.json",
+    "/_headers",
+    "/_redirects",
+    "/_routes.json"
+  ],
+  "rules": [
+    {
+      "description": "HTML files - always revalidate",
+      "pattern": "*.html",
+      "cache": {
+        "default_ttl": 0,
+        "max_ttl": 0
+      }
+    },
+    {
+      "description": "Assets with hash - cache forever",
+      "pattern": "/assets/*",
+      "cache": {
+        "default_ttl": 31536000,
+        "max_ttl": 31536000
+      }
+    },
+    {
+      "description": "Images - cache forever",
+      "pattern": "/images/*",
+      "cache": {
+        "default_ttl": 31536000,
+        "max_ttl": 31536000
+      }
+    },
+    {
+      "description": "SPA routing - serve index.html",
+      "pattern": "/*",
+      "path": "/index.html"
+    }
+  ]
+}

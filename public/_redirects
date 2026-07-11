@@ -1,11 +1,42 @@
-# Redirect all non-matching routes to index.html for SPA routing
-# This allows React Router to handle all client-side routing
+# Cloudflare Pages Redirect Rules for Sutra Lounge SPA
 
-# API routes (if any backend needed in future)
-# /api/* https://api.example.com/:splat 200
+# Permanent redirects - SEO optimized
+/old-menu https://sutra-loungehtd.com/menu 301
+/old-booking https://sutra-loungehtd.com/admin 301
+/old-gallery https://sutra-loungehtd.com 301
 
-# All other requests go to index.html (SPA mode)
-/* /index.html 200
+# Redirect HTTP to HTTPS (handled by Cloudflare automatically)
+# but define for clarity
+
+# API fallback routes (for future backend integration)
+# /api/v1/* https://api.sutra-lounge.com/v1/:splat 200
 
 # Status page redirect
 /status https://status.sutra-loungehtd.com 301
+
+# Social media redirects
+/instagram https://instagram.com/sutralounge 301
+/facebook https://facebook.com/sutralounge 301
+/whatsapp https://wa.me/977XXXXXXXXXX 301
+
+# Menu file redirects
+/menu-pdf https://sutra-loungehtd.com/menu 301
+/menu-english https://sutra-loungehtd.com/menu 301
+/menu-nepali https://sutra-loungehtd.com/menu 301
+
+# Booking redirects
+/reserve https://sutra-loungehtd.com/admin 301
+/book https://sutra-loungehtd.com/admin 301
+/booking https://sutra-loungehtd.com/admin 301
+
+# Admin panel routes
+/admin-login https://sutra-loungehtd.com/admin 301
+/login https://sutra-loungehtd.com/admin 301
+
+# Special routes with trailing slashes
+/admin/ /admin 301
+/gallery/ /gallery 301
+
+# SPA catch-all - must be last
+# All non-matched routes go to index.html for React Router
+/* /index.html 200

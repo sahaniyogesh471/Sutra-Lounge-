@@ -3,33 +3,61 @@ type = "javascript"
 main = "dist/index.js"
 compatibility_date = "2024-12-01"
 
-# Build configuration for Vite
+# Build configuration for Vite - optimized for Cloudflare Pages
 [build]
 command = "npm run build"
 cwd = "./"
 watch_paths = ["src/**/*.tsx", "src/**/*.ts", "public/**/*"]
+root_dir = "dist"
 
-# Routes - optional, for advanced routing
+# Observability - send Tail events to your account
+observability = { enabled = true }
+
+# Production environment configuration
 [env.production]
 routes = [
-  { pattern = "sutra-loungehtd.pages.dev", zone_name = "pages.dev" }
+  { pattern = "sutra-loungehtd.pages.dev", zone_name = "pages.dev" },
+  { pattern = "sutra-loungehtd.com", custom_domain = true }
 ]
 
-# Environment variables will be set in Cloudflare dashboard
+# Production environment variables (set via Cloudflare dashboard)
 [env.production.vars]
-# These will be injected at build/runtime
+ENVIRONMENT = "production"
 
-# Functions configuration (if needed for API routes)
-# Currently not needed - this is a static Vite app
+# Development environment
+[env.development]
+vars = { ENVIRONMENT = "development" }
 
-# Asset settings for optimal caching
+# Triggers for deployments
+[triggers.crons]
+# Daily cache purge at 2 AM UTC
+crons = ["0 2 * * *"]
+
+# Asset settings for optimal performance
 [[rules]]
 type = "CompiledContentType"
 globs = ["**/*.wasm"]
 fallthrough = true
 
-# Image caching rules
+# Advanced routing patterns
 [[routes]]
 pattern = "*/images/*"
 zone_name = "pages.dev"
 custom_domain = false
+
+[[routes]]
+pattern = "*/assets/*"
+zone_name = "pages.dev"
+custom_domain = false
+
+# Analytics Engine integration for metrics
+[observability.enabled]
+analytics_engine = true
+
+# Durable Objects configuration (for future features)
+[durable_objects.bindings]
+# Currently disabled - can be enabled for advanced features
+
+# Limits configuration
+[limits]
+cpu_milliseconds = 50000
