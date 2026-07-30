@@ -1125,7 +1125,7 @@ export default function App() {
       if (!selectedSlot) {
         setFormError(lang === 'en'
           ? "Please select an available dining slot from the grid below!"
-          : "कृपया उपलब्ध बुकिङ समयहरू मध्ये एक चयन गर्नुहोस्!");
+          : "कृपया उपलब्ध बुकिङ समयहरू मध्ये एक चयन ��र्नुहोस्!");
         return;
       }
     }
@@ -2624,15 +2624,16 @@ Please confirm or contact the guest. Thank you! 🙏`;
                     key={photo.url}
                     className="bg-cream-soft border border-cream-deep rounded-2xl overflow-hidden shadow-xs hover:shadow-md hover:border-gold/25 transition-all text-left flex flex-col justify-between"
                   >
-                    <div className="relative aspect-video sm:aspect-square md:aspect-video w-full bg-cream-deep overflow-hidden group">
+                    <div className="relative w-full overflow-hidden group" style={{ aspectRatio: '16 / 10', backgroundColor: '#f5eedf' }}>
                       <LazyImage 
                         src={getImageUrl(photo.url, 'gallery')} 
                         alt={photo.caption} 
-                        wrapperClassName="w-full h-full"
+                        wrapperClassName="absolute inset-0 w-full h-full"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         referrerPolicy="no-referrer"
+                        eager={false}
                       />
-                      <span className="absolute top-3 left-3 bg-charcoal/90 backdrop-blur-xs px-2 py-0.5 rounded text-[8.5px] font-mono font-bold text-cream-soft uppercase tracking-wide border border-gold/15">
+                      <span className="absolute top-3 left-3 bg-charcoal/90 backdrop-blur-xs px-2 py-0.5 rounded text-[8.5px] font-mono font-bold text-cream-soft uppercase tracking-wide border border-gold/15 z-30">
                         {getLocalizedCategoryName(photo.category)}
                       </span>
                       {photo.socialLink && (
@@ -3286,7 +3287,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
                   <p className="text-[11px] text-charcoal-muted leading-relaxed font-light">
                     {lang === 'en'
                       ? 'Sutra Lounge is centrally located along Nagar Bikash Samiti Marg in Hetauda. We feature designated customer vehicle slots directly in front of the entryway, enabling seamless local ride drops and safe parking for motorbikes and cars.'
-                      : 'सुत्र लाउन्ज हेटौंडाको नगर विकास समिति मार्ग क्षेत्रमा सुलभ रूपमा अवस्थित छ। हाम्रो प्रवेशद्वारको ठीक अगाडि ग्राहकहरूका लागि सवारी साधन तथा मोटरसाइकलहरू व��यवस्थित र सुरक्षित रूपमा पार्किङ गर्ने पर्याप्त ठाउँ छ।'
+                      : 'सुत्र लाउन्ज हेटौंडाको नगर विकास समिति मार्ग क्षेत्रमा सुलभ रूपमा अवस्थित छ। हाम्रो प्��वेशद्वारको ठीक अगाडि ग्राहकहरूका लागि सवारी साधन तथा मोटरसाइकलहरू व��यवस्थित र सुरक्षित रूपमा पार्किङ गर्ने पर्याप्त ठाउँ छ।'
                     }
                   </p>
                 </div>
