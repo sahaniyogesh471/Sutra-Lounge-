@@ -51,8 +51,8 @@ export const LazyImage: React.FC<LazyImageProps> = ({
         }
       },
       {
-        // Pre-load images 600px before they enter viewport for instant visual appearance
-        rootMargin: '600px 0px',
+        // Pre-load images 200px before they enter viewport for faster loading
+        rootMargin: '200px 0px',
         threshold: 0,
       }
     );
@@ -88,7 +88,7 @@ export const LazyImage: React.FC<LazyImageProps> = ({
         <img
           src={lqipUrl}
           alt={alt}
-          className="absolute inset-0 w-full h-full object-cover blur-xl transition-opacity duration-500"
+          className="absolute inset-0 w-full h-full object-cover blur-xl transition-opacity duration-300"
           style={{ 
             opacity: isIntersected ? 1 : 0,
             zIndex: 10,
@@ -107,7 +107,7 @@ export const LazyImage: React.FC<LazyImageProps> = ({
             background:
               'linear-gradient(90deg, rgba(245,238,223,0.8) 0%, rgba(253,248,240,0.9) 50%, rgba(245,238,223,0.8) 100%)',
             backgroundSize: '200% 100%',
-            animation: 'shimmer 1.2s ease-in-out infinite',
+            animation: 'shimmer 0.8s ease-in-out infinite',
           }}
         />
       )}
@@ -147,7 +147,7 @@ export const LazyImage: React.FC<LazyImageProps> = ({
                   setHasError(true);
                 }
               }}
-              className={`transition-opacity duration-500 ease-out select-none w-full h-full absolute inset-0 object-cover ${
+              className={`transition-opacity duration-300 ease-out select-none w-full h-full absolute inset-0 object-cover ${
                 isLoaded ? 'opacity-100' : 'opacity-0'
               } ${className}`}
               style={{ zIndex: 20 }}
@@ -167,6 +167,9 @@ export const LazyImage: React.FC<LazyImageProps> = ({
         @keyframes shimmer {
           0%   { background-position: 200% 0; }
           100% { background-position: -200% 0; }
+        }
+        .shimmer {
+          animation: shimmer 0.8s ease-in-out infinite !important;
         }
       `}</style>
     </div>
