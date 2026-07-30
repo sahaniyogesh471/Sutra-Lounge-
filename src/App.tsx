@@ -39,6 +39,8 @@ import AdminAuthModal from './components/AdminAuthModal';
 import * as supabaseService from './supabaseService';
 import { verifySession, loginWithEmailPassword, loginWithPasscode } from './services/adminAuthService';
 import { GoogleOAuthProvider } from '@react-oauth/google';
+import { createSession, getSession, isSessionValid, clearSession, setupSessionTimeoutListener, setupActivityTracking } from './utils/sessionManagement';
+import { validateEnvironment, AdminAuthSettings } from './types/env';
 import { 
   LanguageType, 
   STATIC_TRANSLATIONS, 
@@ -528,71 +530,103 @@ export default function App() {
 
   // Check admin session on app load and set up session verification
   useEffect(() => {
+    // Validate environment variables on startup
+    const envValidation = validateEnvironment();
+    if (!envValidation.valid && import.meta.env.MODE === 'production') {
+      console.warn('[v0] Environment validation warnings:', envValidation.errors);
+    }
+
     const checkAdminSession = async () => {
       try {
-        const storedAdminId = sessionStorage.getItem('admin_id');
-        const storedToken = sessionStorage.getItem('admin_token');
+        // Try to restore session from storage with validation
+        const storedSession = getSession();
 
-        if (storedAdminId && storedToken) {
-          const isValid = await verifySession(storedAdminId, storedToken);
-          if (isValid) {
-            setAdminUser({ id: storedAdminId });
-            setAdminSessionToken(storedToken);
-            console.log('[v0] Admin session restored from storage');
+        if (storedSession && isSessionValid()) {
+          const isServerValid = await verifySession(storedSession.userId, storedSession.token);
+          if (isServerValid) {
+            const user = await supabaseService.getAdminUser(storedSession.userId);
+            if (user) {
+              setAdminUser(user);
+              setAdminSessionToken(storedSession.token);
+              console.log('[v0] Admin session restored and verified');
+            }
           } else {
-            // Session expired
-            sessionStorage.removeItem('admin_id');
-            sessionStorage.removeItem('admin_token');
-            setAdminUser(null);
-            setAdminSessionToken(null);
-            console.log('[v0] Admin session expired');
+            // Session invalid on server
+            clearSession();
+            console.log('[v0] Admin session invalid on server');
           }
+        } else if (storedSession) {
+          // Session data exists but is expired/invalid
+          clearSession();
+          console.log('[v0] Admin session expired or invalid');
         }
       } catch (error) {
         console.error('[v0] Session check error:', error);
+        clearSession();
       }
     };
 
     checkAdminSession();
 
     // Set up periodic session verification (every 5 minutes)
+    const cleanupSessionTimeout = setupSessionTimeoutListener(() => {
+      console.log('[v0] Session timeout detected, logging out');
+      handleAdminLogout();
+      setIsAdminAuthOpen(true);
+    });
+
+    // Set up activity tracking for idle timeout detection
+    const cleanupActivityTracking = setupActivityTracking();
+
     sessionCheckInterval.current = setInterval(() => {
       if (adminUser && adminSessionToken) {
-        verifySession(adminUser.id, adminSessionToken).then((isValid) => {
-          if (!isValid) {
-            setAdminUser(null);
-            setAdminSessionToken(null);
-            setIsAdminOpen(false);
-            setIsAdminAuthOpen(true);
-            console.log('[v0] Session expired, showing auth modal');
-          }
-        });
+        const isLocalValid = isSessionValid();
+        if (!isLocalValid) {
+          console.log('[v0] Local session validation failed');
+          handleAdminLogout();
+          setIsAdminAuthOpen(true);
+        } else {
+          // Verify with server
+          verifySession(adminUser.id, adminSessionToken).then((isServerValid) => {
+            if (!isServerValid) {
+              console.log('[v0] Server session validation failed');
+              handleAdminLogout();
+              setIsAdminAuthOpen(true);
+            }
+          });
+        }
       }
     }, 5 * 60 * 1000);
 
     return () => {
       if (sessionCheckInterval.current) clearInterval(sessionCheckInterval.current);
+      cleanupSessionTimeout();
+      cleanupActivityTracking();
     };
   }, []);
 
   const handleAdminAuthSuccess = (user: any, token: string) => {
+    // Create new session with timeout tracking
+    createSession(user.id, token);
+    
     setAdminUser(user);
     setAdminSessionToken(token);
-    sessionStorage.setItem('admin_id', user.id);
-    sessionStorage.setItem('admin_token', token);
     setIsAdminAuthOpen(false);
     setIsAdminOpen(true);
-    console.log('[v0] Admin authenticated successfully');
+    
+    console.log('[v0] Admin authenticated successfully, session created');
   };
 
   const handleAdminLogout = () => {
+    // Clear session and reset state
+    clearSession();
+    
     setAdminUser(null);
     setAdminSessionToken(null);
-    sessionStorage.removeItem('admin_id');
-    sessionStorage.removeItem('admin_token');
     setIsAdminOpen(false);
     setIsAdminAuthOpen(false);
-    console.log('[v0] Admin logged out');
+    
+    console.log('[v0] Admin logged out, session cleared');
   };
 
   const handleAdminPanelOpen = () => {
@@ -3009,7 +3043,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
                   <p className="text-xs text-charcoal-muted max-w-sm mx-auto font-light leading-relaxed">
                     {lang === 'en' 
                       ? "If WhatsApp didn't open, tap the button below to resend your booking details directly to our desk."
-                      : 'यदि व्हाट्सएप नखुलेको भए, तलको बटन थिचेर बुकिङ विवरण पठाउनुहोस्।'
+                      : 'यदि व्हाट्सएप नखुलेको भए, तलको बटन ���िचेर बुकिङ विवरण पठाउनुहोस्।'
                     }
                   </p>
 
