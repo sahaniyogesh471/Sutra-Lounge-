@@ -74,15 +74,26 @@ export const LazyImage: React.FC<LazyImageProps> = ({
     <div
       ref={containerRef}
       className={`relative overflow-hidden bg-cream-soft ${wrapperClassName}`}
-      style={{ backgroundColor: 'rgba(245,238,223,0.6)', contain: 'layout paint', willChange: 'transform' }}
+      style={{ 
+        backgroundColor: 'rgba(245,238,223,0.6)', 
+        contain: 'layout paint', 
+        willChange: 'transform',
+        display: 'block',
+        width: '100%',
+        height: '100%'
+      }}
     >
       {/* LQIP Blur Placeholder - shows instantly while full image loads */}
       {lqipUrl && !isLoaded && !hasError && (
         <img
           src={lqipUrl}
           alt={alt}
-          className="absolute inset-0 w-full h-full object-cover blur-md transition-opacity duration-300"
-          style={{ opacity: isIntersected ? 1 : 0 }}
+          className="absolute inset-0 w-full h-full object-cover blur-xl transition-opacity duration-500"
+          style={{ 
+            opacity: isIntersected ? 1 : 0,
+            zIndex: 10,
+            filter: 'blur(20px)'
+          }}
           aria-hidden="true"
           decoding="async"
         />
@@ -136,9 +147,10 @@ export const LazyImage: React.FC<LazyImageProps> = ({
                   setHasError(true);
                 }
               }}
-              className={`transition-opacity duration-300 ease-out select-none w-full h-full ${
+              className={`transition-opacity duration-500 ease-out select-none w-full h-full absolute inset-0 object-cover ${
                 isLoaded ? 'opacity-100' : 'opacity-0'
               } ${className}`}
+              style={{ zIndex: 20 }}
               {...props}
             />
           )}
