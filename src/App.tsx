@@ -1275,11 +1275,11 @@ Please confirm or contact the guest. Thank you! 🙏`;
     ? MENU_HIGHLIGHTS.map(translateMenuItem) 
     : MENU_HIGHLIGHTS.filter(item => item.category === selectedCategory).map(translateMenuItem);
 
-  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || 'test-client-id-for-development';
-
-  return (
-    <GoogleOAuthProvider clientId={googleClientId}>
-      <div className="min-h-screen w-full overflow-x-hidden flex flex-col font-sans text-charcoal bg-cream-soft relative antialiased">
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+  
+  // If no valid Google Client ID is provided, render without GoogleOAuthProvider
+  const appContent = (
+    <div className="min-h-screen w-full overflow-x-hidden flex flex-col font-sans text-charcoal bg-cream-soft relative antialiased">
       
       {/* TOP PROMOTIONAL ANNOUNCEMENT BAR */}
       <div id="promo-bar" className="bg-charcoal text-cream-soft py-2 px-4 border-b border-gold/15 flex justify-center items-center gap-2 relative overflow-hidden text-center text-[11px] sm:text-xs font-semibold z-50">
@@ -3285,7 +3285,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
                   <p className="text-[11px] text-charcoal-muted leading-relaxed font-light">
                     {lang === 'en'
                       ? 'Sutra Lounge is centrally located along Nagar Bikash Samiti Marg in Hetauda. We feature designated customer vehicle slots directly in front of the entryway, enabling seamless local ride drops and safe parking for motorbikes and cars.'
-                      : 'सुत्र लाउन्ज हेटौंडाको नगर विकास समिति मार्ग क्षेत्रमा सुलभ रूपमा अवस्थित छ। हाम्रो प्��वेशद्वारको ठीक अगाडि ग्राहकहरूका लागि सवारी साधन तथा मोटरसाइकलहरू व��यवस्थित र सुरक्षित रूपमा पार्किङ गर्ने पर्याप्त ठाउँ छ।'
+                      : 'सुत्र लाउन्ज हेटौंडाको नगर विकास समिति मार्ग क्षेत्रमा सुलभ रूपमा अव���्थित छ। हाम्रो प्��वेशद्वारको ठीक अगाडि ग्राहकहरूका लागि सवारी साधन तथा मोटरसाइकलहरू व��यवस्थित र सुरक्षित रूपमा पार्किङ गर्ने पर्याप्त ठाउँ छ।'
                     }
                   </p>
                 </div>
@@ -3535,6 +3535,14 @@ Please confirm or contact the guest. Thank you! 🙏`;
       />
 
       </div>
+  );
+
+  // Wrap with GoogleOAuthProvider only if clientId is valid
+  return googleClientId ? (
+    <GoogleOAuthProvider clientId={googleClientId}>
+      {appContent}
     </GoogleOAuthProvider>
+  ) : (
+    appContent
   );
 }
