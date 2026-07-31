@@ -7,7 +7,7 @@ export interface ErrorContext {
   component?: string;
   operation?: string;
   severity?: 'critical' | 'warning' | 'info';
-  timestamp?: Date;
+  timestamp?: string | Date;
 }
 
 export class CloudflareError extends Error {

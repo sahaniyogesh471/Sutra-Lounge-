@@ -545,7 +545,7 @@ export default function App() {
           const isServerValid = await verifySession(storedSession.userId, storedSession.token);
           if (isServerValid) {
             // Restore admin session from storage
-            setAdminUser({ id: storedSession.userId, email: storedSession.email || '', name: '' });
+            setAdminUser({ id: storedSession.userId, email: '', name: '' });
             setAdminSessionToken(storedSession.token);
             console.log('[v0] Admin session restored and verified');
           } else {
@@ -1123,7 +1123,7 @@ export default function App() {
       if (!selectedSlot) {
         setFormError(lang === 'en'
           ? "Please select an available dining slot from the grid below!"
-          : "कृपया उपलब्ध बुकिङ समयहरू मध्ये एक चयन ���र्नुहोस्!");
+          : "कृपया उपलब्ध बुकिङ समयहरू मध्ये एक चयन ���र���नुहोस्!");
         return;
       }
     }
@@ -2022,7 +2022,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
                           ) : (
                             <>
                               <Facebook className="w-3 h-3 text-gold" />
-                              <span>{lang === 'en' ? 'Facebook Page' : 'फेसबुक पेज'}</span>
+                              <span>{lang === 'en' ? 'Facebook Page' : 'फेसब��क पेज'}</span>
                             </>
                           )}
                         </a>
@@ -2281,7 +2281,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
             <p className="text-sm sm:text-base text-charcoal-muted leading-relaxed font-light">
               {lang === 'en' 
                 ? 'Nestled right on Nagar Bikash Samiti Marg, Hetauda 44107, Sutra Lounge was built with a specific goal: providing an eye-safe, beautifully designed hub where people feel genuinely welcome of their own accord.' 
-                : 'नगर विकास समिति मार्ग, हेटौंडा ४४१०७ मा अवस्थित, सुत्र लाउन्ज एक विशेष उद्देश्यका साथ निर्माण गरिएको हो: जहाँ आउने प्रत्येक पाहुनाले पूर्ण रूपमा न्यानो आतिथ्यता र आरामदायी वातावरणको प्रत्यक्ष अनुभूति गर्न सकून्।'
+                : 'नगर विकास समिति मार्ग, हेटौंडा ४४१०७ मा अवस्थित, सुत��र लाउन्ज एक विशेष उद्देश्यका साथ निर्माण गरिएको हो: जहाँ आउने प्रत्येक पाहुनाले पूर्ण रूपमा न्यानो आतिथ्यता र आरामदायी वातावरणको प्रत्यक्ष अनुभूति गर्न सकून्।'
               }
             </p>
           </motion.div>
