@@ -544,12 +544,10 @@ export default function App() {
         if (storedSession && isSessionValid()) {
           const isServerValid = await verifySession(storedSession.userId, storedSession.token);
           if (isServerValid) {
-            const user = await supabaseService.getAdminUser(storedSession.userId);
-            if (user) {
-              setAdminUser(user);
-              setAdminSessionToken(storedSession.token);
-              console.log('[v0] Admin session restored and verified');
-            }
+            // Restore admin session from storage
+            setAdminUser({ id: storedSession.userId, email: storedSession.email || '', name: '' });
+            setAdminSessionToken(storedSession.token);
+            console.log('[v0] Admin session restored and verified');
           } else {
             // Session invalid on server
             clearSession();
@@ -1125,7 +1123,7 @@ export default function App() {
       if (!selectedSlot) {
         setFormError(lang === 'en'
           ? "Please select an available dining slot from the grid below!"
-          : "कृपया उपलब्ध बुकिङ समयहरू मध्ये एक चयन ��र्नुहोस्!");
+          : "कृपया उपलब्ध बुकिङ समयहरू मध्ये एक चयन ���र्नुहोस्!");
         return;
       }
     }
