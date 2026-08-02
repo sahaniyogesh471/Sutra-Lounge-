@@ -238,21 +238,23 @@ export default function App() {
   // Subscribe to real-time updates
   useEffect(() => {
     try {
-      const subReservations = supabaseService.subscribeToReservations(setDbReservations);
-      const subOrders = supabaseService.subscribeToOrders((orders) => {});
-      const subHours = supabaseService.subscribeToBusinessHours((hours) => {
-        const hoursList = Object.entries(hours).map(([key, value]: [string, any]) => ({ 
-          weekday: value.weekday || key, 
-          ...value 
-        }));
-        setDbBusinessHours(hoursList);
-      });
+      // Temporarily disabled realtime subscriptions due to Supabase configuration
+      // They can be re-enabled once Supabase realtime is properly configured
+      // const subReservations = supabaseService.subscribeToReservations(setDbReservations);
+      // const subOrders = supabaseService.subscribeToOrders((orders) => {});
+      // const subHours = supabaseService.subscribeToBusinessHours((hours) => {
+      //   const hoursList = Object.entries(hours).map(([key, value]: [string, any]) => ({ 
+      //     weekday: value.weekday || key, 
+      //     ...value 
+      //   }));
+      //   setDbBusinessHours(hoursList);
+      // });
 
-      return () => {
-        subReservations.unsubscribe?.();
-        subOrders.unsubscribe?.();
-        subHours.unsubscribe?.();
-      };
+      // return () => {
+      //   subReservations.unsubscribe?.();
+      //   subOrders.unsubscribe?.();
+      //   subHours.unsubscribe?.();
+      // };
     } catch (error) {
       console.error('Error setting up subscriptions:', error);
     }
@@ -2567,7 +2569,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
             <p className="text-sm text-charcoal-muted font-light pt-1">
               {lang === 'en'
                 ? 'Browse organic crowd-sourced photos uploaded by local patrons and verified foodies directly to our Google Places feed.'
-                : 'स्थानीय ग्राहकहरू र प्रमाणित फुडीहरूद्वारा सिधा हाम्रो गुगल बिजनेस खातामा राखिएका वास्तविक तस्विरहरू हेर्नुहोस्।'
+                : 'स्थानीय ग्राहकहरू र प्रमाणित फुडीहरूद्वारा सिधा हाम्रो गुगल बिजन��स खातामा राखिएका वास्तविक तस्विरहरू हेर्नुहोस्।'
               }
             </p>
           </motion.div>
@@ -3360,7 +3362,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
             <p className="text-xs text-cream-soft/60 leading-relaxed font-light max-w-sm">
               {lang === 'en' 
                 ? 'Nagar Bikash Samiti Marg, Hetauda 44107, Nepal. The leading modern restaurant landmark in town. Savor signature sandwich platters, barista-grade refreshments, and local delicacies prepared with absolute care.'
-                : 'नग��� विकास समिति मार्ग, हेटौंडा ४४१०७, नेपाल। शहरको मुख्य आधुनिक र प्रिमियम रेस्टुरेन्ट। हाम्रो विशेष एभर्डिन रेसिपी स्यान्डविच, स्तरिय कफी र चिसो पेय पदार्थहरूको स्वादिष्ट स्वाद लिनुहोस्।'
+                : 'नग��� विकास समिति मार्ग, हेटौंड��� ४४१०७, नेपाल। शहरको मुख्य आधुनिक र प्रिमियम रेस्टुरेन्ट। हाम्रो विशेष एभर्डिन रेसिपी स्यान्डविच, स्तरिय कफी र चिसो पेय पदार्थहरूको स्वादिष्ट स्वाद लिनुहोस्।'
               }
             </p>
             <div className="flex items-center gap-3">
