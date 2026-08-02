@@ -237,30 +237,8 @@ export default function App() {
   }
 
   // Subscribe to real-time updates
-  // Build trigger: force Cloudflare to pick up latest changes
-  useEffect(() => {
-    try {
-      // Temporarily disabled realtime subscriptions due to Supabase configuration
-      // They can be re-enabled once Supabase realtime is properly configured
-      // const subReservations = supabaseService.subscribeToReservations(setDbReservations);
-      // const subOrders = supabaseService.subscribeToOrders((orders) => {});
-      // const subHours = supabaseService.subscribeToBusinessHours((hours) => {
-      //   const hoursList = Object.entries(hours).map(([key, value]: [string, any]) => ({ 
-      //     weekday: value.weekday || key, 
-      //     ...value 
-      //   }));
-      //   setDbBusinessHours(hoursList);
-      // });
-
-      // return () => {
-      //   subReservations.unsubscribe?.();
-      //   subOrders.unsubscribe?.();
-      //   subHours.unsubscribe?.();
-      // };
-    } catch (error) {
-      console.error('Error setting up subscriptions:', error);
-    }
-  }, []);
+  // Realtime subscriptions disabled - causes Supabase realtime errors
+  // App functions without realtime updates - data loads on mount
 
   // Dynamic slot calculations
   const calculateAvailableSlots = (selectedDateStr: string, guests: number): any[] => {
@@ -1713,7 +1691,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
                       ★★★★☆ {BUSINESS_DETAILS.rating}
                     </p>
                     <p className="text-[9px] text-cream-soft/60">
-                      {BUSINESS_DETAILS.reviewCount} {lang === 'en' ? 'Local Feedback' : 'स्थानीय प्रतिक्रियाहरू'}
+                      {BUSINESS_DETAILS.reviewCount} {lang === 'en' ? 'Local Feedback' : 'स्थानीय प्रतिक्रियाह��ू'}
                     </p>
                   </div>
                 </div>
@@ -2281,7 +2259,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
             <p className="text-sm sm:text-base text-charcoal-muted leading-relaxed font-light">
               {lang === 'en' 
                 ? 'Nestled right on Nagar Bikash Samiti Marg, Hetauda 44107, Sutra Lounge was built with a specific goal: providing an eye-safe, beautifully designed hub where people feel genuinely welcome of their own accord.' 
-                : 'नगर विकास समिति मार्ग, हेटौंडा ४४१०७ म��� अवस्थित, सुत��र लाउन्ज एक विशेष उद्देश्यका साथ निर्माण गरिएको हो: जहाँ आउने प्रत्येक पाहुनाले पूर्ण रूपमा न्यानो आतिथ्यता र आरामदायी वातावरणको प्रत्यक्ष अनुभूति गर्न सकून्।'
+                : 'नगर वि���ास समिति मार्ग, हेटौंडा ४४१०७ म��� अवस्थित, सुत��र लाउन्ज एक विशेष उद्देश्यका साथ निर्माण गरिएको हो: जहाँ आउने प्रत्येक पाहुनाले पूर्ण रूपमा न्यानो आतिथ्यता र आरामदायी वातावरणको प्रत्यक्ष अनुभूति गर्न सकून्।'
               }
             </p>
           </motion.div>
@@ -3285,7 +3263,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
                   <p className="text-[11px] text-charcoal-muted leading-relaxed font-light">
                     {lang === 'en'
                       ? 'Sutra Lounge is centrally located along Nagar Bikash Samiti Marg in Hetauda. We feature designated customer vehicle slots directly in front of the entryway, enabling seamless local ride drops and safe parking for motorbikes and cars.'
-                      : 'सुत्र लाउन्ज हेटौंडाको नगर विकास समिति मार्�� क्षेत्रमा सुलभ रूपमा ���व���्थित छ। हाम्रो प्��वेशद्वारको ठीक अगाडि ग्राहकहरूका लागि सवारी साधन तथा मोटरसाइकलहरू व��यवस्थित र सुरक्षित रूपमा पार्किङ गर्ने पर्याप्त ठाउँ छ।'
+                      : 'सुत्र लाउन��ज हेटौंडाको नगर विकास समिति मार्�� क्षेत्रमा सुलभ रूपमा ���व���्थित छ। हाम्रो प्��वेशद्वारको ठीक अगाडि ग्राहकहरूका लागि सवारी साधन तथा मोटरसाइकलहरू व��यवस्थित र सुरक्षित रूपमा पार्किङ गर्ने पर्याप्त ठाउँ छ।'
                     }
                   </p>
                 </div>
