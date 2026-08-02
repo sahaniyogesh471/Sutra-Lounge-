@@ -236,6 +236,7 @@ export default function App() {
   }
 
   // Subscribe to real-time updates
+  // Build trigger: force Cloudflare to pick up latest changes
   useEffect(() => {
     try {
       // Temporarily disabled realtime subscriptions due to Supabase configuration
