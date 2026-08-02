@@ -169,6 +169,7 @@ const formatTimeTo12Hour = (timeStr: string) => {
   }
 };
 
+// Cache bust timestamp: 2026-08-02 14:30 UTC - Force Cloudflare fresh build
 export default function App() {
   // Seeding and Firestore Sync States
   const [dbReservations, setDbReservations] = useState<any[]>([]);
@@ -730,7 +731,7 @@ export default function App() {
     return timeStr
       .replace('8:00 AM', 'बिहान ८:००')
       .replace('9:00 PM', 'बेलुका ९:००')
-      .replace('AM', 'बिहान')
+      .replace('AM', 'बिहा��')
       .replace('PM', 'बेलुका');
   };
 
@@ -1913,7 +1914,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
               <p className="text-xs text-charcoal-muted font-light leading-relaxed">
                 {lang === 'en' 
                   ? 'Explore our full, dynamically filterable menu below featuring Appetizers, Mocktails, Indian Curries and cafe bites, or complete a secure reservation inquiry to experience modern restaurant hospitality at Nagar Bikash Samiti Marg, Huprachaur.'
-                  : 'हाम्रो पूर्ण मेनुमा एपीटाइजर, मकटेल, भारतीय ��रिकार र क्याफे खाज��हरू उपलब्ध छन्। नगर विकास समिति मार्ग, हुप्रचौरमा सुत्र आतिथ्यता अनुभव गर्न बुकिङ सोधपुछ फारम भर्नुहोस्।'}
+                  : 'हाम्रो पूर्ण मेनुमा एपीटाइजर, मकटेल, भारतीय ��रिकार र क्याफे खाज��हरू उपलब्ध छन्। नगर विकास समिति मार्ग, हुप्रचौरमा सुत्र आतिथ्यता ��नुभव गर्न बुकिङ सोधपुछ फारम भर्नुहोस्।'}
               </p>
             </div>
             
@@ -2280,7 +2281,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
             <p className="text-sm sm:text-base text-charcoal-muted leading-relaxed font-light">
               {lang === 'en' 
                 ? 'Nestled right on Nagar Bikash Samiti Marg, Hetauda 44107, Sutra Lounge was built with a specific goal: providing an eye-safe, beautifully designed hub where people feel genuinely welcome of their own accord.' 
-                : 'नगर विकास समिति मार्ग, हेटौंडा ४४१०७ मा अवस्थित, सुत��र लाउन्ज एक विशेष उद्देश्यका साथ निर्माण गरिएको हो: जहाँ आउने प्रत्येक पाहुनाले पूर्ण रूपमा न्यानो आतिथ्यता र आरामदायी वातावरणको प्रत्यक्ष अनुभूति गर्न सकून्।'
+                : 'नगर विकास समिति मार्ग, हेटौंडा ४४१०७ म��� अवस्थित, सुत��र लाउन्ज एक विशेष उद्देश्यका साथ निर्माण गरिएको हो: जहाँ आउने प्रत्येक पाहुनाले पूर्ण रूपमा न्यानो आतिथ्यता र आरामदायी वातावरणको प्रत्यक्ष अनुभूति गर्न सकून्।'
               }
             </p>
           </motion.div>
@@ -3284,7 +3285,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
                   <p className="text-[11px] text-charcoal-muted leading-relaxed font-light">
                     {lang === 'en'
                       ? 'Sutra Lounge is centrally located along Nagar Bikash Samiti Marg in Hetauda. We feature designated customer vehicle slots directly in front of the entryway, enabling seamless local ride drops and safe parking for motorbikes and cars.'
-                      : 'सुत्र लाउन्ज हेटौंडाको नगर विकास समिति मार्ग क्षेत्रमा सुलभ रूपमा ���व���्थित छ। हाम्रो प्��वेशद्वारको ठीक अगाडि ग्राहकहरूका लागि सवारी साधन तथा मोटरसाइकलहरू व��यवस्थित र सुरक्षित रूपमा पार्किङ गर्ने पर्याप्त ठाउँ छ।'
+                      : 'सुत्र लाउन्ज हेटौंडाको नगर विकास समिति मार्�� क्षेत्रमा सुलभ रूपमा ���व���्थित छ। हाम्रो प्��वेशद्वारको ठीक अगाडि ग्राहकहरूका लागि सवारी साधन तथा मोटरसाइकलहरू व��यवस्थित र सुरक्षित रूपमा पार्किङ गर्ने पर्याप्त ठाउँ छ।'
                     }
                   </p>
                 </div>
