@@ -100,6 +100,8 @@ jobs:
             echo "Cloudflare credentials not set"
             exit 1
           fi
+          echo "Ensuring Cloudflare Pages project exists..."
+          npx wrangler pages project create sutra-lounge --production-branch=main || echo "Project already exists, continuing..."
           echo "Deploying dist directory to Cloudflare Pages..."
           npx wrangler pages deploy dist --project-name=sutra-lounge --branch=main
         env:
