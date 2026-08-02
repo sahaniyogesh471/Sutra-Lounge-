@@ -38,7 +38,6 @@ import { AdminPanel } from './components/AdminPanel';
 import AdminAuthModal from './components/AdminAuthModal';
 import * as supabaseService from './supabaseService';
 import { verifySession, loginWithEmailPassword, loginWithPasscode } from './services/adminAuthService';
-import { GoogleOAuthProvider } from '@react-oauth/google';
 import { createSession, getSession, isSessionValid, clearSession, setupSessionTimeoutListener, setupActivityTracking } from './utils/sessionManagement';
 import { validateEnvironment, AdminAuthSettings } from './types/env';
 import { 
@@ -1275,10 +1274,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
     ? MENU_HIGHLIGHTS.map(translateMenuItem) 
     : MENU_HIGHLIGHTS.filter(item => item.category === selectedCategory).map(translateMenuItem);
 
-  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-  
-  // If no valid Google Client ID is provided, render without GoogleOAuthProvider
-  const appContent = (
+  return (
     <div className="min-h-screen w-full overflow-x-hidden flex flex-col font-sans text-charcoal bg-cream-soft relative antialiased">
       
       {/* TOP PROMOTIONAL ANNOUNCEMENT BAR */}
@@ -3285,7 +3281,7 @@ Please confirm or contact the guest. Thank you! 🙏`;
                   <p className="text-[11px] text-charcoal-muted leading-relaxed font-light">
                     {lang === 'en'
                       ? 'Sutra Lounge is centrally located along Nagar Bikash Samiti Marg in Hetauda. We feature designated customer vehicle slots directly in front of the entryway, enabling seamless local ride drops and safe parking for motorbikes and cars.'
-                      : 'सुत्र लाउन्ज हेटौंडाको नगर विकास समिति मार्ग क्षेत्रमा सुलभ रूपमा अव���्थित छ। हाम्रो प्��वेशद्वारको ठीक अगाडि ग्राहकहरूका लागि सवारी साधन तथा मोटरसाइकलहरू व��यवस्थित र सुरक्षित रूपमा पार्किङ गर्ने पर्याप्त ठाउँ छ।'
+                      : 'सुत्र लाउन्ज हेटौंडाको नगर विकास समिति मार्ग क्षेत्रमा सुलभ रूपमा ���व���्थित छ। हाम्रो प्��वेशद्वारको ठीक अगाडि ग्राहकहरूका लागि सवारी साधन तथा मोटरसाइकलहरू व��यवस्थित र सुरक्षित रूपमा पार्किङ गर्ने पर्याप्त ठाउँ छ।'
                     }
                   </p>
                 </div>
@@ -3534,15 +3530,6 @@ Please confirm or contact the guest. Thank you! 🙏`;
         setDishImageUrl={setDishImageUrl}
       />
 
-      </div>
-  );
-
-  // Wrap with GoogleOAuthProvider only if clientId is valid
-  return googleClientId ? (
-    <GoogleOAuthProvider clientId={googleClientId}>
-      {appContent}
-    </GoogleOAuthProvider>
-  ) : (
-    appContent
+    </div>
   );
 }
